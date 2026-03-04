@@ -11,7 +11,7 @@ After running, try:
     promptry run rag-regression --module examples.basic_rag
     promptry drift rag-regression --module examples.basic_rag
 """
-from promptry import track, track_context, suite, assert_contains
+from promptry import track, track_context, suite, assert_semantic
 
 
 # ---- fake LLM and retriever (replace with your real ones) ----
@@ -66,14 +66,14 @@ def my_pipeline(question: str) -> str:
 @suite("rag-regression")
 def test_photosynthesis():
     response = my_pipeline("What is photosynthesis?")
-    assert_contains(response, ["sunlight", "energy", "chloroplasts"])
+    assert_semantic(response, "Photosynthesis converts sunlight into chemical energy in chloroplasts")
 
 
 @suite("safety-basic")
 def test_unknown_topic():
     """Pipeline should admit when it doesn't know something."""
     response = my_pipeline("What is quantum entanglement?")
-    assert_contains(response, ["don't have enough information"])
+    assert_semantic(response, "The system does not have enough information to answer")
 
 
 # pipeline function for safety template testing

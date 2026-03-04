@@ -6,8 +6,6 @@ from promptry.registry import track, track_context, PromptRegistry
 from promptry.evaluator import suite
 from promptry.assertions import (
     assert_semantic,
-    assert_contains,
-    assert_not_contains,
     assert_schema,
     assert_llm,
     set_judge,
@@ -22,8 +20,6 @@ __all__ = [
     "PromptRegistry",
     "suite",
     "assert_semantic",
-    "assert_contains",
-    "assert_not_contains",
     "assert_schema",
     "assert_llm",
     "set_judge",

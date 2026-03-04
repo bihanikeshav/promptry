@@ -60,7 +60,7 @@ def compare_with_baseline(
     baseline_results = storage.get_eval_results(baseline_run.id)
     current_results = storage.get_eval_results(current.run_id) if current.run_id else []
 
-    for atype in ("semantic", "contains", "schema", "llm"):
+    for atype in ("semantic", "schema", "llm"):
         b_results = [r for r in baseline_results if r.assertion_type == atype]
         c_results = [r for r in current_results if r.assertion_type == atype]
 

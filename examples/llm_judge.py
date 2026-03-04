@@ -11,7 +11,7 @@ You need an OpenAI API key for this example:
 Or swap out the judge for any other provider — Anthropic, local
 models, whatever takes a string and returns a string.
 """
-from promptry import suite, assert_contains, assert_llm, set_judge
+from promptry import suite, assert_semantic, assert_llm, set_judge
 
 
 # ---- wire up your LLM as the judge ----
@@ -64,8 +64,8 @@ def my_pipeline(question: str) -> str:
 def test_rag_quality():
     response = my_pipeline("What is photosynthesis?")
 
-    # fast, free keyword check
-    assert_contains(response, ["sunlight", "energy"])
+    # fast semantic check
+    assert_semantic(response, "Explains how plants convert sunlight into energy")
 
     # LLM grading — slower but catches nuance
     assert_llm(

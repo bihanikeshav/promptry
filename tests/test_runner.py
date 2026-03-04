@@ -15,8 +15,13 @@ class TestRunSuite:
     def test_passing_suite(self, storage):
         @suite("pass_suite")
         def my_test():
-            from promptry.assertions import assert_contains
-            assert_contains("the cat sat on the mat", ["cat", "mat"])
+            from promptry.assertions import assert_schema
+            from pydantic import BaseModel
+
+            class Simple(BaseModel):
+                value: int
+
+            assert_schema({"value": 42}, Simple)
 
         result = run_suite("pass_suite", storage=storage)
         assert result.overall_pass is True
@@ -25,8 +30,13 @@ class TestRunSuite:
     def test_failing_suite(self, storage):
         @suite("fail_suite")
         def my_test():
-            from promptry.assertions import assert_contains
-            assert_contains("hello", ["missing_keyword"])
+            from promptry.assertions import assert_schema
+            from pydantic import BaseModel
+
+            class Simple(BaseModel):
+                value: int
+
+            assert_schema({"wrong_key": "bad"}, Simple)
 
         result = run_suite("fail_suite", storage=storage)
         assert result.overall_pass is False
@@ -34,8 +44,13 @@ class TestRunSuite:
     def test_stores_results(self, storage):
         @suite("stored_suite")
         def my_test():
-            from promptry.assertions import assert_contains
-            assert_contains("hello world", ["hello"])
+            from promptry.assertions import assert_schema
+            from pydantic import BaseModel
+
+            class Simple(BaseModel):
+                value: int
+
+            assert_schema({"value": 1}, Simple)
 
         result = run_suite("stored_suite", storage=storage)
         assert result.run_id is not None
@@ -82,8 +97,13 @@ class TestBaselineComparison:
     def test_compare_detects_regression(self, storage):
         @suite("regression_suite")
         def my_test():
-            from promptry.assertions import assert_contains
-            assert_contains("hello world", ["hello"])
+            from promptry.assertions import assert_schema
+            from pydantic import BaseModel
+
+            class Simple(BaseModel):
+                value: int
+
+            assert_schema({"value": 1}, Simple)
 
         # run baseline
         baseline = run_suite("regression_suite", storage=storage)
@@ -97,7 +117,7 @@ class TestBaselineComparison:
         storage.save_eval_result(
             run_id=run_id,
             test_name="regression_suite",
-            assertion_type="contains",
+            assertion_type="schema",
             passed=False,
             score=0.5,
         )

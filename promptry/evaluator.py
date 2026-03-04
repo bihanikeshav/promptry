@@ -40,7 +40,6 @@ def suite(name: str, description: str = ""):
         def test_rag():
             response = my_pipeline("What is X?")
             assert_semantic(response, "Expected answer about X")
-            assert_contains(response, ["keyword1", "keyword2"])
     """
     def decorator(fn):
         if name in _SUITES:

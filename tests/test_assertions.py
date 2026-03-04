@@ -3,55 +3,9 @@ from pydantic import BaseModel
 
 from promptry.evaluator import run_context
 from promptry.assertions import (
-    assert_contains, assert_not_contains, assert_schema,
+    assert_schema,
     assert_llm, set_judge, get_judge,
 )
-
-
-class TestAssertContains:
-
-    def test_all_found(self):
-        with run_context() as results:
-            score = assert_contains("the cat sat on the mat", ["cat", "mat"])
-        assert score == 1.0
-        assert results[0].passed is True
-
-    def test_missing_keyword(self):
-        with run_context():
-            with pytest.raises(AssertionError, match="Missing keywords"):
-                assert_contains("hello world", ["hello", "missing"])
-
-    def test_case_insensitive(self):
-        with run_context() as results:
-            assert_contains("Hello World", ["hello", "world"])
-        assert results[0].passed is True
-
-    def test_case_sensitive(self):
-        with run_context():
-            with pytest.raises(AssertionError):
-                assert_contains("Hello World", ["hello"], case_sensitive=True)
-
-    def test_partial_score(self):
-        with run_context() as results:
-            try:
-                assert_contains("hello world", ["hello", "missing", "also_missing"])
-            except AssertionError:
-                pass
-        assert results[0].score == pytest.approx(1 / 3)
-
-
-class TestAssertNotContains:
-
-    def test_none_found(self):
-        with run_context() as results:
-            score = assert_not_contains("hello world", ["banana", "apple"])
-        assert score == 1.0
-        assert results[0].passed is True
-
-    def test_forbidden_found(self):
-        with run_context():
-            with pytest.raises(AssertionError, match="Found forbidden"):
-                assert_not_contains("hello world", ["hello"])
 
 
 class TestAssertSchema:
@@ -126,7 +80,6 @@ class TestAssertLlm:
     def test_no_judge_raises(self):
         # make sure global judge is cleared
         old = get_judge()
-        set_judge.__wrapped__ if hasattr(set_judge, '__wrapped__') else None
         import promptry.assertions as _mod
         _mod._judge = None
         try:

@@ -31,13 +31,7 @@ _judge: Callable[[str], str] | None = None
 def _get_model():
     global _model
     if _model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-        except ImportError:
-            raise ImportError(
-                "sentence-transformers is required for assert_semantic. "
-                "Install it with: pip install promptry[semantic]"
-            )
+        from sentence_transformers import SentenceTransformer
         from promptry.config import get_config
         name = _model_name_override or get_config().model.embedding_model
         _model = SentenceTransformer(name)
