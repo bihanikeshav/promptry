@@ -8,8 +8,10 @@ Each assertion:
 """
 from __future__ import annotations
 
+import json
+import re
 import time
-from typing import Any, Type
+from typing import Any, Callable, Type
 
 from pydantic import BaseModel, ValidationError
 
@@ -19,6 +21,10 @@ from promptry.evaluator import AssertionResult, append_result
 # use assert_semantic. first call downloads ~80MB, subsequent calls instant.
 _model = None
 _model_name = "all-MiniLM-L6-v2"
+
+# LLM judge callable for assert_llm. the user sets this to their own
+# LLM wrapper function: takes a string prompt, returns a string response.
+_judge: Callable[[str], str] | None = None
 
 
 def _get_model():
@@ -34,6 +40,35 @@ def set_model(name: str):
     global _model, _model_name
     _model_name = name
     _model = None
+
+
+def set_judge(fn: Callable[[str], str]):
+    """Set the LLM judge function for assert_llm.
+
+    The function should take a single string (the grading prompt)
+    and return a string (the LLM's response). Provider-agnostic:
+    wrap OpenAI, Anthropic, local models, whatever you use.
+
+    Example::
+
+        from openai import OpenAI
+        client = OpenAI()
+
+        def my_judge(prompt: str) -> str:
+            r = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return r.choices[0].message.content
+
+        set_judge(my_judge)
+    """
+    global _judge
+    _judge = fn
+
+
+def get_judge() -> Callable[[str], str] | None:
+    return _judge
 
 
 def assert_semantic(actual: str, expected: str, threshold: float = 0.8) -> float:
@@ -147,4 +182,128 @@ def assert_schema(data: Any, model: Type[BaseModel]) -> float:
 
     if not passed:
         raise AssertionError(f"Schema validation failed: {error_details}")
+    return score
+
+
+# ---- grading prompt for assert_llm ----
+
+_GRADING_PROMPT = """You are an eval grader. Rate the following LLM response against the given criteria.
+
+Response to evaluate:
+---
+{response}
+---
+
+Criteria:
+{criteria}
+
+Score the response from 0.0 to 1.0 where:
+- 1.0 = fully meets the criteria
+- 0.0 = completely fails the criteria
+
+Respond with ONLY a JSON object, nothing else:
+{{"score": <float>, "reason": "<short explanation>"}}"""
+
+
+def _parse_judge_output(raw: str) -> tuple[float, str]:
+    """Pull score and reason out of the judge's response.
+
+    Handles common LLM quirks: markdown code fences, extra text
+    around the JSON, etc.
+    """
+    # strip markdown code fences if present
+    cleaned = raw.strip()
+    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+
+    # try to find a JSON object in the response
+    match = re.search(r"\{[^}]+\}", cleaned)
+    if not match:
+        raise ValueError(f"Judge did not return valid JSON: {raw[:200]}")
+
+    data = json.loads(match.group())
+    score = float(data.get("score", 0.0))
+    reason = str(data.get("reason", ""))
+
+    # clamp to [0, 1]
+    score = max(0.0, min(1.0, score))
+    return score, reason
+
+
+def assert_llm(
+    response: str,
+    criteria: str,
+    threshold: float = 0.7,
+    judge: Callable[[str], str] | None = None,
+) -> float:
+    """Grade a response using an LLM judge.
+
+    Sends the response and criteria to an LLM that scores it 0.0-1.0.
+    Provider-agnostic: you supply the LLM callable via set_judge() or
+    the judge parameter.
+
+    Args:
+        response: The LLM output to evaluate.
+        criteria: What the response should do / contain / avoid.
+        threshold: Minimum score to pass (default 0.7).
+        judge: Optional override for the global judge. Takes a prompt
+               string, returns a string.
+
+    Returns:
+        The score (0.0-1.0).
+
+    Raises:
+        AssertionError: If the score is below threshold.
+        RuntimeError: If no judge is configured.
+    """
+    judge_fn = judge or _judge
+    if judge_fn is None:
+        raise RuntimeError(
+            "No LLM judge configured. Call set_judge(fn) first, "
+            "or pass judge=fn to assert_llm()."
+        )
+
+    grading_prompt = _GRADING_PROMPT.format(
+        response=response[:2000],
+        criteria=criteria,
+    )
+
+    start = time.perf_counter()
+    raw_output = judge_fn(grading_prompt)
+    latency = (time.perf_counter() - start) * 1000
+
+    try:
+        score, reason = _parse_judge_output(raw_output)
+    except (ValueError, json.JSONDecodeError, KeyError) as e:
+        append_result(AssertionResult(
+            assertion_type="llm",
+            passed=False,
+            score=0.0,
+            details={
+                "error": str(e),
+                "raw_output": raw_output[:500],
+                "criteria": criteria,
+                "latency_ms": latency,
+            },
+        ))
+        raise AssertionError(f"LLM judge returned unparseable output: {e}")
+
+    passed = score >= threshold
+    append_result(AssertionResult(
+        assertion_type="llm",
+        passed=passed,
+        score=score,
+        details={
+            "criteria": criteria,
+            "reason": reason,
+            "threshold": threshold,
+            "response_preview": response[:200],
+            "latency_ms": latency,
+        },
+    ))
+
+    if not passed:
+        raise AssertionError(
+            f"LLM judge score {score:.3f} < threshold {threshold} ({reason})"
+        )
     return score

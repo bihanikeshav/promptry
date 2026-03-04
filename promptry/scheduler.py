@@ -181,6 +181,12 @@ def _run_loop(suite_name: str, module: str, interval_minutes: int):
                 result.overall_pass, result.overall_score, drift.is_drifting,
             )
 
+            # notify on regression or drift
+            if not result.overall_pass or drift.is_drifting:
+                from promptry.notifications import notify_regression
+                details = f"Drift: {drift.message}" if drift.is_drifting else ""
+                notify_regression(result, details=details)
+
             # update state file with last run info
             _ensure_dir()
             state = {}

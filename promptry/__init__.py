@@ -9,6 +9,8 @@ from promptry.assertions import (
     assert_contains,
     assert_not_contains,
     assert_schema,
+    assert_llm,
+    set_judge,
 )
 from promptry.runner import run_suite
 from promptry.drift import DriftMonitor
@@ -23,6 +25,8 @@ __all__ = [
     "assert_contains",
     "assert_not_contains",
     "assert_schema",
+    "assert_llm",
+    "set_judge",
     "run_suite",
     "DriftMonitor",
     "get_templates",

@@ -54,11 +54,22 @@ class MonitorConfig:
 
 
 @dataclass
+class NotificationsConfig:
+    webhook_url: str = ""
+    email: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+
+
+@dataclass
 class Config:
     storage: StorageConfig = field(default_factory=StorageConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
     model: ModelConfig = field(default_factory=ModelConfig)
     monitor: MonitorConfig = field(default_factory=MonitorConfig)
+    notifications: NotificationsConfig = field(default_factory=NotificationsConfig)
 
 
 def _find_config_file() -> Path | None:
@@ -103,6 +114,21 @@ def _apply_toml(config: Config, data: dict):
             config.monitor.threshold = float(mon["threshold"])
         if "window" in mon:
             config.monitor.window = int(mon["window"])
+
+    if "notifications" in data:
+        n = data["notifications"]
+        if "webhook_url" in n:
+            config.notifications.webhook_url = n["webhook_url"]
+        if "email" in n:
+            config.notifications.email = n["email"]
+        if "smtp_host" in n:
+            config.notifications.smtp_host = n["smtp_host"]
+        if "smtp_port" in n:
+            config.notifications.smtp_port = int(n["smtp_port"])
+        if "smtp_user" in n:
+            config.notifications.smtp_user = n["smtp_user"]
+        if "smtp_password" in n:
+            config.notifications.smtp_password = n["smtp_password"]
 
 
 def _apply_env_overrides(config: Config):
