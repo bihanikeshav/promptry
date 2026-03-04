@@ -10,7 +10,7 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
-    {name = "Keshav"},
+    {name = "Keshav", email = "keshav@meownikov.xyz"},
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -46,7 +46,9 @@ dev = [
 promptry = "promptry.cli:main"
 
 [project.urls]
-Repository = "https://github.com/keshav/promptry"
+Homepage = "https://promptry.meownikov.xyz"
+Repository = "https://github.com/bihanikeshav/promptry"
+Issues = "https://github.com/bihanikeshav/promptry/issues"
 
 [tool.setuptools.packages.find]
 include = ["promptry*"]
