@@ -125,3 +125,30 @@ def track(content: str, name: str, tag=None, metadata=None) -> str:
     _track_cache.add(cache_key)
 
     return content
+
+
+def track_context(chunks: list[str], name: str, metadata=None) -> list[str]:
+    """Track retrieval context alongside a prompt.
+
+    Same idea as track() but for the chunks your RAG pipeline retrieved.
+    Helps pinpoint whether a regression was caused by the prompt changing
+    or the retrieval drifting.
+
+    Returns the chunks list unchanged.
+    """
+    joined = "\n---\n".join(chunks)
+    context_name = f"{name}:context"
+
+    h = PromptRegistry.content_hash(joined)
+    cache_key = f"{context_name}:{h}"
+
+    if cache_key in _track_cache:
+        return chunks
+
+    registry = _get_registry()
+    meta = metadata or {}
+    meta["chunk_count"] = len(chunks)
+    registry.save(name=context_name, content=joined, metadata=meta)
+    _track_cache.add(cache_key)
+
+    return chunks

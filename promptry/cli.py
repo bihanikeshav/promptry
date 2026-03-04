@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sys
 import json
+import importlib
 from pathlib import Path
 from typing import Optional
 
@@ -160,6 +161,98 @@ def prompt_tag(
         raise typer.Exit(1)
 
     console.print(f"[green]Tagged[/green] {name} v{version} as [bold]{tag}[/bold]")
+
+
+# ---- eval commands ----
+
+
+def _import_module(module_path: str):
+    """Import a module by dotted path to trigger @suite registration."""
+    try:
+        importlib.import_module(module_path)
+    except ModuleNotFoundError as e:
+        console.print(f"[red]Error:[/red] Could not import '{module_path}': {e}")
+        raise typer.Exit(1)
+
+
+@app.command("run")
+def run_cmd(
+    suite_name: str = typer.Argument(..., help="Suite to run."),
+    module: str = typer.Option(..., "--module", "-m", help="Python module with suite definitions."),
+    compare: Optional[str] = typer.Option(None, "--compare", "-c", help="Tag to compare against."),
+    prompt_name: Optional[str] = typer.Option(None, "--prompt-name"),
+    prompt_version: Optional[int] = typer.Option(None, "--prompt-version"),
+    model_version: Optional[str] = typer.Option(None, "--model-version"),
+):
+    """Run an eval suite. Exit code 1 on regression."""
+    _import_module(module)
+
+    from promptry.runner import run_suite, compare_with_baseline, format_comparison
+
+    try:
+        result = run_suite(
+            suite_name,
+            prompt_name=prompt_name,
+            prompt_version=prompt_version,
+            model_version=model_version,
+        )
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+    # print test results
+    for test in result.tests:
+        status = "[green]PASS[/green]" if test.passed else "[red]FAIL[/red]"
+        console.print(f"  {status} {test.test_name} ({test.latency_ms:.0f}ms)")
+        if test.error:
+            console.print(f"    {test.error}")
+        for a in test.assertions:
+            score_str = f" ({a.score:.3f})" if a.score is not None else ""
+            a_status = "ok" if a.passed else "FAIL"
+            console.print(f"    {a.assertion_type}{score_str} {a_status}")
+
+    console.print()
+    console.print(
+        f"Overall: {'[green]PASS[/green]' if result.overall_pass else '[red]FAIL[/red]'}"
+        f"  score: {result.overall_score:.3f}"
+    )
+
+    # baseline comparison
+    if compare:
+        console.print()
+        console.print(f"Comparing against [bold]{compare}[/bold] baseline:")
+        comparisons, hints = compare_with_baseline(result, baseline_tag=compare)
+
+        if not comparisons:
+            console.print("  [yellow]No baseline found to compare against.[/yellow]")
+        else:
+            output = format_comparison(comparisons, hints)
+            console.print(output)
+
+            if any(not c.passed for c in comparisons):
+                raise typer.Exit(1)
+
+    if not result.overall_pass:
+        raise typer.Exit(1)
+
+
+@app.command("suites")
+def suites_cmd(
+    module: str = typer.Option(..., "--module", "-m", help="Python module with suite definitions."),
+):
+    """List registered eval suites."""
+    _import_module(module)
+
+    from promptry.evaluator import list_suites
+
+    suites = list_suites()
+    if not suites:
+        console.print("[yellow]No suites found.[/yellow]")
+        raise typer.Exit(0)
+
+    for s in suites:
+        desc = f" -- {s.description}" if s.description else ""
+        console.print(f"  {s.name}{desc}")
 
 
 def main():
