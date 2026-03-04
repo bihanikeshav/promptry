@@ -1,6 +1,6 @@
 # promptry
 
-Regression protection for LLM pipelines.
+Sentry for prompts. Regression protection for LLM pipelines.
 
 ## Why I built this
 
@@ -146,6 +146,36 @@ promptry monitor status
 promptry monitor stop
 ```
 
+### Safety templates
+
+25+ built-in attack prompts to test how your pipeline handles adversarial inputs: prompt injection, jailbreaks, PII fishing, hallucination triggers, encoding tricks.
+
+```bash
+# see what's available
+promptry templates list
+promptry templates list --category jailbreak
+
+# run them against your pipeline
+promptry templates run --module my_app
+```
+
+Your module needs a `pipeline` function that takes a string and returns a string:
+
+```python
+# my_app.py
+def pipeline(prompt: str) -> str:
+    return llm.chat(user=prompt)
+```
+
+Or use it in code:
+
+```python
+from promptry import run_safety_audit
+
+results = run_safety_audit(my_pipeline, categories=["injection", "jailbreak"])
+failed = [r for r in results if not r["passed"]]
+```
+
 ## Storage modes
 
 By default `track()` writes to SQLite synchronously. For production you can change that:
@@ -180,6 +210,10 @@ promptry drift <suite> --module <mod>
 promptry monitor start <suite> --module <mod> [--interval 1440]
 promptry monitor stop
 promptry monitor status
+
+# safety templates
+promptry templates list [--category <cat>]
+promptry templates run --module <mod> [--category <cat>]
 ```
 
 Exit code 0 on success, 1 on regression. Works in CI.

@@ -12,6 +12,7 @@ from promptry.assertions import (
 )
 from promptry.runner import run_suite
 from promptry.drift import DriftMonitor
+from promptry.templates import get_templates, run_safety_audit
 
 __all__ = [
     "track",
@@ -24,4 +25,6 @@ __all__ = [
     "assert_schema",
     "run_suite",
     "DriftMonitor",
+    "get_templates",
+    "run_safety_audit",
 ]

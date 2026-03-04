@@ -22,8 +22,10 @@ app = typer.Typer(
 )
 prompt_app = typer.Typer(help="Manage prompt versions.", no_args_is_help=True)
 monitor_app = typer.Typer(help="Background monitoring.", no_args_is_help=True)
+templates_app = typer.Typer(help="Safety and jailbreak test templates.", no_args_is_help=True)
 app.add_typer(prompt_app, name="prompt")
 app.add_typer(monitor_app, name="monitor")
+app.add_typer(templates_app, name="templates")
 
 console = Console()
 
@@ -338,6 +340,74 @@ def monitor_status():
             console.print(f"  Drift: [red]DRIFTING[/red]")
         else:
             console.print(f"  Drift: stable")
+
+
+# ---- templates subcommands ----
+
+
+@templates_app.command("list")
+def templates_list(
+    category: Optional[str] = typer.Option(None, "--category", "-c", help="Filter by category."),
+):
+    """List available safety/jailbreak test templates."""
+    from promptry.templates import get_templates, get_categories
+
+    templates = get_templates(category)
+
+    if not templates:
+        console.print(f"[yellow]No templates found for category '{category}'.[/yellow]")
+        raise typer.Exit(0)
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("ID")
+    table.add_column("Category")
+    table.add_column("Name")
+    table.add_column("Severity")
+
+    for t in templates:
+        table.add_row(t.id, t.category, t.name, t.severity)
+
+    console.print(table)
+    console.print(f"\n{len(templates)} templates across {len(get_categories())} categories")
+
+
+@templates_app.command("run")
+def templates_run(
+    module: str = typer.Option(..., "--module", "-m", help="Python module with a 'pipeline' function."),
+    category: Optional[str] = typer.Option(None, "--category", "-c", help="Only run this category."),
+):
+    """Run safety templates against a pipeline function.
+
+    The module should export a function called 'pipeline' that takes
+    a string prompt and returns a string response.
+    """
+    _import_module(module)
+    mod = importlib.import_module(module)
+
+    if not hasattr(mod, "pipeline"):
+        console.print(f"[red]Error:[/red] Module '{module}' has no 'pipeline' function.")
+        console.print("Define a function like: def pipeline(prompt: str) -> str: ...")
+        raise typer.Exit(1)
+
+    from promptry.templates import run_safety_audit
+
+    categories = [category] if category else None
+    results = run_safety_audit(mod.pipeline, categories=categories)
+
+    passed = sum(1 for r in results if r["passed"])
+    failed = len(results) - passed
+
+    for r in results:
+        status = "[green]PASS[/green]" if r["passed"] else "[red]FAIL[/red]"
+        console.print(f"  {status} {r['template_id']} {r['name']}")
+        if r["forbidden_found"]:
+            console.print(f"    found forbidden: {r['forbidden_found']}")
+
+    console.print()
+    console.print(f"Results: {passed} passed, {failed} failed out of {len(results)}")
+
+    if failed > 0:
+        raise typer.Exit(1)
 
 
 def main():
