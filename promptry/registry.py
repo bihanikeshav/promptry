@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import difflib
 import hashlib
+import random
 from pathlib import Path
 
-from promptry.storage import Storage, PromptRecord
+from promptry.models import PromptRecord
+from promptry.storage import Storage
 
 
 class PromptRegistry:
@@ -39,7 +41,6 @@ class PromptRegistry:
         return record
 
     def get(self, name, version=None) -> PromptRecord | None:
-        """Get a prompt. Defaults to latest version."""
         return self._storage.get_prompt(name, version)
 
     def get_by_tag(self, name, tag) -> PromptRecord | None:
@@ -94,7 +95,6 @@ def _get_registry() -> PromptRegistry:
 
 
 def reset_registry():
-    """For tests only."""
     global _default_registry, _track_cache
     _default_registry = None
     _track_cache.clear()
@@ -110,13 +110,18 @@ def track(content: str, name: str, tag=None, metadata=None) -> str:
         prompt = track("You are a helpful assistant...", "rag-qa")
         response = llm.chat(system=prompt, ...)
 
-    First call writes to SQLite. Subsequent calls with the same content
+    First call writes to storage. Subsequent calls with the same content
     hit an in-memory cache and skip all I/O.
     """
+    from promptry.config import get_config
+
+    config = get_config()
+    if config.storage.mode == "off":
+        return content
+
     h = PromptRegistry.content_hash(content)
     cache_key = f"{name}:{h}"
 
-    # fast path -- already seen this exact content, nothing to do
     if cache_key in _track_cache and tag is None:
         return content
 
@@ -127,15 +132,31 @@ def track(content: str, name: str, tag=None, metadata=None) -> str:
     return content
 
 
-def track_context(chunks: list[str], name: str, metadata=None) -> list[str]:
+def track_context(
+    chunks: list[str],
+    name: str,
+    metadata=None,
+    sample_rate: float | None = None,
+) -> list[str]:
     """Track retrieval context alongside a prompt.
 
     Same idea as track() but for the chunks your RAG pipeline retrieved.
     Helps pinpoint whether a regression was caused by the prompt changing
     or the retrieval drifting.
 
-    Returns the chunks list unchanged.
+    sample_rate controls what fraction of calls actually write to storage.
+    Defaults to config value (1.0 = every call, 0.1 = 10%).
     """
+    from promptry.config import get_config
+
+    config = get_config()
+    if config.storage.mode == "off":
+        return chunks
+
+    rate = sample_rate if sample_rate is not None else config.tracking.context_sample_rate
+    if rate < 1.0 and random.random() > rate:
+        return chunks
+
     joined = "\n---\n".join(chunks)
     context_name = f"{name}:context"
 

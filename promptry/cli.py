@@ -21,7 +21,9 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 prompt_app = typer.Typer(help="Manage prompt versions.", no_args_is_help=True)
+monitor_app = typer.Typer(help="Background monitoring.", no_args_is_help=True)
 app.add_typer(prompt_app, name="prompt")
+app.add_typer(monitor_app, name="monitor")
 
 console = Console()
 
@@ -187,7 +189,8 @@ def run_cmd(
     """Run an eval suite. Exit code 1 on regression."""
     _import_module(module)
 
-    from promptry.runner import run_suite, compare_with_baseline, format_comparison
+    from promptry.runner import run_suite
+    from promptry.comparison import compare_with_baseline, format_comparison
 
     try:
         result = run_suite(
@@ -200,7 +203,6 @@ def run_cmd(
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
-    # print test results
     for test in result.tests:
         status = "[green]PASS[/green]" if test.passed else "[red]FAIL[/red]"
         console.print(f"  {status} {test.test_name} ({test.latency_ms:.0f}ms)")
@@ -217,7 +219,6 @@ def run_cmd(
         f"  score: {result.overall_score:.3f}"
     )
 
-    # baseline comparison
     if compare:
         console.print()
         console.print(f"Comparing against [bold]{compare}[/bold] baseline:")
@@ -253,6 +254,90 @@ def suites_cmd(
     for s in suites:
         desc = f" -- {s.description}" if s.description else ""
         console.print(f"  {s.name}{desc}")
+
+
+@app.command("drift")
+def drift_cmd(
+    suite_name: str = typer.Argument(..., help="Suite to check."),
+    module: str = typer.Option(..., "--module", "-m", help="Python module with suite definitions."),
+    window: Optional[int] = typer.Option(None, "--window", "-w"),
+    threshold: Optional[float] = typer.Option(None, "--threshold", "-t"),
+):
+    """Check for score drift in a suite. Exit code 1 if drifting."""
+    _import_module(module)
+
+    from promptry.drift import DriftMonitor, format_drift_report
+
+    monitor = DriftMonitor()
+    report = monitor.check(suite_name, window=window, threshold=threshold)
+
+    console.print(format_drift_report(report))
+
+    if report.is_drifting:
+        raise typer.Exit(1)
+
+
+# ---- monitor subcommands ----
+
+
+@monitor_app.command("start")
+def monitor_start(
+    suite_name: str = typer.Argument(..., help="Suite to monitor."),
+    module: str = typer.Option(..., "--module", "-m", help="Python module with suite definitions."),
+    interval: int = typer.Option(1440, "--interval", "-i", help="Run interval in minutes."),
+):
+    """Start background monitoring."""
+    from promptry import scheduler
+
+    try:
+        pid = scheduler.start(suite_name, module, interval)
+        console.print(f"[green]Monitor started[/green] (PID {pid})")
+        console.print(f"  Suite: {suite_name}")
+        console.print(f"  Interval: {interval}m")
+        console.print(f"  Log: {scheduler._LOG_FILE}")
+    except RuntimeError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@monitor_app.command("stop")
+def monitor_stop():
+    """Stop background monitoring."""
+    from promptry import scheduler
+
+    try:
+        pid = scheduler.stop()
+        console.print(f"[green]Monitor stopped[/green] (PID {pid})")
+    except RuntimeError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@monitor_app.command("status")
+def monitor_status():
+    """Check if the monitor is running."""
+    from promptry import scheduler
+
+    state = scheduler.status()
+    if not state:
+        console.print("[yellow]Monitor is not running.[/yellow]")
+        raise typer.Exit(1)
+
+    console.print("[green]Monitor is running[/green]")
+    if "suite" in state:
+        console.print(f"  Suite: {state['suite']}")
+    if "interval_minutes" in state:
+        console.print(f"  Interval: {state['interval_minutes']}m")
+    if "started_at" in state:
+        console.print(f"  Started: {state['started_at']}")
+    if "last_run" in state:
+        console.print(f"  Last run: {state['last_run']}")
+        console.print(f"  Last score: {state.get('last_score', 'N/A')}")
+        drifting = state.get("drifting", False)
+        if drifting:
+            console.print(f"  Drift: [red]DRIFTING[/red]")
+        else:
+            console.print(f"  Drift: stable")
 
 
 def main():

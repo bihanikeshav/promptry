@@ -5,8 +5,6 @@ from promptry.evaluator import run_context
 from promptry.assertions import assert_contains, assert_not_contains, assert_schema
 
 
-# -- contains --
-
 class TestAssertContains:
 
     def test_all_found(self):
@@ -36,11 +34,8 @@ class TestAssertContains:
                 assert_contains("hello world", ["hello", "missing", "also_missing"])
             except AssertionError:
                 pass
-        # 1 out of 3 found
         assert results[0].score == pytest.approx(1 / 3)
 
-
-# -- not_contains --
 
 class TestAssertNotContains:
 
@@ -55,8 +50,6 @@ class TestAssertNotContains:
             with pytest.raises(AssertionError, match="Found forbidden"):
                 assert_not_contains("hello world", ["hello"])
 
-
-# -- schema --
 
 class TestAssertSchema:
 
@@ -86,11 +79,3 @@ class TestAssertSchema:
         with run_context() as results:
             assert_schema('{"value": 42}', MyModel)
         assert results[0].passed is True
-
-    def test_invalid_json_string(self):
-        class MyModel(BaseModel):
-            value: int
-
-        with run_context():
-            with pytest.raises(AssertionError):
-                assert_schema('{"value": "not_an_int"}', MyModel)

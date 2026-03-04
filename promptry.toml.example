@@ -3,6 +3,11 @@
 
 [storage]
 # db_path = "~/.promptry/promptry.db"
+# mode = "sync"                # sync | async | off
+
+[tracking]
+# sample_rate = 1.0            # fraction of track() calls that write (1.0 = all)
+# context_sample_rate = 0.1    # fraction of track_context() calls (lower in prod)
 
 [model]
 # embedding_model = "all-MiniLM-L6-v2"

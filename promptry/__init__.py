@@ -11,6 +11,7 @@ from promptry.assertions import (
     assert_schema,
 )
 from promptry.runner import run_suite
+from promptry.drift import DriftMonitor
 
 __all__ = [
     "track",
@@ -22,4 +23,5 @@ __all__ = [
     "assert_not_contains",
     "assert_schema",
     "run_suite",
+    "DriftMonitor",
 ]

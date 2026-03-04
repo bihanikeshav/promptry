@@ -25,10 +25,19 @@ else:
 @dataclass
 class StorageConfig:
     db_path: str = ""
+    mode: str = "sync"  # "sync", "async", or "off"
 
     def __post_init__(self):
         if not self.db_path:
             self.db_path = str(Path.home() / ".promptry" / "promptry.db")
+        if self.mode not in ("sync", "async", "off"):
+            raise ValueError(f"storage.mode must be sync, async, or off (got '{self.mode}')")
+
+
+@dataclass
+class TrackingConfig:
+    sample_rate: float = 1.0           # for track() -- 1.0 means every call
+    context_sample_rate: float = 1.0   # for track_context() -- set lower in prod
 
 
 @dataclass
@@ -47,6 +56,7 @@ class MonitorConfig:
 @dataclass
 class Config:
     storage: StorageConfig = field(default_factory=StorageConfig)
+    tracking: TrackingConfig = field(default_factory=TrackingConfig)
     model: ModelConfig = field(default_factory=ModelConfig)
     monitor: MonitorConfig = field(default_factory=MonitorConfig)
 
@@ -62,9 +72,44 @@ def _find_config_file() -> Path | None:
     return None
 
 
+def _apply_toml(config: Config, data: dict):
+    """Apply a parsed TOML dict onto the config."""
+    if "storage" in data:
+        s = data["storage"]
+        if "db_path" in s:
+            config.storage.db_path = s["db_path"]
+        if "mode" in s:
+            config.storage.mode = s["mode"]
+
+    if "tracking" in data:
+        t = data["tracking"]
+        if "sample_rate" in t:
+            config.tracking.sample_rate = float(t["sample_rate"])
+        if "context_sample_rate" in t:
+            config.tracking.context_sample_rate = float(t["context_sample_rate"])
+
+    if "model" in data:
+        m = data["model"]
+        if "embedding_model" in m:
+            config.model.embedding_model = m["embedding_model"]
+        if "semantic_threshold" in m:
+            config.model.semantic_threshold = float(m["semantic_threshold"])
+
+    if "monitor" in data:
+        mon = data["monitor"]
+        if "interval_minutes" in mon:
+            config.monitor.interval_minutes = int(mon["interval_minutes"])
+        if "threshold" in mon:
+            config.monitor.threshold = float(mon["threshold"])
+        if "window" in mon:
+            config.monitor.window = int(mon["window"])
+
+
 def _apply_env_overrides(config: Config):
     if db := os.environ.get("PROMPTRY_DB"):
         config.storage.db_path = db
+    if mode := os.environ.get("PROMPTRY_STORAGE_MODE"):
+        config.storage.mode = mode
     if model := os.environ.get("PROMPTRY_EMBEDDING_MODEL"):
         config.model.embedding_model = model
     if threshold := os.environ.get("PROMPTRY_SEMANTIC_THRESHOLD"):
@@ -78,22 +123,7 @@ def load_config() -> Config:
     if config_file:
         with open(config_file, "rb") as f:
             data = tomllib.load(f)
-
-        if "storage" in data:
-            if "db_path" in data["storage"]:
-                config.storage.db_path = data["storage"]["db_path"]
-        if "model" in data:
-            if "embedding_model" in data["model"]:
-                config.model.embedding_model = data["model"]["embedding_model"]
-            if "semantic_threshold" in data["model"]:
-                config.model.semantic_threshold = data["model"]["semantic_threshold"]
-        if "monitor" in data:
-            if "interval_minutes" in data["monitor"]:
-                config.monitor.interval_minutes = data["monitor"]["interval_minutes"]
-            if "threshold" in data["monitor"]:
-                config.monitor.threshold = data["monitor"]["threshold"]
-            if "window" in data["monitor"]:
-                config.monitor.window = data["monitor"]["window"]
+        _apply_toml(config, data)
 
     _apply_env_overrides(config)
     return config
@@ -111,6 +141,5 @@ def get_config() -> Config:
 
 
 def reset_config():
-    """For tests only."""
     global _config
     _config = None

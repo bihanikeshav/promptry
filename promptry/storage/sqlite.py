@@ -1,16 +1,17 @@
 """SQLite storage backend.
 
 Everything that touches the database lives here. Other modules go through
-the Storage class instead of importing sqlite3 directly.
+the Storage interface instead of importing sqlite3 directly.
 """
 from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from promptry.config import get_config
+from promptry.models import PromptRecord, EvalRunRecord, EvalResultRecord
+from promptry.storage.base import BaseStorage
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS prompts (
@@ -64,47 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_eval_results_run ON eval_results(run_id);
 """
 
 
-# ---- data classes ----
-
-@dataclass
-class PromptRecord:
-    id: int
-    name: str
-    version: int
-    content: str
-    hash: str
-    metadata: dict
-    created_at: str
-    tags: list[str] = field(default_factory=list)
-
-
-@dataclass
-class EvalRunRecord:
-    id: int
-    suite_name: str
-    prompt_name: str | None
-    prompt_version: int | None
-    model_version: str | None
-    timestamp: str
-    overall_pass: bool
-    overall_score: float | None
-
-
-@dataclass
-class EvalResultRecord:
-    id: int
-    run_id: int
-    test_name: str
-    assertion_type: str
-    passed: bool
-    score: float | None
-    details: dict | None
-    latency_ms: float | None
-
-
-# ---- storage ----
-
-class Storage:
+class SQLiteStorage(BaseStorage):
 
     def __init__(self, db_path: Path | str | None = None):
         if db_path is None:
@@ -131,10 +92,9 @@ class Storage:
     # ---- prompts ----
 
     def save_prompt(self, name, content, content_hash, metadata=None) -> PromptRecord:
-        """Save a new prompt version. If the exact content already exists, return it."""
         cur = self._conn.cursor()
 
-        # dedup: same name + same hash = same prompt, skip the insert
+        # dedup: same name + same hash means same content, skip
         cur.execute(
             "SELECT * FROM prompts WHERE name = ? AND hash = ?",
             (name, content_hash),
@@ -145,7 +105,7 @@ class Storage:
             record.tags = self.get_tags(record.id)
             return record
 
-        # figure out the next version number
+        # next version number
         cur.execute(
             "SELECT COALESCE(MAX(version), 0) + 1 FROM prompts WHERE name = ?",
             (name,),
@@ -171,7 +131,6 @@ class Storage:
         )
 
     def get_prompt(self, name, version=None) -> PromptRecord | None:
-        """Fetch a prompt by name. Returns latest version if version is None."""
         cur = self._conn.cursor()
         if version is not None:
             cur.execute(
@@ -191,7 +150,6 @@ class Storage:
         return record
 
     def get_prompt_by_tag(self, name, tag) -> PromptRecord | None:
-        """Get the latest prompt version that has a given tag."""
         cur = self._conn.cursor()
         cur.execute(
             """SELECT p.* FROM prompts p
@@ -248,7 +206,6 @@ class Storage:
         overall_pass=True,
         overall_score=None,
     ) -> int:
-        """Save an eval run, returns the run id."""
         cur = self._conn.execute(
             """INSERT INTO eval_runs
                (suite_name, prompt_name, prompt_version, model_version, overall_pass, overall_score)
@@ -268,7 +225,6 @@ class Storage:
         details=None,
         latency_ms=None,
     ) -> int:
-        """Save a single eval assertion result."""
         details_json = json.dumps(details) if details else None
         cur = self._conn.execute(
             """INSERT INTO eval_results
@@ -280,7 +236,6 @@ class Storage:
         return cur.lastrowid
 
     def get_eval_runs(self, suite_name, limit=50) -> list[EvalRunRecord]:
-        """Most recent runs first."""
         cur = self._conn.execute(
             """SELECT * FROM eval_runs
                WHERE suite_name = ?
@@ -297,11 +252,10 @@ class Storage:
         return [self._row_to_eval_result(row) for row in cur.fetchall()]
 
     def get_score_history(self, suite_name, limit=30) -> list[tuple[str, float]]:
-        """Returns (timestamp, score) pairs, newest first."""
         cur = self._conn.execute(
             """SELECT timestamp, overall_score FROM eval_runs
                WHERE suite_name = ? AND overall_score IS NOT NULL
-               ORDER BY timestamp DESC LIMIT ?""",
+               ORDER BY id DESC LIMIT ?""",
             (suite_name, limit),
         )
         return [(row[0], row[1]) for row in cur.fetchall()]

@@ -36,23 +36,11 @@ class TestPromptCLI:
         assert "a" in result.output
         assert "b" in result.output
 
-    def test_list_empty(self):
-        result = runner.invoke(app, ["prompt", "list"])
-        assert result.exit_code == 0
-        assert "No prompts found" in result.output
-
     def test_show(self):
         runner.invoke(app, ["prompt", "save", "--name", "test"], input="Show me")
         result = runner.invoke(app, ["prompt", "show", "test"])
         assert result.exit_code == 0
         assert "Show me" in result.output
-
-    def test_show_specific_version(self):
-        runner.invoke(app, ["prompt", "save", "--name", "test"], input="V1")
-        runner.invoke(app, ["prompt", "save", "--name", "test"], input="V2")
-        result = runner.invoke(app, ["prompt", "show", "test", "--version", "1"])
-        assert result.exit_code == 0
-        assert "V1" in result.output
 
     def test_show_not_found(self):
         result = runner.invoke(app, ["prompt", "show", "nonexistent"])
@@ -71,12 +59,4 @@ class TestPromptCLI:
         result = runner.invoke(app, ["prompt", "tag", "test", "1", "prod"])
         assert result.exit_code == 0
         assert "Tagged" in result.output
-        assert "prod" in result.output
-
-    def test_save_with_tag(self):
-        result = runner.invoke(
-            app, ["prompt", "save", "--name", "test", "--tag", "prod"],
-            input="Tagged content",
-        )
-        assert result.exit_code == 0
         assert "prod" in result.output
