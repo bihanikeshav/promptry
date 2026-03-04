@@ -1,0 +1,14 @@
+# promptry config
+# Copy to promptry.toml in your project root
+
+[storage]
+# db_path = "~/.promptry/promptry.db"
+
+[model]
+# embedding_model = "all-MiniLM-L6-v2"
+# semantic_threshold = 0.8
+
+[monitor]
+# interval_minutes = 1440   # how often to run (daily)
+# threshold = 0.05          # flag if score drops more than 5%
+# window = 30               # number of recent runs to look at
