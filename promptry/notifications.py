@@ -81,6 +81,10 @@ def _build_message(result: SuiteResult, details: str) -> str:
 
 def _send_webhook(url: str, subject: str, body: str):
     """POST to a webhook URL. Works with Slack, Discord, and generic webhooks."""
+    if not url.startswith(("https://", "http://")):
+        log.warning("webhook URL must start with https:// or http://, skipping")
+        return
+
     # slack and discord both accept {"text": "..."}
     payload = json.dumps({"text": f"*{subject}*\n```\n{body}\n```"}).encode()
 

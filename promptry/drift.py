@@ -8,13 +8,15 @@ from __future__ import annotations
 
 from promptry.config import get_config
 from promptry.models import DriftReport
-from promptry.storage import Storage
 
 
 class DriftMonitor:
 
-    def __init__(self, storage: Storage | None = None):
-        self._storage = storage or Storage()
+    def __init__(self, storage=None):
+        if storage is None:
+            from promptry.storage import get_storage
+            storage = get_storage()
+        self._storage = storage
 
     def check(self, suite_name: str, window: int | None = None, threshold: float | None = None) -> DriftReport:
         """Check if a suite's scores are drifting downward.

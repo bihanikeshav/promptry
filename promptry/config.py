@@ -140,6 +140,10 @@ def _apply_env_overrides(config: Config):
         config.model.embedding_model = model
     if threshold := os.environ.get("PROMPTRY_SEMANTIC_THRESHOLD"):
         config.model.semantic_threshold = float(threshold)
+    if webhook := os.environ.get("PROMPTRY_WEBHOOK_URL"):
+        config.notifications.webhook_url = webhook
+    if smtp_pw := os.environ.get("PROMPTRY_SMTP_PASSWORD"):
+        config.notifications.smtp_password = smtp_pw
 
 
 def load_config() -> Config:

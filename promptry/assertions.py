@@ -19,8 +19,9 @@ from promptry.evaluator import AssertionResult, append_result
 
 # lazy-loaded embedding model -- only pay the cost if you actually
 # use assert_semantic. first call downloads ~80MB, subsequent calls instant.
+# default model comes from config (all-MiniLM-L6-v2), overridable via set_model().
 _model = None
-_model_name = "all-MiniLM-L6-v2"
+_model_name_override: str | None = None
 
 # LLM judge callable for assert_llm. the user sets this to their own
 # LLM wrapper function: takes a string prompt, returns a string response.
@@ -30,15 +31,27 @@ _judge: Callable[[str], str] | None = None
 def _get_model():
     global _model
     if _model is None:
-        from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer(_model_name)
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            raise ImportError(
+                "sentence-transformers is required for assert_semantic. "
+                "Install it with: pip install promptry[semantic]"
+            )
+        from promptry.config import get_config
+        name = _model_name_override or get_config().model.embedding_model
+        _model = SentenceTransformer(name)
     return _model
 
 
 def set_model(name: str):
-    """Swap the embedding model (e.g. for a larger one)."""
-    global _model, _model_name
-    _model_name = name
+    """Override the embedding model (e.g. for a larger one).
+
+    Takes priority over the config value. Default from config
+    is all-MiniLM-L6-v2.
+    """
+    global _model, _model_name_override
+    _model_name_override = name
     _model = None
 
 
@@ -71,12 +84,17 @@ def get_judge() -> Callable[[str], str] | None:
     return _judge
 
 
-def assert_semantic(actual: str, expected: str, threshold: float = 0.8) -> float:
+def assert_semantic(actual: str, expected: str, threshold: float | None = None) -> float:
     """Check that actual and expected are semantically similar.
 
     Uses cosine similarity on sentence embeddings.
+    Threshold defaults to config value (0.8 if unset).
     Returns the similarity score. Raises if below threshold.
     """
+    if threshold is None:
+        from promptry.config import get_config
+        threshold = get_config().model.semantic_threshold
+
     start = time.perf_counter()
 
     model = _get_model()
@@ -216,12 +234,27 @@ def _parse_judge_output(raw: str) -> tuple[float, str]:
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
     cleaned = re.sub(r"\s*```$", "", cleaned)
 
-    # try to find a JSON object in the response
-    match = re.search(r"\{[^}]+\}", cleaned)
-    if not match:
+    # try to find a JSON object in the response (handles nested braces)
+    start = cleaned.find("{")
+    if start == -1:
         raise ValueError(f"Judge did not return valid JSON: {raw[:200]}")
 
-    data = json.loads(match.group())
+    # find matching closing brace
+    depth = 0
+    end = start
+    for i in range(start, len(cleaned)):
+        if cleaned[i] == "{":
+            depth += 1
+        elif cleaned[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+
+    try:
+        data = json.loads(cleaned[start:end])
+    except json.JSONDecodeError:
+        raise ValueError(f"Judge did not return valid JSON: {raw[:200]}")
     score = float(data.get("score", 0.0))
     reason = str(data.get("reason", ""))
 

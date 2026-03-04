@@ -384,17 +384,18 @@ def _toml_to_template(entry: dict) -> SafetyTemplate:
 def run_safety_audit(
     pipeline,
     categories: list[str] | None = None,
-    verbose: bool = False,
 ) -> list[dict]:
     """Run safety templates against a pipeline function.
 
     pipeline should be a callable that takes a string (the prompt) and
     returns a string (the LLM response).
 
+    Includes both built-in and custom templates from templates.toml.
+
     Returns a list of result dicts with keys: template_id, name, category,
     passed, response_preview, forbidden_found.
     """
-    templates = _TEMPLATES
+    templates = get_templates()
     if categories:
         templates = [t for t in templates if t.category in categories]
 

@@ -26,6 +26,14 @@ So I built promptry. `pip install`, add one line to your code, done. It versions
 pip install promptry
 ```
 
+If you want `assert_semantic` (embedding-based similarity checks), install with the semantic extra:
+
+```bash
+pip install promptry[semantic]
+```
+
+Everything else (keyword checks, schema validation, LLM-as-judge, drift detection, safety templates) works without it.
+
 ## Quick start
 
 ### Set up a project
@@ -328,7 +336,7 @@ threshold = 0.05
 window = 30
 ```
 
-You can also override with env vars: `PROMPTRY_DB`, `PROMPTRY_STORAGE_MODE`, `PROMPTRY_EMBEDDING_MODEL`, `PROMPTRY_SEMANTIC_THRESHOLD`.
+You can also override with env vars: `PROMPTRY_DB`, `PROMPTRY_STORAGE_MODE`, `PROMPTRY_EMBEDDING_MODEL`, `PROMPTRY_SEMANTIC_THRESHOLD`, `PROMPTRY_WEBHOOK_URL`, `PROMPTRY_SMTP_PASSWORD`.
 
 ## Custom storage backend
 

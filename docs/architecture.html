@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture - promptry</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+    <div class="topnav-inner">
+        <a href="index.html" class="logo">prompt<span>ry</span></a>
+        <div class="topnav-links">
+            <a href="index.html">Home</a>
+            <a href="architecture.html" class="active">Architecture</a>
+            <a href="https://github.com/bihanikeshav/promptry">GitHub</a>
+        </div>
+    </div>
+</nav>
+
+<div class="page-layout">
+
+    <aside class="sidebar">
+        <div class="sidebar-section">
+            <h4>Overview</h4>
+            <a href="#structure">Project structure</a>
+            <a href="#data-flow">Data flow</a>
+        </div>
+        <div class="sidebar-section">
+            <h4>Components</h4>
+            <a href="#config">config.py</a>
+            <a href="#models">models.py</a>
+            <a href="#storage">storage/</a>
+            <a href="#registry">registry.py</a>
+            <a href="#evaluator">evaluator.py</a>
+            <a href="#assertions">assertions.py</a>
+            <a href="#runner">runner.py</a>
+            <a href="#comparison">comparison.py</a>
+            <a href="#drift">drift.py</a>
+            <a href="#scheduler">scheduler.py</a>
+            <a href="#notifications">notifications.py</a>
+            <a href="#templates">templates.py</a>
+            <a href="#writer">writer.py</a>
+            <a href="#cli">cli.py</a>
+        </div>
+        <div class="sidebar-section">
+            <h4>Guides</h4>
+            <a href="#modify">How to modify</a>
+            <a href="#decisions">Design decisions</a>
+            <a href="#schema">SQLite schema</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <h1>Architecture</h1>
+        <p class="subtitle">How promptry is built, what each component does, and how to approach modifications.</p>
+
+        <h2 id="structure">Project structure</h2>
+
+        <div class="file-tree">
+<span class="dir">promptry/</span>
+  __init__.py          <span class="desc"># public API exports</span>
+  config.py            <span class="desc"># TOML config loading, env var overrides</span>
+  models.py            <span class="desc"># all dataclasses (PromptRecord, SuiteResult, DriftReport, etc.)</span>
+  registry.py          <span class="desc"># prompt versioning, track(), track_context()</span>
+  evaluator.py         <span class="desc"># @suite decorator, thread-local result collection</span>
+  assertions.py        <span class="desc"># assert_semantic, assert_contains, assert_llm, etc.</span>
+  runner.py            <span class="desc"># suite execution, stores results to DB</span>
+  comparison.py        <span class="desc"># baseline comparison, root cause analysis</span>
+  drift.py             <span class="desc"># score trend detection via linear regression</span>
+  scheduler.py         <span class="desc"># background daemon (PID file, subprocess)</span>
+  notifications.py     <span class="desc"># webhook + email alerts on regression</span>
+  templates.py         <span class="desc"># 25+ safety/jailbreak test templates</span>
+  writer.py            <span class="desc"># async write queue for production use</span>
+  cli.py               <span class="desc"># typer CLI (all commands)</span>
+  <span class="dir">storage/</span>
+    __init__.py        <span class="desc"># get_storage() factory, mode-aware</span>
+    base.py            <span class="desc"># BaseStorage ABC (interface for custom backends)</span>
+    sqlite.py          <span class="desc"># SQLite implementation (WAL mode, 4 tables)</span>
+<span class="dir">tests/</span>
+  test_assertions.py   <span class="desc"># 18 tests</span>
+  test_cli.py          <span class="desc"># 12 tests</span>
+  test_drift.py        <span class="desc"># 8 tests</span>
+  test_evaluator.py    <span class="desc"># 5 tests</span>
+  test_notifications.py <span class="desc"># 7 tests</span>
+  test_registry.py     <span class="desc"># 10 tests</span>
+  test_runner.py       <span class="desc"># 9 tests</span>
+  test_scheduler.py    <span class="desc"># 6 tests</span>
+  test_storage.py      <span class="desc"># 16 tests</span>
+  test_templates.py    <span class="desc"># 8 tests</span>
+  test_writer.py       <span class="desc"># 2 tests</span>
+        </div>
+
+        <h2 id="data-flow">Data flow</h2>
+
+        <p>The two main flows in promptry: tracking prompts and running evals.</p>
+
+        <h3>track() flow</h3>
+
+        <div class="flow-diagram">
+<span class="dim">your code calls:</span> track("You are a helpful...", "rag-qa")
+                              <span class="arrow">|</span>
+                   <span class="dim">check storage mode</span>
+                   <span class="arrow">/        |        \</span>
+              <span class="dim">"off"</span>    <span class="dim">"sync"</span>    <span class="dim">"async"</span>
+           <span class="dim">return</span>   <span class="arrow">|</span>         <span class="arrow">|</span>
+          <span class="dim">unchanged</span> <span class="arrow">|</span>         <span class="arrow">|</span>
+                   <span class="arrow">v</span>         <span class="arrow">v</span>
+            SHA-256 hash content
+                   <span class="arrow">|</span>
+         <span class="dim">in-memory cache hit?</span>
+            <span class="arrow">/</span>            <span class="arrow">\</span>
+          <span class="dim">yes</span>            <span class="dim">no</span>
+       <span class="dim">return</span>       <span class="arrow">|</span>
+      <span class="dim">unchanged</span>    <span class="arrow">v</span>
+              SQLiteStorage.save_prompt()
+              <span class="dim">(dedup: UNIQUE(name, hash))</span>
+                   <span class="arrow">|</span>
+              <span class="dim">return string unchanged</span>
+        </div>
+
+        <p><code>track()</code> returns the exact same string you passed in. The versioning is invisible. In production with <code>mode = "async"</code>, the storage is wrapped in <code>AsyncWriter</code>. Prompt saves are still synchronous (callers need version numbers), but lighter writes like eval results go through the background thread.</p>
+
+        <h3>Eval suite flow</h3>
+
+        <div class="flow-diagram">
+<span class="dim">promptry run my-suite --module evals --compare prod</span>
+                        <span class="arrow">|</span>
+              importlib.import_module("evals")
+              <span class="dim">(triggers @suite decorator registration)</span>
+                        <span class="arrow">|</span>
+              run_suite("my-suite")
+                        <span class="arrow">|</span>
+              _execute_test(suite_fn)
+              <span class="dim">with run_context() as results:</span>
+                <span class="dim">suite_fn()  # calls assert_contains, assert_llm, etc.</span>
+                <span class="dim">each assertion appends to thread-local results</span>
+                        <span class="arrow">|</span>
+              compute overall_score = mean(assertion scores)
+              store run + results to SQLite
+                        <span class="arrow">|</span>
+              compare_with_baseline("prod")
+              <span class="dim">find baseline run, diff scores, generate root cause hints</span>
+                        <span class="arrow">|</span>
+              <span class="dim">exit 0 (pass) or exit 1 (regression)</span>
+        </div>
+
+        <h2 id="config">config.py</h2>
+        <p>Loads configuration from multiple sources in priority order: built-in defaults, <code>promptry.toml</code> in the current directory, <code>~/.promptry/config.toml</code>, then environment variables. Config is loaded once on first access via <code>get_config()</code> and cached for the process lifetime. Call <code>reset_config()</code> to force a reload.</p>
+        <p>Env vars: <code>PROMPTRY_DB</code>, <code>PROMPTRY_STORAGE_MODE</code>, <code>PROMPTRY_EMBEDDING_MODEL</code>, <code>PROMPTRY_SEMANTIC_THRESHOLD</code>, <code>PROMPTRY_WEBHOOK_URL</code>, <code>PROMPTRY_SMTP_PASSWORD</code>.</p>
+
+        <h2 id="models">models.py</h2>
+        <p>All data classes live here to avoid circular imports. Nothing in this file imports from other promptry modules. If you need to add a new data shape that gets passed between modules, put it here.</p>
+
+        <table>
+            <tr><th>Class</th><th>Used by</th><th>Purpose</th></tr>
+            <tr><td><code>PromptRecord</code></td><td>storage, registry</td><td>A saved prompt version with id, name, version, hash, tags</td></tr>
+            <tr><td><code>SuiteResult</code></td><td>runner, comparison, notifications</td><td>Complete result of running a suite</td></tr>
+            <tr><td><code>TestResult</code></td><td>runner</td><td>One test function's result (assertions + timing)</td></tr>
+            <tr><td><code>ComparisonResult</code></td><td>comparison</td><td>Single metric comparison (baseline vs current)</td></tr>
+            <tr><td><code>RootCauseHint</code></td><td>comparison</td><td>Why a regression probably happened</td></tr>
+            <tr><td><code>DriftReport</code></td><td>drift</td><td>Score trend analysis over a window of runs</td></tr>
+        </table>
+
+        <h2 id="storage">storage/</h2>
+        <p><code>BaseStorage</code> is an abstract class defining the interface. <code>SQLiteStorage</code> is the default implementation. The <code>get_storage()</code> factory checks the config mode and wraps the storage in <code>AsyncWriter</code> if <code>mode = "async"</code>.</p>
+
+        <p>SQLite schema has four tables:</p>
+        <ul>
+            <li><code>prompts</code> — versioned prompt content with SHA-256 dedup (<code>UNIQUE(name, hash)</code>)</li>
+            <li><code>prompt_tags</code> — tags (like "prod", "canary") attached to prompt versions</li>
+            <li><code>eval_runs</code> — suite execution records with overall score and pass/fail</li>
+            <li><code>eval_results</code> — individual assertion results within a run</li>
+        </ul>
+
+        <p>To add a custom backend, subclass <code>BaseStorage</code> and implement all abstract methods.</p>
+
+        <h2 id="registry">registry.py</h2>
+        <p><code>track()</code> is the primary integration point. It hashes content with SHA-256, checks an in-memory cache (bounded at 10k entries), and writes to storage only on new content. The cache means repeated calls with the same prompt are zero-cost.</p>
+        <p><code>track_context()</code> does the same for retrieval chunks, with optional sampling (<code>sample_rate</code>) to reduce write volume in production.</p>
+
+        <h2 id="evaluator">evaluator.py</h2>
+        <p>The <code>@suite</code> decorator registers test functions in a global dict. <code>run_context()</code> sets up a thread-local list where assertions append their results. This keeps the user API clean: just call <code>assert_contains()</code> inside your function, and the runner collects everything automatically. Duplicate suite names emit a warning.</p>
+
+        <h2 id="assertions">assertions.py</h2>
+        <p>Each assertion function follows the same pattern: evaluate the condition, append an <code>AssertionResult</code> to the current run context, raise <code>AssertionError</code> on failure, return the score.</p>
+
+        <table>
+            <tr><th>Assertion</th><th>What it checks</th><th>Cost</th></tr>
+            <tr><td><code>assert_contains</code></td><td>All keywords present in text</td><td>Free (string matching)</td></tr>
+            <tr><td><code>assert_not_contains</code></td><td>No forbidden keywords in text</td><td>Free</td></tr>
+            <tr><td><code>assert_schema</code></td><td>Data matches a Pydantic model</td><td>Free</td></tr>
+            <tr><td><code>assert_semantic</code></td><td>Cosine similarity of embeddings</td><td>~50ms (needs <code>pip install promptry[semantic]</code>)</td></tr>
+            <tr><td><code>assert_llm</code></td><td>LLM grades response against criteria</td><td>~1-5s (one LLM call per assertion)</td></tr>
+        </table>
+
+        <p><code>assert_semantic</code> lazy-loads the embedding model on first use. The model name and similarity threshold are read from config, overridable via <code>set_model()</code>.</p>
+        <p><code>assert_llm</code> requires a judge function set via <code>set_judge(fn)</code>. The function takes a string and returns a string. Works with any LLM provider.</p>
+
+        <h2 id="runner">runner.py</h2>
+        <p>Executes a suite by calling the registered function inside a <code>run_context()</code>, catches assertion failures, computes the overall score (mean of assertion scores), and stores everything to the database.</p>
+
+        <h2 id="comparison">comparison.py</h2>
+        <p>Compares a current run against a baseline. First tries to find a run matching the baseline tag (e.g., "prod"), falls back to the most recent previous run. Generates root cause hints:</p>
+        <ul>
+            <li>Prompt version changed → "Prompt changed (v3 → v4)"</li>
+            <li>Model version changed → "Model changed (gpt-4 → gpt-4o)"</li>
+            <li>Neither changed but scores dropped → "Possible retrieval drift"</li>
+        </ul>
+
+        <h2 id="drift">drift.py</h2>
+        <p>Fits a linear regression (OLS, no numpy) to the last N scores. If the slope is steeper than <code>-threshold</code>, the suite is flagged as drifting. Catches slow degradation that single-run comparisons miss.</p>
+
+        <h2 id="scheduler">scheduler.py</h2>
+        <p>Spawns a subprocess that loops: import module, run suite, check drift, notify on regression, sleep, repeat. State is managed via PID files in <code>~/.promptry/</code>.</p>
+        <p>Cross-platform: on Windows uses <code>CREATE_NO_WINDOW</code> and <code>ctypes.OpenProcess</code> for PID checking. On Unix uses <code>start_new_session</code> and <code>os.kill(pid, 0)</code>.</p>
+
+        <h2 id="notifications">notifications.py</h2>
+        <p>Sends alerts when the monitor detects a regression or drift. Two channels:</p>
+        <ul>
+            <li><strong>Webhooks</strong>: POSTs JSON to any URL (Slack, Discord, custom). URL validated to be http/https.</li>
+            <li><strong>Email</strong>: SMTP with TLS. Credentials should use env vars (<code>PROMPTRY_SMTP_PASSWORD</code>).</li>
+        </ul>
+        <p>Failures are logged but never crash the monitor.</p>
+
+        <h2 id="templates">templates.py</h2>
+        <p>25+ built-in attack prompts across 6 categories: prompt injection, jailbreak, PII leakage, hallucination triggers, context boundary, encoding/obfuscation. Custom templates loaded from <code>templates.toml</code> or <code>[[custom_templates]]</code> in <code>promptry.toml</code>. Merged with built-ins automatically.</p>
+
+        <h2 id="writer">writer.py</h2>
+        <p><code>AsyncWriter</code> wraps any <code>BaseStorage</code> with a background thread. <code>save_prompt</code> and <code>save_eval_run</code> are synchronous (callers need the returned IDs). Lighter writes (<code>save_eval_result</code>, <code>tag_prompt</code>) are queued. Uses <code>queue.Queue</code> with a configurable max size (default 10k).</p>
+
+        <h2 id="cli">cli.py</h2>
+        <p>Built with Typer. All commands return exit code 0 on success, 1 on regression/failure. CI-friendly: <code>promptry run my-suite --module evals</code> fails the pipeline if scores regressed.</p>
+
+        <h2 id="modify">How to modify</h2>
+
+        <h3>Adding a new assertion type</h3>
+        <ol>
+            <li>Add your function to <code>assertions.py</code>. Follow the existing pattern: evaluate, call <code>append_result()</code>, raise on failure, return the score.</li>
+            <li>Export it from <code>__init__.py</code>.</li>
+            <li>Add the assertion type string to the loop in <code>comparison.py</code> so baseline comparisons track it.</li>
+            <li>Write tests in <code>test_assertions.py</code>.</li>
+        </ol>
+
+        <h3>Adding a new storage backend</h3>
+        <ol>
+            <li>Subclass <code>BaseStorage</code> from <code>storage/base.py</code>.</li>
+            <li>Your <code>save_prompt</code> must handle dedup (same name + same hash = return existing record).</li>
+            <li>Your <code>save_prompt</code> must auto-increment version numbers per prompt name.</li>
+        </ol>
+
+        <h3>Adding a new safety template category</h3>
+        <ol>
+            <li>Add <code>SafetyTemplate</code> instances to <code>_TEMPLATES</code> in <code>templates.py</code>. Follow the ID convention: <code>category-NNN</code>.</li>
+            <li>Or add them to <code>templates.toml</code> in your project.</li>
+        </ol>
+
+        <h3>Adding a new CLI command</h3>
+        <ol>
+            <li>Use <code>@app.command()</code> for top-level, or create a sub-app with <code>typer.Typer()</code>.</li>
+            <li>Use <code>raise typer.Exit(code=1)</code> for failures so CI gets the right exit code.</li>
+        </ol>
+
+        <h3>Adding a new config section</h3>
+        <ol>
+            <li>Add a dataclass to <code>config.py</code>.</li>
+            <li>Add it as a field on the <code>Config</code> class.</li>
+            <li>Handle it in <code>_apply_toml()</code> and optionally <code>_apply_env_overrides()</code>.</li>
+        </ol>
+
+        <h2 id="decisions">Design decisions</h2>
+
+        <table>
+            <tr><th>Decision</th><th>Choice</th><th>Why</th></tr>
+            <tr><td>Primary API</td><td><code>track()</code></td><td>One-line integration, zero refactoring</td></tr>
+            <tr><td>Storage</td><td>Raw sqlite3</td><td>Simple schema, stdlib, no deps</td></tr>
+            <tr><td>Config</td><td>TOML</td><td>Python standard (tomllib in 3.11+)</td></tr>
+            <tr><td>Data models</td><td>dataclasses</td><td>Pydantic only for user-facing assert_schema</td></tr>
+            <tr><td>Assertion collection</td><td>Thread-local context</td><td>Clean user API, no wiring needed</td></tr>
+            <tr><td>Embedding model</td><td>Lazy-loaded, optional dep</td><td>Zero cost for keyword/LLM-only users</td></tr>
+            <tr><td>Trend detection</td><td>Manual OLS regression</td><td>Avoids numpy dependency</td></tr>
+            <tr><td>Background daemon</td><td>subprocess + PID file</td><td>Cross-platform, no extra deps</td></tr>
+            <tr><td>LLM judge</td><td>User-provided callable</td><td>Provider-agnostic, no openai dep</td></tr>
+            <tr><td>Safety templates</td><td>Data-driven list</td><td>Easy to extend, data not logic</td></tr>
+        </table>
+
+        <h2 id="schema">SQLite schema</h2>
+
+        <pre><code>CREATE TABLE prompts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    metadata TEXT,                              -- JSON
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(name, version),
+    UNIQUE(name, hash)                         -- dedup
+);
+
+CREATE TABLE prompt_tags (
+    prompt_id INTEGER REFERENCES prompts(id),
+    tag TEXT NOT NULL,
+    UNIQUE(prompt_id, tag)
+);
+
+CREATE TABLE eval_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    suite_name TEXT NOT NULL,
+    prompt_name TEXT,
+    prompt_version INTEGER,
+    model_version TEXT,
+    timestamp TEXT DEFAULT (datetime('now')),
+    overall_pass INTEGER DEFAULT 1,
+    overall_score REAL
+);
+
+CREATE TABLE eval_results (
+    run_id INTEGER REFERENCES eval_runs(id),
+    test_name TEXT NOT NULL,
+    assertion_type TEXT NOT NULL,
+    passed INTEGER NOT NULL,
+    score REAL,
+    details TEXT,                               -- JSON
+    latency_ms REAL
+);</code></pre>
+
+    </main>
+</div>
+
+<footer>
+    <a href="https://github.com/bihanikeshav/promptry">GitHub</a>
+    &nbsp;&middot;&nbsp;
+    MIT License
+    &nbsp;&middot;&nbsp;
+    Built by <a href="https://meownikov.xyz">Keshav</a>
+</footer>
+
+</body>
+</html>

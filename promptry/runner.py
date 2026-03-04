@@ -9,7 +9,6 @@ import time
 
 from promptry.evaluator import get_suite, run_context
 from promptry.models import TestResult, SuiteResult
-from promptry.storage import Storage
 
 # re-export for backwards compat (tests import these from runner)
 from promptry.models import ComparisonResult, RootCauseHint  # noqa: F401
@@ -28,7 +27,9 @@ def run_suite(
     if not suite_def:
         raise ValueError(f"Suite '{suite_name}' not found. Did you import the module that defines it?")
 
-    storage = storage or Storage()
+    if storage is None:
+        from promptry.storage import get_storage
+        storage = get_storage()
     test_result = _execute_test(suite_def.fn, suite_def.name)
 
     scores = [a.score for a in test_result.assertions if a.score is not None]

@@ -6,7 +6,6 @@ to see if anything got worse. If it did, try to explain why.
 from __future__ import annotations
 
 from promptry.models import SuiteResult, ComparisonResult, RootCauseHint
-from promptry.storage import Storage
 
 
 def compare_with_baseline(
@@ -18,7 +17,9 @@ def compare_with_baseline(
 
     Returns (comparisons, root_cause_hints).
     """
-    storage = storage or Storage()
+    if storage is None:
+        from promptry.storage import get_storage
+        storage = get_storage()
     comparisons = []
     hints = []
 
@@ -59,7 +60,7 @@ def compare_with_baseline(
     baseline_results = storage.get_eval_results(baseline_run.id)
     current_results = storage.get_eval_results(current.run_id) if current.run_id else []
 
-    for atype in ("semantic", "contains", "schema"):
+    for atype in ("semantic", "contains", "schema", "llm"):
         b_results = [r for r in baseline_results if r.assertion_type == atype]
         c_results = [r for r in current_results if r.assertion_type == atype]
 

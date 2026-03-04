@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from typer.testing import CliRunner
 from promptry.cli import app
@@ -8,6 +10,10 @@ runner = CliRunner()
 @pytest.fixture(autouse=True)
 def isolated_db(tmp_path, monkeypatch):
     monkeypatch.setenv("PROMPTRY_DB", str(tmp_path / "test.db"))
+    from promptry.config import reset_config
+    reset_config()
+    yield
+    reset_config()
 
 
 class TestPromptCLI:
@@ -60,3 +66,43 @@ class TestPromptCLI:
         assert result.exit_code == 0
         assert "Tagged" in result.output
         assert "prod" in result.output
+
+
+class TestInitCLI:
+
+    def test_init_creates_files(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, ["init"])
+        assert result.exit_code == 0
+        assert "Created" in result.output
+        assert (tmp_path / "promptry.toml").exists()
+        assert (tmp_path / "evals.py").exists()
+
+    def test_init_does_not_overwrite(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "promptry.toml").write_text("existing", encoding="utf-8")
+        result = runner.invoke(app, ["init"])
+        assert result.exit_code == 0
+        assert "already exists" in result.output
+        # original content preserved
+        assert (tmp_path / "promptry.toml").read_text() == "existing"
+
+    def test_init_creates_valid_toml(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        runner.invoke(app, ["init"])
+        import sys
+        if sys.version_info >= (3, 11):
+            import tomllib
+        else:
+            import tomli as tomllib
+        with open(tmp_path / "promptry.toml", "rb") as f:
+            data = tomllib.load(f)
+        assert "storage" in data
+
+
+class TestTemplatesCLI:
+
+    def test_templates_list(self):
+        result = runner.invoke(app, ["templates", "list"])
+        assert result.exit_code == 0
+        assert "injection" in result.output.lower() or "jailbreak" in result.output.lower()

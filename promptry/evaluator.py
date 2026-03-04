@@ -43,6 +43,13 @@ def suite(name: str, description: str = ""):
             assert_contains(response, ["keyword1", "keyword2"])
     """
     def decorator(fn):
+        if name in _SUITES:
+            import warnings
+            warnings.warn(
+                f"Suite '{name}' already registered (was {_SUITES[name].fn.__name__}, "
+                f"now {fn.__name__}). The previous definition will be overwritten.",
+                stacklevel=2,
+            )
         _SUITES[name] = SuiteDefinition(name=name, fn=fn, description=description)
         return fn
     return decorator

@@ -57,12 +57,16 @@ def start(suite_name: str, module: str, interval: int = 1440):
     else:
         kwargs["start_new_session"] = True
 
-    proc = subprocess.Popen(
-        cmd,
-        stdout=open(_LOG_FILE, "a"),
-        stderr=subprocess.STDOUT,
-        **kwargs,
-    )
+    log_fh = open(_LOG_FILE, "a")
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=log_fh,
+            stderr=subprocess.STDOUT,
+            **kwargs,
+        )
+    finally:
+        log_fh.close()
 
     _PID_FILE.write_text(str(proc.pid))
 
@@ -88,8 +92,8 @@ def stop():
 
     try:
         if sys.platform == "win32":
-            # on windows, subprocess.Popen with CREATE_NO_WINDOW
-            # means we need to use os.kill with SIGTERM
+            # on Windows os.kill with SIGTERM calls TerminateProcess (hard kill).
+            # there is no graceful signal on Windows for non-console processes.
             os.kill(pid, signal.SIGTERM)
         else:
             os.kill(pid, signal.SIGTERM)

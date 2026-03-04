@@ -105,30 +105,18 @@ class SQLiteStorage(BaseStorage):
             record.tags = self.get_tags(record.id)
             return record
 
-        # next version number
-        cur.execute(
-            "SELECT COALESCE(MAX(version), 0) + 1 FROM prompts WHERE name = ?",
-            (name,),
-        )
-        next_version = cur.fetchone()[0]
-
+        # atomic version increment + insert in one statement
         meta_json = json.dumps(metadata) if metadata else None
         cur.execute(
-            "INSERT INTO prompts (name, version, content, hash, metadata) VALUES (?, ?, ?, ?, ?)",
-            (name, next_version, content, content_hash, meta_json),
+            """INSERT INTO prompts (name, version, content, hash, metadata)
+               VALUES (?, (SELECT COALESCE(MAX(version), 0) + 1 FROM prompts WHERE name = ?), ?, ?, ?)""",
+            (name, name, content, content_hash, meta_json),
         )
         self._conn.commit()
 
-        return PromptRecord(
-            id=cur.lastrowid,
-            name=name,
-            version=next_version,
-            content=content,
-            hash=content_hash,
-            metadata=metadata or {},
-            created_at="",
-            tags=[],
-        )
+        # re-read the row to get the version and created_at
+        cur.execute("SELECT * FROM prompts WHERE id = ?", (cur.lastrowid,))
+        return self._row_to_prompt(cur.fetchone())
 
     def get_prompt(self, name, version=None) -> PromptRecord | None:
         cur = self._conn.cursor()

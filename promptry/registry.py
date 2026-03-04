@@ -8,7 +8,6 @@ from __future__ import annotations
 import difflib
 import hashlib
 import random
-from pathlib import Path
 
 from promptry.models import PromptRecord
 from promptry.storage import Storage
@@ -16,12 +15,14 @@ from promptry.storage import Storage
 
 class PromptRegistry:
 
-    def __init__(self, storage: Storage | None = None):
-        self._storage = storage or Storage()
-        self._hash_cache: dict[str, str] = {}
+    def __init__(self, storage=None):
+        if storage is None:
+            from promptry.storage import get_storage
+            storage = get_storage()
+        self._storage = storage
 
     @property
-    def storage(self) -> Storage:
+    def storage(self):
         return self._storage
 
     @staticmethod
@@ -32,7 +33,6 @@ class PromptRegistry:
         """Save a new version. Skips if identical content already exists."""
         h = self.content_hash(content)
         record = self._storage.save_prompt(name, content, h, metadata)
-        self._hash_cache[f"{name}:{h}"] = f"{name}@v{record.version}"
 
         if tag:
             self._storage.tag_prompt(record.id, tag)
@@ -71,9 +71,6 @@ class PromptRegistry:
             tofile=f"{name}@v{v2}",
         ))
 
-    def load_from_file(self, file_path: Path) -> str:
-        return Path(file_path).read_text(encoding="utf-8")
-
 
 # ---------------------------------------------------------------------------
 # track() -- the main integration point
@@ -84,7 +81,8 @@ class PromptRegistry:
 # ---------------------------------------------------------------------------
 
 _default_registry: PromptRegistry | None = None
-_track_cache: set[str] = set()  # "name:hash" for the fast path
+_track_cache: dict[str, None] = {}  # bounded LRU-ish cache, max 10k entries
+_TRACK_CACHE_MAX = 10_000
 
 
 def _get_registry() -> PromptRegistry:
@@ -127,7 +125,14 @@ def track(content: str, name: str, tag=None, metadata=None) -> str:
 
     registry = _get_registry()
     registry.save(name=name, content=content, tag=tag, metadata=metadata)
-    _track_cache.add(cache_key)
+
+    # bounded cache: evict oldest entries when full
+    if len(_track_cache) >= _TRACK_CACHE_MAX:
+        # drop first half (cheap bulk eviction)
+        keys = list(_track_cache.keys())
+        for k in keys[:len(keys) // 2]:
+            del _track_cache[k]
+    _track_cache[cache_key] = None
 
     return content
 
@@ -167,9 +172,14 @@ def track_context(
         return chunks
 
     registry = _get_registry()
-    meta = metadata or {}
+    meta = dict(metadata) if metadata else {}
     meta["chunk_count"] = len(chunks)
     registry.save(name=context_name, content=joined, metadata=meta)
-    _track_cache.add(cache_key)
+
+    if len(_track_cache) >= _TRACK_CACHE_MAX:
+        keys = list(_track_cache.keys())
+        for k in keys[:len(keys) // 2]:
+            del _track_cache[k]
+    _track_cache[cache_key] = None
 
     return chunks
