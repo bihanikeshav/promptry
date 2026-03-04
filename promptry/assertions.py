@@ -95,8 +95,6 @@ def assert_semantic(actual: str, expected: str, threshold: float | None = None) 
         from promptry.config import get_config
         threshold = get_config().model.semantic_threshold
 
-    start = time.perf_counter()
-
     model = _get_model()
     embeddings = model.encode([actual, expected])
     from sentence_transformers.util import cos_sim

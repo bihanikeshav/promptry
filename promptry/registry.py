@@ -10,7 +10,6 @@ import hashlib
 import random
 
 from promptry.models import PromptRecord
-from promptry.storage import Storage
 
 
 class PromptRegistry:

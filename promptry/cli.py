@@ -337,9 +337,9 @@ def monitor_status():
         console.print(f"  Last score: {state.get('last_score', 'N/A')}")
         drifting = state.get("drifting", False)
         if drifting:
-            console.print(f"  Drift: [red]DRIFTING[/red]")
+            console.print("  Drift: [red]DRIFTING[/red]")
         else:
-            console.print(f"  Drift: stable")
+            console.print("  Drift: stable")
 
 
 # ---- templates subcommands ----
@@ -453,7 +453,7 @@ def init_cmd():
     # promptry.toml
     config_path = cwd / "promptry.toml"
     if config_path.exists():
-        console.print(f"[yellow]promptry.toml already exists, skipping.[/yellow]")
+        console.print("[yellow]promptry.toml already exists, skipping.[/yellow]")
     else:
         config_path.write_text(
             '# promptry config\n'
@@ -482,7 +482,7 @@ def init_cmd():
     # evals.py
     evals_path = cwd / "evals.py"
     if evals_path.exists():
-        console.print(f"[yellow]evals.py already exists, skipping.[/yellow]")
+        console.print("[yellow]evals.py already exists, skipping.[/yellow]")
     else:
         evals_path.write_text(_EXAMPLE_EVAL, encoding="utf-8")
         created.append("evals.py")

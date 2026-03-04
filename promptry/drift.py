@@ -105,6 +105,6 @@ def format_drift_report(report: DriftReport) -> str:
     if report.is_drifting:
         lines.append(f"  Status: DRIFTING (threshold: -{report.threshold})")
     else:
-        lines.append(f"  Status: stable")
+        lines.append("  Status: stable")
 
     return "\n".join(lines)
