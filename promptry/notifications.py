@@ -94,9 +94,14 @@ def _send_webhook(url: str, subject: str, body: str):
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        if resp.status >= 400:
-            log.warning("webhook returned %d", resp.status)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status >= 400:
+                log.warning("webhook returned %d", resp.status)
+    except urllib.error.HTTPError as e:
+        log.warning("webhook HTTP error: %d %s", e.code, e.reason)
+    except urllib.error.URLError as e:
+        log.warning("webhook connection failed: %s", e.reason)
 
 
 def _send_email(to, subject, body, smtp_host, smtp_port, smtp_user, smtp_password):
@@ -110,7 +115,7 @@ def _send_email(to, subject, body, smtp_host, smtp_port, smtp_user, smtp_passwor
     msg["From"] = smtp_user or "promptry@localhost"
     msg["To"] = to
 
-    with smtplib.SMTP(smtp_host, smtp_port) as server:
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
         server.starttls()
         if smtp_user and smtp_password:
             server.login(smtp_user, smtp_password)

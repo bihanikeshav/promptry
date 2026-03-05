@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import time
 from typing import Any, Callable, Type
 
@@ -27,15 +28,18 @@ _model_name_override: str | None = None
 # LLM wrapper function: takes a string prompt, returns a string response.
 _judge: Callable[[str], str] | None = None
 
+_assertions_lock = threading.Lock()
+
 
 def _get_model():
     global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-        from promptry.config import get_config
-        name = _model_name_override or get_config().model.embedding_model
-        _model = SentenceTransformer(name)
-    return _model
+    with _assertions_lock:
+        if _model is None:
+            from sentence_transformers import SentenceTransformer
+            from promptry.config import get_config
+            name = _model_name_override or get_config().model.embedding_model
+            _model = SentenceTransformer(name)
+        return _model
 
 
 def set_model(name: str):
@@ -45,8 +49,9 @@ def set_model(name: str):
     is all-MiniLM-L6-v2.
     """
     global _model, _model_name_override
-    _model_name_override = name
-    _model = None
+    with _assertions_lock:
+        _model_name_override = name
+        _model = None
 
 
 def set_judge(fn: Callable[[str], str]):
@@ -71,11 +76,13 @@ def set_judge(fn: Callable[[str], str]):
         set_judge(my_judge)
     """
     global _judge
-    _judge = fn
+    with _assertions_lock:
+        _judge = fn
 
 
 def get_judge() -> Callable[[str], str] | None:
-    return _judge
+    with _assertions_lock:
+        return _judge
 
 
 def assert_semantic(actual: str, expected: str, threshold: float | None = None) -> float:
@@ -226,26 +233,20 @@ def _parse_judge_output(raw: str) -> tuple[float, str]:
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
     cleaned = re.sub(r"\s*```$", "", cleaned)
 
-    # try to find a JSON object in the response (handles nested braces)
-    start = cleaned.find("{")
-    if start == -1:
-        raise ValueError(f"Judge did not return valid JSON: {raw[:200]}")
-
-    # find matching closing brace
-    depth = 0
-    end = start
-    for i in range(start, len(cleaned)):
-        if cleaned[i] == "{":
-            depth += 1
-        elif cleaned[i] == "}":
-            depth -= 1
-            if depth == 0:
-                end = i + 1
-                break
-
+    # try direct parse first, then fall back to regex extraction
+    data = None
     try:
-        data = json.loads(cleaned[start:end])
+        data = json.loads(cleaned)
     except json.JSONDecodeError:
+        # extract JSON object with regex (handles braces inside strings correctly)
+        match = re.search(r'\{[^{}]*(?:"[^"]*"[^{}]*)*\}', cleaned)
+        if match:
+            try:
+                data = json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+
+    if data is None:
         raise ValueError(f"Judge did not return valid JSON: {raw[:200]}")
     score = float(data.get("score", 0.0))
     reason = str(data.get("reason", ""))

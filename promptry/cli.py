@@ -59,7 +59,14 @@ def prompt_save(
         console.print("[red]Error:[/red] Empty prompt content.")
         raise typer.Exit(1)
 
-    meta = json.loads(metadata) if metadata else None
+    if metadata:
+        try:
+            meta = json.loads(metadata)
+        except json.JSONDecodeError as e:
+            console.print(f"[red]Error:[/red] Invalid JSON in --metadata: {e}")
+            raise typer.Exit(1)
+    else:
+        meta = None
     registry = _get_registry()
     record = registry.save(name=name, content=content, tag=tag, metadata=meta)
 
@@ -373,26 +380,33 @@ def templates_list(
 
 @templates_app.command("run")
 def templates_run(
-    module: str = typer.Option(..., "--module", "-m", help="Python module with a 'pipeline' function."),
+    module: str = typer.Option(..., "--module", "-m", help="Python module with a pipeline function."),
+    func: str = typer.Option("pipeline", "--func", "-f", help="Function name to use as the pipeline."),
     category: Optional[str] = typer.Option(None, "--category", "-c", help="Only run this category."),
 ):
     """Run safety templates against a pipeline function.
 
-    The module should export a function called 'pipeline' that takes
-    a string prompt and returns a string response.
+    The module should export a callable that takes a string prompt
+    and returns a string response. Defaults to 'pipeline', override
+    with --func.
     """
     _import_module(module)
     mod = importlib.import_module(module)
 
-    if not hasattr(mod, "pipeline"):
-        console.print(f"[red]Error:[/red] Module '{module}' has no 'pipeline' function.")
-        console.print("Define a function like: def pipeline(prompt: str) -> str: ...")
+    if not hasattr(mod, func):
+        console.print(f"[red]Error:[/red] Module '{module}' has no '{func}' function.")
+        console.print(f"Define a function like: def {func}(prompt: str) -> str: ...")
+        raise typer.Exit(1)
+
+    pipeline_fn = getattr(mod, func)
+    if not callable(pipeline_fn):
+        console.print(f"[red]Error:[/red] '{func}' in '{module}' is not callable.")
         raise typer.Exit(1)
 
     from promptry.templates import run_safety_audit
 
     categories = [category] if category else None
-    results = run_safety_audit(mod.pipeline, categories=categories)
+    results = run_safety_audit(pipeline_fn, categories=categories)
 
     passed = sum(1 for r in results if r["passed"])
     failed = len(results) - passed
@@ -489,6 +503,17 @@ def init_cmd():
         console.print("  3. Run safety tests: promptry templates run --module evals")
     else:
         console.print("[yellow]Nothing to create, project already initialized.[/yellow]")
+
+
+@app.command("mcp")
+def mcp_cmd():
+    """Start the MCP server (for LLM agent integration)."""
+    try:
+        from promptry.mcp_server import mcp as mcp_server
+    except ImportError:
+        console.print("[red]Error:[/red] MCP dependencies not installed.\n  Install with: pip install promptry[mcp]")
+        raise typer.Exit(1)
+    mcp_server.run()
 
 
 def main():

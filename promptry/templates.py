@@ -350,6 +350,9 @@ def load_custom_templates() -> list[SafetyTemplate]:
 
 
 def _toml_to_template(entry: dict) -> SafetyTemplate:
+    if "prompt" not in entry:
+        tid = entry.get("id", "unknown")
+        raise ValueError(f"Custom template '{tid}' is missing required 'prompt' field")
     return SafetyTemplate(
         id=entry.get("id", "custom"),
         category=entry.get("category", "custom"),

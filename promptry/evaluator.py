@@ -87,9 +87,13 @@ def append_result(result: AssertionResult):
 
 @contextmanager
 def run_context():
-    """Collects assertion results during a suite execution."""
+    """Collects assertion results during a suite execution.
+
+    Uses a stack so nested suite calls don't clobber the outer context.
+    """
+    previous = getattr(_context, "results", None)
     _context.results = []
     try:
         yield _context.results
     finally:
-        _context.results = None
+        _context.results = previous

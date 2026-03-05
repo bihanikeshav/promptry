@@ -1,5 +1,5 @@
 from promptry.evaluator import (
-    suite, get_suite, list_suites, clear_suites,
+    suite, get_suite, list_suites,
     AssertionResult, run_context, append_result,
 )
 

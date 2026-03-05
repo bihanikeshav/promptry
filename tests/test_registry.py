@@ -1,5 +1,5 @@
 import pytest
-from promptry.registry import PromptRegistry, track, track_context, reset_registry
+from promptry.registry import PromptRegistry, track, track_context
 
 
 class TestPromptRegistry:

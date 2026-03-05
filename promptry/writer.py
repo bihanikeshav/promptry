@@ -14,6 +14,7 @@ import atexit
 import logging
 import queue
 import threading
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -72,13 +73,22 @@ class AsyncWriter(BaseStorage):
 
     def _enqueue(self, method: str, *args, **kwargs):
         try:
-            self._queue.put_nowait(WriteOp(method, args, kwargs))
+            self._queue.put(WriteOp(method, args, kwargs), timeout=1.0)
         except queue.Full:
-            log.warning("write queue full, dropping %s", method)
+            log.warning(
+                "write queue full, dropping %s — increase max_queue or check for slowdowns",
+                method,
+            )
 
     def flush(self, timeout: float = 5.0):
-        """Wait for all pending writes to finish."""
-        self._queue.join()
+        """Wait for all pending writes to finish, with timeout."""
+        deadline = time.monotonic() + timeout
+        while not self._queue.empty():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                log.warning("flush timed out with %d writes pending", self._queue.qsize())
+                return
+            time.sleep(min(0.05, remaining))
 
     @property
     def pending(self) -> int:

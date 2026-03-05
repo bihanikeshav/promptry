@@ -139,7 +139,13 @@ def _apply_env_overrides(config: Config):
     if model := os.environ.get("PROMPTRY_EMBEDDING_MODEL"):
         config.model.embedding_model = model
     if threshold := os.environ.get("PROMPTRY_SEMANTIC_THRESHOLD"):
-        config.model.semantic_threshold = float(threshold)
+        try:
+            config.model.semantic_threshold = float(threshold)
+        except ValueError:
+            import logging
+            logging.getLogger("promptry").warning(
+                "Invalid PROMPTRY_SEMANTIC_THRESHOLD=%r, using default", threshold
+            )
     if webhook := os.environ.get("PROMPTRY_WEBHOOK_URL"):
         config.notifications.webhook_url = webhook
     if smtp_pw := os.environ.get("PROMPTRY_SMTP_PASSWORD"):

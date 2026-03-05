@@ -66,7 +66,7 @@
   models.py            <span class="desc"># all dataclasses (PromptRecord, SuiteResult, DriftReport, etc.)</span>
   registry.py          <span class="desc"># prompt versioning, track(), track_context()</span>
   evaluator.py         <span class="desc"># @suite decorator, thread-local result collection</span>
-  assertions.py        <span class="desc"># assert_semantic, assert_contains, assert_llm, etc.</span>
+  assertions.py        <span class="desc"># assert_semantic, assert_schema, assert_llm</span>
   runner.py            <span class="desc"># suite execution, stores results to DB</span>
   comparison.py        <span class="desc"># baseline comparison, root cause analysis</span>
   drift.py             <span class="desc"># score trend detection via linear regression</span>
@@ -104,17 +104,17 @@
                               <span class="arrow">|</span>
                    <span class="dim">check storage mode</span>
                    <span class="arrow">/        |        \</span>
-              <span class="dim">"off"</span>    <span class="dim">"sync"</span>    <span class="dim">"async"</span>
+                 <span class="dim">"off"</span>    <span class="dim">"sync"</span>    <span class="dim">"async"</span>
            <span class="dim">return</span>   <span class="arrow">|</span>         <span class="arrow">|</span>
           <span class="dim">unchanged</span> <span class="arrow">|</span>         <span class="arrow">|</span>
-                   <span class="arrow">v</span>         <span class="arrow">v</span>
+                    <span class="arrow">v</span>         <span class="arrow">v</span>
             SHA-256 hash content
                    <span class="arrow">|</span>
-         <span class="dim">in-memory cache hit?</span>
-            <span class="arrow">/</span>            <span class="arrow">\</span>
-          <span class="dim">yes</span>            <span class="dim">no</span>
-       <span class="dim">return</span>       <span class="arrow">|</span>
-      <span class="dim">unchanged</span>    <span class="arrow">v</span>
+            <span class="dim">in-memory cache hit?</span>
+               <span class="arrow">/</span>            <span class="arrow">\</span>
+             <span class="dim">yes</span>            <span class="dim">no</span>
+          <span class="dim">return</span>          <span class="arrow">|</span>
+         <span class="dim">unchanged</span>        <span class="arrow">v</span>
               SQLiteStorage.save_prompt()
               <span class="dim">(dedup: UNIQUE(name, hash))</span>
                    <span class="arrow">|</span>
@@ -135,7 +135,7 @@
                         <span class="arrow">|</span>
               _execute_test(suite_fn)
               <span class="dim">with run_context() as results:</span>
-                <span class="dim">suite_fn()  # calls assert_contains, assert_llm, etc.</span>
+                <span class="dim">suite_fn()  # calls assert_semantic, assert_llm, etc.</span>
                 <span class="dim">each assertion appends to thread-local results</span>
                         <span class="arrow">|</span>
               compute overall_score = mean(assertion scores)
@@ -182,17 +182,15 @@
         <p><code>track_context()</code> does the same for retrieval chunks, with optional sampling (<code>sample_rate</code>) to reduce write volume in production.</p>
 
         <h2 id="evaluator">evaluator.py</h2>
-        <p>The <code>@suite</code> decorator registers test functions in a global dict. <code>run_context()</code> sets up a thread-local list where assertions append their results. This keeps the user API clean: just call <code>assert_contains()</code> inside your function, and the runner collects everything automatically. Duplicate suite names emit a warning.</p>
+        <p>The <code>@suite</code> decorator registers test functions in a global dict. <code>run_context()</code> sets up a thread-local list where assertions append their results. This keeps the user API clean: just call <code>assert_semantic()</code> inside your function, and the runner collects everything automatically. Duplicate suite names emit a warning.</p>
 
         <h2 id="assertions">assertions.py</h2>
         <p>Each assertion function follows the same pattern: evaluate the condition, append an <code>AssertionResult</code> to the current run context, raise <code>AssertionError</code> on failure, return the score.</p>
 
         <table>
             <tr><th>Assertion</th><th>What it checks</th><th>Cost</th></tr>
-            <tr><td><code>assert_contains</code></td><td>All keywords present in text</td><td>Free (string matching)</td></tr>
-            <tr><td><code>assert_not_contains</code></td><td>No forbidden keywords in text</td><td>Free</td></tr>
             <tr><td><code>assert_schema</code></td><td>Data matches a Pydantic model</td><td>Free</td></tr>
-            <tr><td><code>assert_semantic</code></td><td>Cosine similarity of embeddings</td><td>~50ms (needs <code>pip install promptry[semantic]</code>)</td></tr>
+            <tr><td><code>assert_semantic</code></td><td>Cosine similarity of embeddings</td><td>~50ms</td></tr>
             <tr><td><code>assert_llm</code></td><td>LLM grades response against criteria</td><td>~1-5s (one LLM call per assertion)</td></tr>
         </table>
 
@@ -279,7 +277,7 @@
             <tr><td>Config</td><td>TOML</td><td>Python standard (tomllib in 3.11+)</td></tr>
             <tr><td>Data models</td><td>dataclasses</td><td>Pydantic only for user-facing assert_schema</td></tr>
             <tr><td>Assertion collection</td><td>Thread-local context</td><td>Clean user API, no wiring needed</td></tr>
-            <tr><td>Embedding model</td><td>Lazy-loaded, optional dep</td><td>Zero cost for keyword/LLM-only users</td></tr>
+            <tr><td>Embedding model</td><td>Lazy-loaded on first use</td><td>No startup cost, downloads once (~80MB)</td></tr>
             <tr><td>Trend detection</td><td>Manual OLS regression</td><td>Avoids numpy dependency</td></tr>
             <tr><td>Background daemon</td><td>subprocess + PID file</td><td>Cross-platform, no extra deps</td></tr>
             <tr><td>LLM judge</td><td>User-provided callable</td><td>Provider-agnostic, no openai dep</td></tr>

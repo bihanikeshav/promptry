@@ -12,6 +12,7 @@ def compare_with_baseline(
     current: SuiteResult,
     baseline_tag="prod",
     storage=None,
+    tolerance: float = 0.05,
 ) -> tuple[list[ComparisonResult], list[RootCauseHint]]:
     """Compare current run against the most recent baseline.
 
@@ -53,7 +54,7 @@ def compare_with_baseline(
             metric="Overall score",
             baseline_value=baseline_run.overall_score,
             current_value=current.overall_score,
-            passed=current.overall_score >= baseline_run.overall_score - 0.05,
+            passed=current.overall_score >= baseline_run.overall_score - tolerance,
         ))
 
     # per-assertion-type pass rates
@@ -74,7 +75,7 @@ def compare_with_baseline(
             metric=f"{atype.title()} pass rate",
             baseline_value=b_pass_rate,
             current_value=c_pass_rate,
-            passed=c_pass_rate >= b_pass_rate - 0.05,
+            passed=c_pass_rate >= b_pass_rate - tolerance,
         ))
 
     # ---- root cause hints ----

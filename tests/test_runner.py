@@ -79,7 +79,7 @@ class TestRunSuite:
         def my_test():
             pass
 
-        result = run_suite(
+        run_suite(
             "meta_suite",
             prompt_name="qa",
             prompt_version=3,
@@ -106,7 +106,7 @@ class TestBaselineComparison:
             assert_schema({"value": 1}, Simple)
 
         # run baseline
-        baseline = run_suite("regression_suite", storage=storage)
+        run_suite("regression_suite", storage=storage)
 
         # simulate a worse run by inserting directly
         run_id = storage.save_eval_run(
@@ -122,7 +122,7 @@ class TestBaselineComparison:
             score=0.5,
         )
 
-        from promptry.runner import SuiteResult, TestResult
+        from promptry.runner import SuiteResult
         worse = SuiteResult(
             suite_name="regression_suite",
             tests=[],

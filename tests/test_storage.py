@@ -1,4 +1,3 @@
-from promptry.storage import Storage
 
 
 class TestPromptStorage:

@@ -68,7 +68,15 @@ def start(suite_name: str, module: str, interval: int = 1440):
     finally:
         log_fh.close()
 
-    _PID_FILE.write_text(str(proc.pid))
+    # atomic-ish PID file creation (fail if another instance races us)
+    try:
+        fd = os.open(str(_PID_FILE), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(proc.pid).encode())
+        os.close(fd)
+    except FileExistsError:
+        # another start() raced us -- kill the process we just spawned
+        proc.kill()
+        raise RuntimeError("Monitor PID file already exists — another instance may be starting")
 
     # save config so status can report what's running
     state = {
@@ -151,14 +159,29 @@ def status() -> dict | None:
 
 # ---- the actual loop (runs inside the subprocess) ----
 
+_shutdown = False
+
+
+def _handle_shutdown(signum, frame):
+    global _shutdown
+    _shutdown = True
+    log.info("received signal %s, shutting down gracefully", signum)
+
+
 def _run_loop(suite_name: str, module: str, interval_minutes: int):
     """Main loop for the background monitor process.
 
     Imports the module, runs the suite, checks drift, sleeps, repeat.
     """
+    global _shutdown
+
     import importlib
     from promptry.runner import run_suite
     from promptry.drift import DriftMonitor
+
+    signal.signal(signal.SIGTERM, _handle_shutdown)
+    if hasattr(signal, "SIGINT"):
+        signal.signal(signal.SIGINT, _handle_shutdown)
 
     logging.basicConfig(
         level=logging.INFO,
@@ -171,9 +194,10 @@ def _run_loop(suite_name: str, module: str, interval_minutes: int):
     interval_seconds = interval_minutes * 60
     monitor = DriftMonitor()
 
-    while True:
+    while not _shutdown:
         try:
-            # re-import each cycle in case the module changed
+            # invalidate caches so freshly changed files are picked up
+            importlib.invalidate_caches()
             mod = importlib.import_module(module)
             importlib.reload(mod)
 
@@ -205,7 +229,13 @@ def _run_loop(suite_name: str, module: str, interval_minutes: int):
         except Exception:
             log.exception("monitor run failed")
 
-        time.sleep(interval_seconds)
+        # sleep in small increments so we respond to shutdown quickly
+        for _ in range(interval_seconds):
+            if _shutdown:
+                break
+            time.sleep(1)
+
+    log.info("monitor shut down gracefully")
 
 
 # ---- entry point for subprocess ----

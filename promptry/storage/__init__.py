@@ -9,14 +9,20 @@ from promptry.storage.sqlite import SQLiteStorage
 # backwards compat
 Storage = SQLiteStorage
 
+_storage_instance: BaseStorage | None = None
+
 
 def get_storage() -> BaseStorage:
-    """Get a storage instance based on the current config mode.
+    """Get the singleton storage instance based on the current config mode.
 
     - sync: direct SQLiteStorage (default)
     - async: SQLiteStorage wrapped in AsyncWriter (background thread)
     - off: should not be called (track() short-circuits before this)
     """
+    global _storage_instance
+    if _storage_instance is not None:
+        return _storage_instance
+
     from promptry.config import get_config
 
     config = get_config()
@@ -24,9 +30,18 @@ def get_storage() -> BaseStorage:
 
     if config.storage.mode == "async":
         from promptry.writer import AsyncWriter
-        return AsyncWriter(storage)
+        storage = AsyncWriter(storage)
 
+    _storage_instance = storage
     return storage
 
 
-__all__ = ["BaseStorage", "SQLiteStorage", "Storage", "get_storage"]
+def reset_storage():
+    """Close and discard the singleton storage instance."""
+    global _storage_instance
+    if _storage_instance is not None:
+        _storage_instance.close()
+    _storage_instance = None
+
+
+__all__ = ["BaseStorage", "SQLiteStorage", "Storage", "get_storage", "reset_storage"]

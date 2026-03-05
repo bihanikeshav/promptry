@@ -27,8 +27,9 @@
         <p class="tagline">
             Track prompt versions, run eval suites, detect drift, catch regressions before your users do.
         </p>
-        <div class="install-box">
+        <div class="install-box" onclick="copyInstall(this)">
             <span class="dollar">$ </span>pip install promptry
+            <span class="copy-hint">Click to copy</span>
         </div>
     </div>
 
@@ -41,7 +42,7 @@
             </div>
             <div class="feature">
                 <h3>Eval suites</h3>
-                <p>Write test functions for your LLM outputs. Keyword matching, semantic similarity, schema validation, LLM-as-judge.</p>
+                <p>Write test functions for your LLM outputs. Semantic similarity, schema validation, LLM-as-judge.</p>
             </div>
             <div class="feature">
                 <h3>Baseline comparison</h3>
@@ -72,12 +73,11 @@ prompt = track(<span class="str">"You are a helpful assistant..."</span>, <span 
 response = llm.chat(system=prompt, ...)</code></pre>
 
         <h2 style="border: none; padding: 0; margin-top: 48px;">Write evals like tests</h2>
-        <pre><code><span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> suite, assert_contains, assert_semantic
+        <pre><code><span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> suite, assert_semantic
 
 <span class="kw">@suite</span>(<span class="str">"rag-regression"</span>)
 <span class="kw">def</span> <span class="fn">test_rag_quality</span>():
     response = my_pipeline(<span class="str">"What is photosynthesis?"</span>)
-    assert_contains(response, [<span class="str">"sunlight"</span>, <span class="str">"energy"</span>])
     assert_semantic(response, <span class="str">"Converts light into chemical energy"</span>)</code></pre>
 
         <h2 style="border: none; padding: 0; margin-top: 48px;">LLM-as-judge</h2>
@@ -97,10 +97,9 @@ set_judge(my_llm_fn)
 <span class="dim">$ promptry run rag-regression --module evals --compare prod</span>
 
   <span class="pass">PASS</span> rag-regression (142ms)
-    contains (1.000) ok
     semantic (0.891) ok
 
-  Overall: <span class="pass">PASS</span>  score: 0.946
+  Overall: <span class="pass">PASS</span>  score: 0.891
 
   Comparing against <b>prod</b> baseline:
   Overall score: 0.910 -> 0.946  ok
@@ -154,7 +153,7 @@ severity = <span class="str">"critical"</span></code></pre>
     <section>
         <h2>Batteries included</h2>
         <p>
-            <code>pip install promptry</code> gives you everything: keyword checks, semantic similarity,
+            <code>pip install promptry</code> gives you everything: semantic similarity,
             schema validation, LLM-as-judge, drift detection, safety templates, and the full CLI.
             The embedding model (~80MB) downloads automatically on first use of <code>assert_semantic</code>.
         </p>
@@ -187,6 +186,19 @@ severity = <span class="str">"critical"</span></code></pre>
     &nbsp;&middot;&nbsp;
     Built by <a href="https://meownikov.xyz">Keshav</a>
 </footer>
+
+<script>
+function copyInstall(el) {
+    navigator.clipboard.writeText('pip install promptry').then(function() {
+        el.classList.add('copied');
+        el.querySelector('.copy-hint').textContent = 'Copied!';
+        setTimeout(function() {
+            el.classList.remove('copied');
+            el.querySelector('.copy-hint').textContent = 'Click to copy';
+        }, 2000);
+    });
+}
+</script>
 
 </body>
 </html>

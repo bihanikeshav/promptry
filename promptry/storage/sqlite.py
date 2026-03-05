@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from pathlib import Path
 
 from promptry.config import get_config
@@ -72,6 +73,7 @@ class SQLiteStorage(BaseStorage):
             db_path = get_config().storage.db_path
         self._db_path = Path(db_path).expanduser()
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
         self._conn = self._connect()
         self._init_schema()
 
@@ -89,95 +91,118 @@ class SQLiteStorage(BaseStorage):
     def close(self):
         self._conn.close()
 
+    def __del__(self):
+        try:
+            self._conn.close()
+        except Exception:
+            pass
+
     # ---- prompts ----
 
     def save_prompt(self, name, content, content_hash, metadata=None) -> PromptRecord:
-        cur = self._conn.cursor()
+        with self._lock:
+            cur = self._conn.cursor()
 
-        # dedup: same name + same hash means same content, skip
-        cur.execute(
-            "SELECT * FROM prompts WHERE name = ? AND hash = ?",
-            (name, content_hash),
-        )
-        row = cur.fetchone()
-        if row:
-            record = self._row_to_prompt(row)
-            record.tags = self.get_tags(record.id)
-            return record
+            # dedup: same name + same hash means same content, skip
+            cur.execute(
+                "SELECT * FROM prompts WHERE name = ? AND hash = ?",
+                (name, content_hash),
+            )
+            row = cur.fetchone()
+            if row:
+                record = self._row_to_prompt(row)
+                record.tags = self._get_tags_unlocked(cur, record.id)
+                return record
 
-        # atomic version increment + insert in one statement
-        meta_json = json.dumps(metadata) if metadata else None
-        cur.execute(
-            """INSERT INTO prompts (name, version, content, hash, metadata)
-               VALUES (?, (SELECT COALESCE(MAX(version), 0) + 1 FROM prompts WHERE name = ?), ?, ?, ?)""",
-            (name, name, content, content_hash, meta_json),
-        )
-        self._conn.commit()
+            # atomic version increment + insert in one statement
+            meta_json = json.dumps(metadata) if metadata else None
+            cur.execute(
+                """INSERT INTO prompts (name, version, content, hash, metadata)
+                   VALUES (?, (SELECT COALESCE(MAX(version), 0) + 1 FROM prompts WHERE name = ?), ?, ?, ?)""",
+                (name, name, content, content_hash, meta_json),
+            )
+            self._conn.commit()
 
-        # re-read the row to get the version and created_at
-        cur.execute("SELECT * FROM prompts WHERE id = ?", (cur.lastrowid,))
-        return self._row_to_prompt(cur.fetchone())
+            # re-read the row to get the version and created_at
+            cur.execute("SELECT * FROM prompts WHERE id = ?", (cur.lastrowid,))
+            return self._row_to_prompt(cur.fetchone())
 
     def get_prompt(self, name, version=None) -> PromptRecord | None:
-        cur = self._conn.cursor()
-        if version is not None:
-            cur.execute(
-                "SELECT * FROM prompts WHERE name = ? AND version = ?",
-                (name, version),
-            )
-        else:
-            cur.execute(
-                "SELECT * FROM prompts WHERE name = ? ORDER BY version DESC LIMIT 1",
-                (name,),
-            )
-        row = cur.fetchone()
-        if not row:
-            return None
-        record = self._row_to_prompt(row)
-        record.tags = self.get_tags(record.id)
-        return record
+        with self._lock:
+            cur = self._conn.cursor()
+            if version is not None:
+                cur.execute(
+                    "SELECT * FROM prompts WHERE name = ? AND version = ?",
+                    (name, version),
+                )
+            else:
+                cur.execute(
+                    "SELECT * FROM prompts WHERE name = ? ORDER BY version DESC LIMIT 1",
+                    (name,),
+                )
+            row = cur.fetchone()
+            if not row:
+                return None
+            record = self._row_to_prompt(row)
+            record.tags = self._get_tags_unlocked(cur, record.id)
+            return record
 
     def get_prompt_by_tag(self, name, tag) -> PromptRecord | None:
-        cur = self._conn.cursor()
-        cur.execute(
-            """SELECT p.* FROM prompts p
-               JOIN prompt_tags pt ON p.id = pt.prompt_id
-               WHERE p.name = ? AND pt.tag = ?
-               ORDER BY p.version DESC LIMIT 1""",
-            (name, tag),
-        )
-        row = cur.fetchone()
-        if not row:
-            return None
-        record = self._row_to_prompt(row)
-        record.tags = self.get_tags(record.id)
-        return record
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """SELECT p.* FROM prompts p
+                   JOIN prompt_tags pt ON p.id = pt.prompt_id
+                   WHERE p.name = ? AND pt.tag = ?
+                   ORDER BY p.version DESC LIMIT 1""",
+                (name, tag),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            record = self._row_to_prompt(row)
+            record.tags = self._get_tags_unlocked(cur, record.id)
+            return record
 
     def list_prompts(self, name=None) -> list[PromptRecord]:
-        cur = self._conn.cursor()
-        if name:
-            cur.execute(
-                "SELECT * FROM prompts WHERE name = ? ORDER BY version ASC",
-                (name,),
-            )
-        else:
-            cur.execute("SELECT * FROM prompts ORDER BY name, version ASC")
-        records = []
-        for row in cur.fetchall():
-            record = self._row_to_prompt(row)
-            record.tags = self.get_tags(record.id)
-            records.append(record)
-        return records
+        with self._lock:
+            cur = self._conn.cursor()
+            if name:
+                cur.execute(
+                    """SELECT p.*, GROUP_CONCAT(pt.tag) as tags_csv
+                       FROM prompts p LEFT JOIN prompt_tags pt ON p.id = pt.prompt_id
+                       WHERE p.name = ? GROUP BY p.id ORDER BY p.version ASC""",
+                    (name,),
+                )
+            else:
+                cur.execute(
+                    """SELECT p.*, GROUP_CONCAT(pt.tag) as tags_csv
+                       FROM prompts p LEFT JOIN prompt_tags pt ON p.id = pt.prompt_id
+                       GROUP BY p.id ORDER BY p.name, p.version ASC"""
+                )
+            records = []
+            for row in cur.fetchall():
+                record = self._row_to_prompt(row)
+                tags_csv = row["tags_csv"]
+                record.tags = tags_csv.split(",") if tags_csv else []
+                records.append(record)
+            return records
 
     def tag_prompt(self, prompt_id, tag):
-        self._conn.execute(
-            "INSERT OR IGNORE INTO prompt_tags (prompt_id, tag) VALUES (?, ?)",
-            (prompt_id, tag),
-        )
-        self._conn.commit()
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO prompt_tags (prompt_id, tag) VALUES (?, ?)",
+                (prompt_id, tag),
+            )
+            self._conn.commit()
 
     def get_tags(self, prompt_id) -> list[str]:
-        cur = self._conn.execute(
+        with self._lock:
+            return self._get_tags_unlocked(self._conn.cursor(), prompt_id)
+
+    def _get_tags_unlocked(self, cur, prompt_id) -> list[str]:
+        """Get tags without acquiring the lock (caller must hold it)."""
+        cur.execute(
             "SELECT tag FROM prompt_tags WHERE prompt_id = ?",
             (prompt_id,),
         )
@@ -194,14 +219,15 @@ class SQLiteStorage(BaseStorage):
         overall_pass=True,
         overall_score=None,
     ) -> int:
-        cur = self._conn.execute(
-            """INSERT INTO eval_runs
-               (suite_name, prompt_name, prompt_version, model_version, overall_pass, overall_score)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (suite_name, prompt_name, prompt_version, model_version, int(overall_pass), overall_score),
-        )
-        self._conn.commit()
-        return cur.lastrowid
+        with self._lock:
+            cur = self._conn.execute(
+                """INSERT INTO eval_runs
+                   (suite_name, prompt_name, prompt_version, model_version, overall_pass, overall_score)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (suite_name, prompt_name, prompt_version, model_version, int(overall_pass), overall_score),
+            )
+            self._conn.commit()
+            return cur.lastrowid
 
     def save_eval_result(
         self,
@@ -213,45 +239,52 @@ class SQLiteStorage(BaseStorage):
         details=None,
         latency_ms=None,
     ) -> int:
-        details_json = json.dumps(details) if details else None
-        cur = self._conn.execute(
-            """INSERT INTO eval_results
-               (run_id, test_name, assertion_type, passed, score, details, latency_ms)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (run_id, test_name, assertion_type, int(passed), score, details_json, latency_ms),
-        )
-        self._conn.commit()
-        return cur.lastrowid
+        with self._lock:
+            details_json = json.dumps(details) if details else None
+            cur = self._conn.execute(
+                """INSERT INTO eval_results
+                   (run_id, test_name, assertion_type, passed, score, details, latency_ms)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (run_id, test_name, assertion_type, int(passed), score, details_json, latency_ms),
+            )
+            self._conn.commit()
+            return cur.lastrowid
 
     def get_eval_runs(self, suite_name, limit=50) -> list[EvalRunRecord]:
-        cur = self._conn.execute(
-            """SELECT * FROM eval_runs
-               WHERE suite_name = ?
-               ORDER BY id DESC LIMIT ?""",
-            (suite_name, limit),
-        )
-        return [self._row_to_eval_run(row) for row in cur.fetchall()]
+        with self._lock:
+            cur = self._conn.execute(
+                """SELECT * FROM eval_runs
+                   WHERE suite_name = ?
+                   ORDER BY id DESC LIMIT ?""",
+                (suite_name, limit),
+            )
+            return [self._row_to_eval_run(row) for row in cur.fetchall()]
 
     def get_eval_results(self, run_id) -> list[EvalResultRecord]:
-        cur = self._conn.execute(
-            "SELECT * FROM eval_results WHERE run_id = ?",
-            (run_id,),
-        )
-        return [self._row_to_eval_result(row) for row in cur.fetchall()]
+        with self._lock:
+            cur = self._conn.execute(
+                "SELECT * FROM eval_results WHERE run_id = ?",
+                (run_id,),
+            )
+            return [self._row_to_eval_result(row) for row in cur.fetchall()]
 
     def get_score_history(self, suite_name, limit=30) -> list[tuple[str, float]]:
-        cur = self._conn.execute(
-            """SELECT timestamp, overall_score FROM eval_runs
-               WHERE suite_name = ? AND overall_score IS NOT NULL
-               ORDER BY id DESC LIMIT ?""",
-            (suite_name, limit),
-        )
-        return [(row[0], row[1]) for row in cur.fetchall()]
+        with self._lock:
+            cur = self._conn.execute(
+                """SELECT timestamp, overall_score FROM eval_runs
+                   WHERE suite_name = ? AND overall_score IS NOT NULL
+                   ORDER BY id DESC LIMIT ?""",
+                (suite_name, limit),
+            )
+            return [(row[0], row[1]) for row in cur.fetchall()]
 
     # ---- row converters ----
 
     def _row_to_prompt(self, row) -> PromptRecord:
-        meta = json.loads(row["metadata"]) if row["metadata"] else {}
+        try:
+            meta = json.loads(row["metadata"]) if row["metadata"] else {}
+        except (json.JSONDecodeError, TypeError):
+            meta = {}
         return PromptRecord(
             id=row["id"],
             name=row["name"],

@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from typer.testing import CliRunner
 from promptry.cli import app
@@ -106,3 +104,29 @@ class TestTemplatesCLI:
         result = runner.invoke(app, ["templates", "list"])
         assert result.exit_code == 0
         assert "injection" in result.output.lower() or "jailbreak" in result.output.lower()
+
+    def test_templates_run_custom_func(self, tmp_path, monkeypatch):
+        """--func flag should use the specified function name."""
+        mod_file = tmp_path / "mymod.py"
+        mod_file.write_text(
+            "def my_llm(prompt):\n"
+            "    return 'I cannot help with that request.'\n",
+            encoding="utf-8",
+        )
+        monkeypatch.syspath_prepend(str(tmp_path))
+        result = runner.invoke(
+            app, ["templates", "run", "--module", "mymod", "--func", "my_llm", "--category", "prompt_injection"]
+        )
+        assert result.exit_code in (0, 1)  # runs without crashing
+        assert "PASS" in result.output or "FAIL" in result.output
+
+    def test_templates_run_missing_func(self, tmp_path, monkeypatch):
+        """Should error when specified function doesn't exist."""
+        mod_file = tmp_path / "emptymod.py"
+        mod_file.write_text("x = 1\n", encoding="utf-8")
+        monkeypatch.syspath_prepend(str(tmp_path))
+        result = runner.invoke(
+            app, ["templates", "run", "--module", "emptymod", "--func", "nonexistent"]
+        )
+        assert result.exit_code == 1
+        assert "nonexistent" in result.output

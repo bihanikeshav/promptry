@@ -56,7 +56,7 @@ def my_pipeline(question: str) -> str:
     )
 
     context = retrieve(question)
-    track_context(context, "science-tutor")
+    track_context([context], "science-tutor")
 
     return fake_llm(system=system_prompt, context=context, question=question)
 

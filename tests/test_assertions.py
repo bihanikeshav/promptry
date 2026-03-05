@@ -109,7 +109,7 @@ class TestAssertLlm:
         def judge(prompt):
             return '```json\n{"score": 0.75, "reason": "good enough"}\n```'
 
-        with run_context() as results:
+        with run_context():
             score = assert_llm(
                 "some response",
                 criteria="criteria",
@@ -130,6 +130,6 @@ class TestAssertLlm:
         def judge(prompt):
             return '{"score": 1.5, "reason": "over the top"}'
 
-        with run_context() as results:
+        with run_context():
             score = assert_llm("response", criteria="criteria", judge=judge)
         assert score == 1.0

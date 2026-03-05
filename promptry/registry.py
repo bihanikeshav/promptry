@@ -8,6 +8,7 @@ from __future__ import annotations
 import difflib
 import hashlib
 import random
+import threading
 
 from promptry.models import PromptRecord
 
@@ -82,6 +83,7 @@ class PromptRegistry:
 _default_registry: PromptRegistry | None = None
 _track_cache: dict[str, None] = {}  # bounded LRU-ish cache, max 10k entries
 _TRACK_CACHE_MAX = 10_000
+_track_lock = threading.Lock()
 
 
 def _get_registry() -> PromptRegistry:
@@ -119,19 +121,26 @@ def track(content: str, name: str, tag=None, metadata=None) -> str:
     h = PromptRegistry.content_hash(content)
     cache_key = f"{name}:{h}"
 
-    if cache_key in _track_cache and tag is None:
+    with _track_lock:
+        if cache_key in _track_cache and tag is None:
+            return content
+
+    try:
+        registry = _get_registry()
+        registry.save(name=name, content=content, tag=tag, metadata=metadata)
+    except Exception:
+        import logging
+        logging.getLogger("promptry").warning("track() storage write failed", exc_info=True)
         return content
 
-    registry = _get_registry()
-    registry.save(name=name, content=content, tag=tag, metadata=metadata)
-
-    # bounded cache: evict oldest entries when full
-    if len(_track_cache) >= _TRACK_CACHE_MAX:
-        # drop first half (cheap bulk eviction)
-        keys = list(_track_cache.keys())
-        for k in keys[:len(keys) // 2]:
-            del _track_cache[k]
-    _track_cache[cache_key] = None
+    with _track_lock:
+        # bounded cache: evict oldest entries when full
+        if len(_track_cache) >= _TRACK_CACHE_MAX:
+            # drop first half (cheap bulk eviction)
+            keys = list(_track_cache.keys())
+            for k in keys[:len(keys) // 2]:
+                del _track_cache[k]
+        _track_cache[cache_key] = None
 
     return content
 
@@ -167,18 +176,25 @@ def track_context(
     h = PromptRegistry.content_hash(joined)
     cache_key = f"{context_name}:{h}"
 
-    if cache_key in _track_cache:
+    with _track_lock:
+        if cache_key in _track_cache:
+            return chunks
+
+    try:
+        registry = _get_registry()
+        meta = dict(metadata) if metadata else {}
+        meta["chunk_count"] = len(chunks)
+        registry.save(name=context_name, content=joined, metadata=meta)
+    except Exception:
+        import logging
+        logging.getLogger("promptry").warning("track_context() storage write failed", exc_info=True)
         return chunks
 
-    registry = _get_registry()
-    meta = dict(metadata) if metadata else {}
-    meta["chunk_count"] = len(chunks)
-    registry.save(name=context_name, content=joined, metadata=meta)
-
-    if len(_track_cache) >= _TRACK_CACHE_MAX:
-        keys = list(_track_cache.keys())
-        for k in keys[:len(keys) // 2]:
-            del _track_cache[k]
-    _track_cache[cache_key] = None
+    with _track_lock:
+        if len(_track_cache) >= _TRACK_CACHE_MAX:
+            keys = list(_track_cache.keys())
+            for k in keys[:len(keys) // 2]:
+                del _track_cache[k]
+        _track_cache[cache_key] = None
 
     return chunks

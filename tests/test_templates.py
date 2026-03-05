@@ -21,7 +21,7 @@ class TestTemplates:
 
     def test_each_template_has_required_fields(self):
         for t in get_templates():
-            assert t.id, f"template missing id"
+            assert t.id, "template missing id"
             assert t.category, f"{t.id} missing category"
             assert t.name, f"{t.id} missing name"
             assert t.prompt, f"{t.id} missing prompt"
