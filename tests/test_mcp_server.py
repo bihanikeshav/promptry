@@ -7,15 +7,17 @@ import pytest
 
 mcp_mod = pytest.importorskip("mcp", reason="mcp package not installed")
 
-import os
 from promptry.config import reset_config
+from promptry.storage import reset_storage
 
 
 @pytest.fixture(autouse=True)
 def isolated_db(tmp_path, monkeypatch):
     monkeypatch.setenv("PROMPTRY_DB", str(tmp_path / "test.db"))
     reset_config()
+    reset_storage()
     yield
+    reset_storage()
     reset_config()
 
 
