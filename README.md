@@ -5,27 +5,91 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Regression protection for LLM pipelines. Track prompt versions, run eval suites, detect drift, catch regressions before your users do.
+Sentry for prompts. **Local-first regression testing for LLM pipelines** — never guess why your AI got worse again.
+
+`promptry` detects regressions in LLM pipelines by tracking prompt versions, running eval suites, and alerting you when answer quality drops.
+
+Instead of guessing *why your AI got worse*, promptry tells you:
+- **what** changed (prompt, model, retrieval)
+- **when** it changed
+- whether it caused a **regression**
+
+Lightweight. Local-first. Zero SaaS.
+
+```python
+from promptry import track
+
+prompt = track(system_prompt, "rag-qa")
+# promptry automatically versions prompts, runs evals, and flags regressions
+```
+
+## How it works
+
+```
+           ┌──────────────┐
+           │  Your LLM    │
+           │   pipeline   │
+           └──────┬───────┘
+                  │
+                  │ track()
+                  ▼
+            ┌────────────┐
+            │  promptry  │
+            └────────────┘
+                  │
+      ┌───────────┼───────────┐
+      ▼           ▼           ▼
+ Prompt        Eval        Drift
+ versioning    suites      detection
+      │           │           │
+      └───────► SQLite ◄─────┘
+```
 
 ## Why I built this
 
-After building a LLM pipeline, there is always the task of keeping the answer quality in check. They silently degrade: retrieved context changes, model providers push updates, you tweak a prompt to fix one thing and it gets worse at something else.
+LLM pipelines silently degrade. Retrieved context changes, model providers push updates, you tweak a prompt to fix one thing and break something else.
 
-There are tools like RAGAS, but they're evaluation frameworks: you run them, get a score, and that's it. They don't track what changed between runs, they don't version your prompts, and they can't tell you *why* things regressed. Was it the prompt? The model? The retrieval? You're left digging through git logs trying to figure it out. And the heavier platforms (LangSmith, Arize, etc.) want you to set up their infra and route all your traffic through them.
+Tools like RAGAS give you scores, but they don't track what changed between runs. When something regresses you're left digging through git commits, prompt files, and model configs trying to figure out what happened.
 
-I just wanted something that sits in the background, watches for drift, and tells me when things get worse and what probably caused it.
+I wanted something that versions prompts automatically, runs eval suites, and tells me *what probably caused it* when things get worse. So I built promptry. `pip install`, add one line to your code, done. Everything stays local in a SQLite file.
 
-So I built promptry. `pip install`, add one line to your code, done. It versions prompts automatically, runs eval suites on a schedule, and flags regressions with root cause hints. Everything stays local in a SQLite file.
+## Features
 
-## What it does
+| Feature | What it does |
+|---------|--------------|
+| Prompt versioning | Automatically versions prompts when content changes |
+| Eval suites | Write tests that check LLM outputs (semantic, schema, LLM-as-judge) |
+| Baseline comparison | Compare runs against known-good versions, get root cause hints |
+| Drift detection | Detect slow quality degradation over time |
+| Safety templates | 25+ built-in jailbreak / injection / PII tests |
+| Background monitoring | Run evals automatically on a schedule |
+| MCP server | Expose all features as tools for LLM agents (Claude Desktop, Cursor, etc.) |
 
-- **Prompt versioning**: hashes your prompts and saves a new version when they change. Same content = no write, no overhead.
-- **Eval suites**: write test functions that check your LLM outputs. Keyword matching, semantic similarity, schema validation, LLM-as-judge.
-- **Baseline comparison**: compare runs against a known-good version. If scores drop, it shows you what changed (prompt? model? retrieval?).
-- **Drift detection**: tracks scores over time and catches slow degradation that single-run comparisons miss.
-- **Safety templates**: 25+ built-in attack prompts (injection, jailbreak, PII fishing, hallucination triggers) to test your pipeline.
-- **Background monitoring**: runs your suites on a schedule so you don't have to think about it.
-- **MCP server**: expose all features as tools for LLM agents (Claude Desktop, Cursor, Copilot, etc.).
+## When to use promptry
+
+promptry is useful if you:
+
+- run **RAG pipelines** or any LLM-powered feature
+- maintain **production prompts** that change over time
+- worry about **model updates breaking things**
+- want **CI-style regression tests for LLMs**
+
+promptry may *not* be what you want if you need:
+
+- hosted dashboards or multi-user collaboration
+- large-scale production observability
+- auto-instrumentation for LangChain/OpenAI
+
+For that, look at LangSmith or Arize.
+
+## How promptry differs from other tools
+
+| Tool | Focus |
+|------|-------|
+| RAGAS | Evaluation metrics |
+| LangSmith | Hosted observability platform |
+| Arize | Production monitoring |
+| **promptry** | Prompt versioning + regression detection, locally |
 
 ## Install
 
@@ -35,9 +99,7 @@ Requires **Python 3.10+**.
 pip install promptry
 ```
 
-Includes everything: semantic similarity, schema validation, LLM-as-judge, drift detection, safety templates, and the full CLI. The embedding model (`all-MiniLM-L6-v2`, ~80MB) downloads automatically on first use of `assert_semantic`.
-
-## Quick start
+## Quick start (2 minutes)
 
 ### Set up a project
 
@@ -73,6 +135,19 @@ Replace `my_pipeline` with your actual LLM call, then run it:
 
 ```bash
 $ promptry run smoke-test --module evals
+  PASS test_basic_quality (142ms)
+    semantic (0.891) ok
+
+  Overall: PASS  score: 0.891
+```
+
+When something regresses, promptry tells you why:
+
+```
+  Overall score: 0.910 -> 0.720  REGRESSION
+
+  Probable cause:
+    -> Prompt changed (v3 -> v4)
 ```
 
 ### Track your prompts
@@ -275,7 +350,7 @@ Monitor stopped (PID 48291)
 - Writes its PID to `~/.promptry/monitor.pid` and state to `~/.promptry/monitor.json`.
 - Logs to `~/.promptry/monitor.log` — check this if something looks wrong.
 - If the process crashes, the PID file goes stale. `promptry monitor status` detects this and cleans up. Just run `start` again.
-- Sends notifications (Slack/email) when a suite fails or drift is detected.
+- Sends notifications (Slack/email) when a suite fails or drift is detected (see [Notifications](#notifications) below).
 
 This is a simple daemon meant for dev/staging environments. For production, run `promptry run` as a cron job or CI step instead:
 
@@ -316,7 +391,7 @@ $ promptry templates list
 │ injection-003    │ prompt_injection  │ System Prompt Extraction      │ critical │
 │ jailbreak-001    │ jailbreak         │ DAN Style                     │ critical │
 │ jailbreak-002    │ jailbreak         │ Role Play Jailbreak           │ high     │
-│ ...              │ ...               │ ...                           │ ...      │
+│ ...              │ ...               │ ... (25 total)                │ ...      │
 └──────────────────┴───────────────────┴───────────────────────────────┴──────────┘
 25 templates across 6 categories
 ```
