@@ -1,0 +1,71 @@
+name: Publish JS to npm
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    defaults:
+      run:
+        working-directory: promptry-js
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Pack
+        id: pack
+        run: |
+          FILENAME=$(npm pack --json | jq -r '.[0].filename')
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.filename }}
+          path: promptry-js/${{ steps.pack.outputs.filename }}
+          retention-days: 2
+          if-no-files-found: error
+
+    outputs:
+      filename: ${{ steps.pack.outputs.filename }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      id-token: write  # OIDC for npm trusted publishing
+    steps:
+      - name: Download tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.filename }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Update npm for trusted publishing support
+        run: npm install -g npm@latest
+
+      - name: Publish to npm
+        run: npm publish "${{ needs.build.outputs.filename }}"

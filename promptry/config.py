@@ -25,13 +25,17 @@ else:
 @dataclass
 class StorageConfig:
     db_path: str = ""
-    mode: str = "sync"  # "sync", "async", or "off"
+    mode: str = "sync"  # "sync", "async", "off", or "remote"
+    endpoint: str = ""  # remote ingest URL (required when mode="remote")
+    api_key: str = ""   # auth token for the remote endpoint
 
     def __post_init__(self):
         if not self.db_path:
             self.db_path = str(Path.home() / ".promptry" / "promptry.db")
-        if self.mode not in ("sync", "async", "off"):
-            raise ValueError(f"storage.mode must be sync, async, or off (got '{self.mode}')")
+        if self.mode not in ("sync", "async", "off", "remote"):
+            raise ValueError(f"storage.mode must be sync, async, off, or remote (got '{self.mode}')")
+        if self.mode == "remote" and not self.endpoint:
+            raise ValueError("storage.endpoint is required when mode='remote'")
 
 
 @dataclass
@@ -91,6 +95,10 @@ def _apply_toml(config: Config, data: dict):
             config.storage.db_path = s["db_path"]
         if "mode" in s:
             config.storage.mode = s["mode"]
+        if "endpoint" in s:
+            config.storage.endpoint = s["endpoint"]
+        if "api_key" in s:
+            config.storage.api_key = s["api_key"]
 
     if "tracking" in data:
         t = data["tracking"]
@@ -136,6 +144,10 @@ def _apply_env_overrides(config: Config):
         config.storage.db_path = db
     if mode := os.environ.get("PROMPTRY_STORAGE_MODE"):
         config.storage.mode = mode
+    if endpoint := os.environ.get("PROMPTRY_ENDPOINT"):
+        config.storage.endpoint = endpoint
+    if api_key := os.environ.get("PROMPTRY_API_KEY"):
+        config.storage.api_key = api_key
     if model := os.environ.get("PROMPTRY_EMBEDDING_MODEL"):
         config.model.embedding_model = model
     if threshold := os.environ.get("PROMPTRY_SEMANTIC_THRESHOLD"):

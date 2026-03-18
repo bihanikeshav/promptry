@@ -1,0 +1,53 @@
+{
+  "name": "promptry-js",
+  "version": "0.1.0",
+  "description": "Lightweight JS/TS client for promptry telemetry — ships prompt tracking events to your ingest endpoint",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "keywords": [
+    "promptry",
+    "prompt",
+    "telemetry",
+    "tracking",
+    "llm",
+    "rag"
+  ],
+  "license": "MIT",
+  "author": "Keshav Bihani",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bihanikeshav/promptry.git",
+    "directory": "promptry-js"
+  },
+  "homepage": "https://github.com/bihanikeshav/promptry/tree/main/promptry-js#readme",
+  "bugs": {
+    "url": "https://github.com/bihanikeshav/promptry/issues"
+  }
+}

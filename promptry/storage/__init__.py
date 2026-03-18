@@ -1,7 +1,7 @@
 """Storage backends for promptry.
 
 Default is SQLite. The BaseStorage interface lets you plug in your own.
-Storage mode (sync/async/off) is handled by get_storage().
+Storage mode (sync/async/off/remote) is handled by get_storage().
 """
 from promptry.storage.base import BaseStorage
 from promptry.storage.sqlite import SQLiteStorage
@@ -17,6 +17,7 @@ def get_storage() -> BaseStorage:
 
     - sync: direct SQLiteStorage (default)
     - async: SQLiteStorage wrapped in AsyncWriter (background thread)
+    - remote: local SQLite + batched HTTP shipping to a remote endpoint
     - off: should not be called (track() short-circuits before this)
     """
     global _storage_instance
@@ -26,11 +27,18 @@ def get_storage() -> BaseStorage:
     from promptry.config import get_config
 
     config = get_config()
-    storage = SQLiteStorage()
 
-    if config.storage.mode == "async":
+    if config.storage.mode == "remote":
+        from promptry.storage.remote import RemoteStorage
+        storage = RemoteStorage(
+            endpoint=config.storage.endpoint,
+            api_key=config.storage.api_key,
+        )
+    elif config.storage.mode == "async":
         from promptry.writer import AsyncWriter
-        storage = AsyncWriter(storage)
+        storage = AsyncWriter(SQLiteStorage())
+    else:
+        storage = SQLiteStorage()
 
     _storage_instance = storage
     return storage

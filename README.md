@@ -64,6 +64,8 @@ I wanted something that versions prompts automatically, runs eval suites, and te
 | Safety templates | 25+ built-in jailbreak / injection / PII tests |
 | Background monitoring | Run evals automatically on a schedule |
 | MCP server | Expose all features as tools for LLM agents (Claude Desktop, Cursor, etc.) |
+| JS/TS client | Ship prompt events from frontend/Node apps to the same ingest endpoint |
+| Remote storage | Dual-write to local SQLite + batched HTTP POST for centralized telemetry |
 
 ## When to use promptry
 
@@ -476,7 +478,62 @@ mode = "async"    # writes go to a background thread, no latency hit
 
 - **sync**: default, writes inline. Fine for dev and testing.
 - **async**: background thread handles writes. `track()` returns immediately.
+- **remote**: dual-write to local SQLite + batched HTTP POST to a remote endpoint. Use this to centralize telemetry from multiple services.
 - **off**: no writes at all. Use this if you only manage prompts through the CLI.
+
+### Remote mode
+
+Send tracking events to a central server alongside local storage:
+
+```toml
+# promptry.toml
+[storage]
+mode = "remote"
+endpoint = "https://your-server.com/ingest"
+api_key = "pk_..."
+```
+
+Both Python and JS clients use the same event format and endpoint, so all telemetry lands in the same place. Python handles evals, drift detection, and comparison against the collected data.
+
+## JavaScript / TypeScript client
+
+[`promptry-js`](promptry-js/) is a lightweight JS/TS client that ships prompt tracking events to the same ingest endpoint as the Python `RemoteStorage` backend. Zero runtime dependencies, ~5KB minified, works in browsers and Node 18+.
+
+```bash
+npm install promptry-js
+```
+
+```typescript
+import { init, track, trackContext, flush } from 'promptry-js';
+
+init({ endpoint: 'https://your-server.com/ingest' });
+
+// Returns content unchanged, ships event in background
+const prompt = track(systemPrompt, 'rag-qa');
+
+// Track retrieval context alongside the prompt
+const chunks = trackContext(retrievedChunks, 'rag-qa');
+
+await flush();
+```
+
+The JS client only ships events (`prompt_save`). All heavy lifting (evals, drift, comparison) stays in Python:
+
+```
+Frontend (promptry npm)         Backend (promptry Python)
+──────────────────────          ────────────────────────
+track(prompt, "rag-qa")         track(prompt, "rag-qa")
+trackContext(chunks, "rag-qa")  track_context(chunks, "rag-qa")
+        │                               │
+        │  POST /ingest                 │  POST /ingest (mode="remote")
+        └───────────┐                   │  + local SQLite
+                    ▼                   │
+              Your server ◄─────────────┘
+                    │
+              promptry (Python) runs evals against the collected data
+```
+
+See the [JS client README](promptry-js/README.md) for full API docs.
 
 ## CLI reference
 
@@ -638,7 +695,7 @@ promptry run rag-regression --module examples.basic_rag
 Being upfront about what this is and isn't:
 
 - **No auto-instrumentation.** You have to add `track()` calls manually. There's no LangChain callback, no OpenAI wrapper, no monkey-patching. This is deliberate (explicit > magic), but it does mean touching your code.
-- **Local-only storage.** Everything lives in a SQLite file. There's no hosted dashboard, no multi-user access, no centralized storage. If you need that, look at LangSmith or Arize.
+- **Local-first storage.** Everything defaults to a local SQLite file. Remote mode adds centralized collection via HTTP, but there's no hosted dashboard or multi-user UI. If you need that, look at LangSmith or Arize.
 - **The background monitor is a simple daemon.** It works fine on a dev machine or a long-running server, but it's not designed for container orchestration. For production, use `promptry run` in a cron job or CI pipeline instead.
 - **Drift detection uses linear regression.** It catches steady degradation over a configurable window (default 30 runs). It won't catch sudden one-off drops — that's what baseline comparison is for.
 - **`assert_llm` costs money.** Each call sends a grading prompt to your LLM provider. Use it for high-value checks and `assert_semantic` for everything else.
