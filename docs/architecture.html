@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Architecture - promptry</title>
+    <meta name="description" content="How promptry is built: project structure, data flow, component design, and modification guides.">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -43,6 +44,8 @@
             <a href="#templates">templates.py</a>
             <a href="#writer">writer.py</a>
             <a href="#cli">cli.py</a>
+            <a href="#remote-storage">storage/remote.py</a>
+            <a href="#promptry-js">promptry-js (npm)</a>
         </div>
         <div class="sidebar-section">
             <h4>Guides</h4>
@@ -79,6 +82,15 @@
     __init__.py        <span class="desc"># get_storage() factory, mode-aware</span>
     base.py            <span class="desc"># BaseStorage ABC (interface for custom backends)</span>
     sqlite.py          <span class="desc"># SQLite implementation (WAL mode, 4 tables)</span>
+    remote.py          <span class="desc"># dual-write: local SQLite + batched HTTP POST</span>
+<span class="dir">promptry-js/</span>         <span class="desc"># JS/TS client (npm package)</span>
+  src/
+    index.ts           <span class="desc"># re-exports + convenience singleton</span>
+    promptry.ts        <span class="desc"># Promptry class: track(), trackContext(), flush()</span>
+    batcher.ts         <span class="desc"># event queue, flush timer, offline fallback</span>
+    transport.ts       <span class="desc"># fetch POST with retry + backoff</span>
+    hash.ts            <span class="desc"># cross-platform content hashing</span>
+    dedup.ts           <span class="desc"># bounded dedup cache (Map, evict oldest half)</span>
 <span class="dir">tests/</span>
   test_assertions.py   <span class="desc"># 18 tests</span>
   test_cli.py          <span class="desc"># 12 tests</span>
@@ -100,25 +112,23 @@
         <h3>track() flow</h3>
 
         <div class="flow-diagram">
-<span class="dim">your code calls:</span> track("You are a helpful...", "rag-qa")
-                              <span class="arrow">|</span>
-                   <span class="dim">check storage mode</span>
-                   <span class="arrow">/        |        \</span>
-                 <span class="dim">"off"</span>    <span class="dim">"sync"</span>    <span class="dim">"async"</span>
-           <span class="dim">return</span>   <span class="arrow">|</span>         <span class="arrow">|</span>
-          <span class="dim">unchanged</span> <span class="arrow">|</span>         <span class="arrow">|</span>
-                    <span class="arrow">v</span>         <span class="arrow">v</span>
-            SHA-256 hash content
-                   <span class="arrow">|</span>
-            <span class="dim">in-memory cache hit?</span>
-               <span class="arrow">/</span>            <span class="arrow">\</span>
-             <span class="dim">yes</span>            <span class="dim">no</span>
-          <span class="dim">return</span>          <span class="arrow">|</span>
-         <span class="dim">unchanged</span>        <span class="arrow">v</span>
-              SQLiteStorage.save_prompt()
-              <span class="dim">(dedup: UNIQUE(name, hash))</span>
-                   <span class="arrow">|</span>
-              <span class="dim">return string unchanged</span>
+track("You are a helpful...", "rag-qa")
+  <span class="arrow">|</span>
+  <span class="arrow">|</span><span class="dim">-- mode = "off"? → return unchanged (no-op)</span>
+  <span class="arrow">|</span>
+  <span class="arrow">v</span>
+hash content
+  <span class="arrow">|</span>
+  <span class="arrow">|</span><span class="dim">-- in-memory cache hit? → return unchanged (skip I/O)</span>
+  <span class="arrow">|</span>
+  <span class="arrow">v</span>
+save_prompt(name, content, hash)
+  <span class="dim">dedup: UNIQUE(name, hash)</span>
+  <span class="dim">mode = "async" → background thread</span>
+  <span class="dim">mode = "remote" → SQLite + HTTP POST to endpoint</span>
+  <span class="arrow">|</span>
+  <span class="arrow">v</span>
+<span class="dim">return string unchanged</span>
         </div>
 
         <p><code>track()</code> returns the exact same string you passed in. The versioning is invisible. In production with <code>mode = "async"</code>, the storage is wrapped in <code>AsyncWriter</code>. Prompt saves are still synchronous (callers need version numbers), but lighter writes like eval results go through the background thread.</p>
@@ -169,7 +179,7 @@
 
         <p>SQLite schema has four tables:</p>
         <ul>
-            <li><code>prompts</code> — versioned prompt content with SHA-256 dedup (<code>UNIQUE(name, hash)</code>)</li>
+            <li><code>prompts</code> — versioned prompt content with content-hash dedup (<code>UNIQUE(name, hash)</code>)</li>
             <li><code>prompt_tags</code> — tags (like "prod", "canary") attached to prompt versions</li>
             <li><code>eval_runs</code> — suite execution records with overall score and pass/fail</li>
             <li><code>eval_results</code> — individual assertion results within a run</li>
@@ -177,8 +187,72 @@
 
         <p>To add a custom backend, subclass <code>BaseStorage</code> and implement all abstract methods.</p>
 
+        <h2 id="remote-storage">storage/remote.py</h2>
+        <p><code>RemoteStorage</code> dual-writes to local SQLite and a remote HTTP endpoint. All reads go to local SQLite. Writes go to both: SQLite immediately, and a batched queue that ships events via POST.</p>
+        <p>Batching: events accumulate in a bounded queue (default 10k max), flushed on batch size (10) or interval (5s), whichever comes first. Retry uses exponential backoff: <code>min(2^attempt, 10)</code> seconds, max 3 attempts. Remaining events drain on shutdown via <code>atexit</code>.</p>
+
+        <div class="flow-diagram">
+<span class="dim">track("...", "rag-qa")  (mode = "remote")</span>
+                <span class="arrow">|</span>
+    SQLiteStorage.save_prompt()    <span class="dim"># local write (immediate)</span>
+                <span class="arrow">|</span>
+    RemoteStorage._emit("prompt_save", data)
+                <span class="arrow">|</span>
+    queue.put(TelemetryEvent)      <span class="dim"># bounded queue (10k max)</span>
+                <span class="arrow">|</span>
+    <span class="dim">background thread:</span>
+    _flush_loop() <span class="arrow">→</span> _ship_batch() <span class="arrow">→</span> POST {endpoint}
+                                       <span class="dim">Content-Type: application/json</span>
+                                       <span class="dim">Authorization: Bearer {api_key}</span>
+        </div>
+
+        <p>Event format (shared with <a href="#promptry-js">promptry-js</a>):</p>
+        <pre><code>{
+  "events": [
+    {
+      "type": "prompt_save",
+      "data": {
+        "name": "rag-qa",
+        "version": 3,
+        "content": "You are...",
+        "hash": "e3b0c44...",
+        "metadata": {},
+        "created_at": "2026-03-09T14:23:45"
+      },
+      "timestamp": "2026-03-09T14:23:45.123456+00:00"
+    }
+  ]
+}</code></pre>
+
+        <h2 id="promptry-js">promptry-js (npm)</h2>
+        <p>Lightweight JS/TS client that ships the same <code>prompt_save</code> events to the same ingest endpoint. Zero runtime deps, ~5KB minified. Works in browsers and Node 18+.</p>
+        <p>JS only emits events — no local DB, no evals, no drift detection. The server (running Python promptry) handles all analysis.</p>
+
+        <div class="flow-diagram">
+<span class="dim">Frontend (promptry-js)</span>           <span class="dim">Backend (promptry Python)</span>
+track(prompt, "rag-qa")          track(prompt, "rag-qa")
+        <span class="arrow">|</span>                               <span class="arrow">|</span>
+        <span class="arrow">|</span>  POST /ingest                 <span class="arrow">|</span>  POST /ingest + local SQLite
+        <span class="arrow">└───────────┐</span>                   <span class="arrow">|</span>
+                    <span class="arrow">v</span>                   <span class="arrow">|</span>
+              Your server <span class="arrow">◄───────────┘</span>
+                    <span class="arrow">|</span>
+              promptry (Python) runs evals
+        </div>
+
+        <p>Key design: <code>track()</code> returns content synchronously. Web Crypto hashing is async, so the hash + enqueue fires as a background promise. A synchronous pre-check (<code>Set</code> of <code>name:contentSlice</code>) catches obvious duplicates before the async path. <code>flush()</code> awaits all in-flight operations.</p>
+
+        <table>
+            <tr><th>Component</th><th>File</th><th>Purpose</th></tr>
+            <tr><td>Batcher</td><td><code>batcher.ts</code></td><td>Queue + flush timer + <code>sendBeacon</code> on page unload</td></tr>
+            <tr><td>Transport</td><td><code>transport.ts</code></td><td>Fetch POST, 3 retries, exponential backoff (matches Python)</td></tr>
+            <tr><td>DedupCache</td><td><code>dedup.ts</code></td><td>Bounded Map (10k), evicts oldest half (matches Python)</td></tr>
+            <tr><td>OfflineStore</td><td><code>storage.ts</code></td><td>localStorage (browser) / in-memory (Node), 100 event cap</td></tr>
+            <tr><td>Hash</td><td><code>hash.ts</code></td><td>Web Crypto or node:crypto, parity with Python hashlib</td></tr>
+        </table>
+
         <h2 id="registry">registry.py</h2>
-        <p><code>track()</code> is the primary integration point. It hashes content with SHA-256, checks an in-memory cache (bounded at 10k entries), and writes to storage only on new content. The cache means repeated calls with the same prompt are zero-cost.</p>
+        <p><code>track()</code> is the primary integration point. It hashes content, checks an in-memory cache (bounded at 10k entries), and writes to storage only on new content. The cache means repeated calls with the same prompt are zero-cost.</p>
         <p><code>track_context()</code> does the same for retrieval chunks, with optional sampling (<code>sample_rate</code>) to reduce write volume in production.</p>
 
         <h2 id="evaluator">evaluator.py</h2>
@@ -282,6 +356,9 @@
             <tr><td>Background daemon</td><td>subprocess + PID file</td><td>Cross-platform, no extra deps</td></tr>
             <tr><td>LLM judge</td><td>User-provided callable</td><td>Provider-agnostic, no openai dep</td></tr>
             <tr><td>Safety templates</td><td>Data-driven list</td><td>Easy to extend, data not logic</td></tr>
+            <tr><td>Remote storage</td><td>Dual-write (local + HTTP)</td><td>Local always works, remote is best-effort</td></tr>
+            <tr><td>JS client</td><td>Events only, no local DB</td><td>Keeps JS thin (~5KB), server handles analysis</td></tr>
+            <tr><td>JS track() return</td><td>Sync return, async hash</td><td>Matches Python API, never blocks the caller</td></tr>
         </table>
 
         <h2 id="schema">SQLite schema</h2>
@@ -329,6 +406,8 @@ CREATE TABLE eval_results (
 </div>
 
 <footer>
+    <a href="https://github.com/bihanikeshav/promptry/tree/main/examples">Examples</a>
+    &nbsp;&middot;&nbsp;
     <a href="https://github.com/bihanikeshav/promptry">GitHub</a>
     &nbsp;&middot;&nbsp;
     MIT License

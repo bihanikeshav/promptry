@@ -35,6 +35,11 @@ body {
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-hover); }
+a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
 
 code {
     font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -130,8 +135,10 @@ pre code {
     position: sticky;
     top: 56px;
     height: calc(100vh - 56px);
-    overflow-y: auto;
+    overflow-y: overlay;
+    scrollbar-width: none;
 }
+.sidebar::-webkit-scrollbar { display: none; }
 .sidebar-section {
     margin-bottom: 28px;
 }
@@ -185,7 +192,7 @@ pre code {
     line-height: 1.6;
     margin-bottom: 36px;
 }
-.hero .install-box {
+.install-box {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -199,10 +206,17 @@ pre code {
     transition: border-color 0.2s;
     position: relative;
     user-select: none;
+    color: var(--text);
+    -webkit-appearance: none;
+    appearance: none;
 }
-.hero .install-box:hover { border-color: var(--accent); }
-.hero .install-box .dollar { color: var(--text-dim); }
-.hero .install-box .copy-hint {
+.install-box:hover { border-color: var(--accent); }
+.install-box:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.install-box .dollar { color: var(--text-dim); }
+.install-box .copy-hint {
     position: absolute;
     top: -32px;
     left: 50%;
@@ -218,10 +232,19 @@ pre code {
     pointer-events: none;
     transition: opacity 0.15s;
 }
-.hero .install-box:hover .copy-hint { opacity: 1; }
-.hero .install-box.copied .copy-hint {
+.install-box:hover .copy-hint { opacity: 1; }
+.install-box.copied .copy-hint {
     opacity: 1;
     color: var(--green);
+}
+#js-client { text-align: center; }
+#js-client h2,
+#js-client p,
+#js-client .code-compare { text-align: left; }
+#js-client .install-box {
+    font-size: 14px;
+    padding: 12px 24px;
+    margin-top: 8px;
 }
 
 /* ---- content typography ---- */
@@ -305,6 +328,115 @@ pre code {
     line-height: 1.5;
 }
 
+/* ---- integrate banner (below feature grid) ---- */
+
+.integrate-banner {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 24px;
+}
+.integrate-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.integrate-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--accent);
+    white-space: nowrap;
+}
+.integrate-desc {
+    font-size: 13.5px;
+    color: var(--text-dim);
+}
+.integrate-item code {
+    font-size: 12px;
+}
+.integrate-sep {
+    width: 1px;
+    background: var(--border);
+    align-self: stretch;
+    margin: 0 24px;
+    flex-shrink: 0;
+}
+@media (max-width: 640px) {
+    .integrate-banner {
+        flex-direction: column;
+        gap: 16px;
+    }
+    .integrate-sep {
+        width: 100%;
+        height: 1px;
+        margin: 0;
+    }
+}
+
+/* ---- code comparison (side-by-side) ---- */
+
+.code-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 20px 0;
+}
+.code-compare-pane {
+    position: relative;
+}
+.code-compare-pane pre {
+    margin: 0;
+    height: 100%;
+}
+.code-compare-label {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    z-index: 1;
+}
+.js-details {
+    margin-top: 4px;
+}
+@media (max-width: 640px) {
+    .code-compare {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---- tag list (batteries included) ---- */
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+}
+.tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.tag-note {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    margin-top: 8px;
+}
+
 /* ---- terminal ---- */
 
 .terminal {
@@ -316,6 +448,7 @@ pre code {
     font-size: 13px;
     line-height: 1.7;
     margin: 16px 0 24px;
+    white-space: pre-wrap;
 }
 .terminal .pass { color: var(--green); }
 .terminal .fail { color: var(--red); }
@@ -380,6 +513,22 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .flow-diagram .arrow { color: var(--accent); }
 .flow-diagram .dim { color: var(--text-dim); }
 
+/* ---- content wrapper ---- */
+
+.content-wrap {
+    max-width: 850px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ---- sub-headings (within a section) ---- */
+
+section .sub-h2 {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 48px;
+}
+
 /* ---- sections (landing page) ---- */
 
 section {
@@ -419,8 +568,33 @@ footer a:hover { color: var(--text); }
     .main-content { padding: 32px 24px 64px; }
 }
 @media (max-width: 640px) {
+    .hero { padding: 56px 0 40px; }
     .hero h1 { font-size: 36px; }
     .hero .tagline { font-size: 16px; }
     .features { grid-template-columns: 1fr; }
-    .topnav-links { gap: 16px; }
+    section { padding: 40px 0; }
+    section h2 { font-size: 22px; }
+    section .sub-h2 { margin-top: 36px; }
+
+    /* Nav: hide in-page anchors on mobile, keep external links */
+    .topnav-links a[href^="#"] { display: none; }
+    .topnav-links { gap: 20px; }
+
+    /* Tighter code blocks on mobile */
+    pre { padding: 16px; font-size: 12px; }
+    .terminal { padding: 16px; font-size: 12px; }
+    code { font-size: 0.8125em; }
+
+    /* Integrate banner: stack items vertically within each item */
+    .integrate-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    /* Install box: full-width on mobile for easier tap target */
+    .install-box {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
 }
