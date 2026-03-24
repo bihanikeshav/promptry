@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import threading
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 # global registry of suites
@@ -97,3 +97,59 @@ def run_context():
         yield _context.results
     finally:
         _context.results = previous
+
+
+# ---------------------------------------------------------------------------
+# check_all -- run every assertion, collect all failures, raise at the end
+# ---------------------------------------------------------------------------
+
+def check_all(*checks: Callable[[], float]) -> float:
+    """Run multiple assertions, collecting all failures before raising.
+
+    Each check is a zero-arg callable that runs one assertion. All checks
+    run regardless of individual failures. Results are still appended to
+    run_context(). At the end, raises a single AssertionError summarizing
+    every failure, or returns the average score if all passed.
+
+    Usage::
+
+        @suite("pricing-pipeline")
+        def test_pricing():
+            response = pipeline(document)
+
+            check_all(
+                lambda: assert_json_valid(response),
+                lambda: assert_schema(clean_json(response), PricingModel),
+                lambda: assert_grounded(response, document),
+                lambda: assert_contains(response, ["total_value", "currency"]),
+            )
+
+    Returns:
+        Average score across all checks.
+
+    Raises:
+        AssertionError: If any check failed, with a summary of all failures.
+    """
+    scores: list[float] = []
+    errors: list[str] = []
+
+    for check in checks:
+        try:
+            score = check()
+            scores.append(score if isinstance(score, (int, float)) else 1.0)
+        except AssertionError as e:
+            scores.append(0.0)
+            errors.append(str(e))
+        except Exception as e:
+            scores.append(0.0)
+            errors.append(f"{type(e).__name__}: {e}")
+
+    avg_score = sum(scores) / len(scores) if scores else 1.0
+
+    if errors:
+        summary_lines = [f"{len(errors)}/{len(checks)} assertion(s) failed:"]
+        for i, err in enumerate(errors, 1):
+            summary_lines.append(f"  {i}. {err}")
+        raise AssertionError("\n".join(summary_lines))
+
+    return avg_score

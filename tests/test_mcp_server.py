@@ -136,6 +136,87 @@ class TestMonitorTools:
         assert "not running" in result.lower()
 
 
+# ---- Model Comparison tools ----
+
+
+class TestModelCompareTools:
+
+    def test_compare_no_data(self):
+        from promptry.mcp_server import compare_models
+        result = compare_models(
+            suite_name="test-suite",
+            candidate="new-model",
+            baseline="old-model",
+        )
+        assert "Error" in result
+
+    def test_compare_with_data(self):
+        from promptry.mcp_server import compare_models
+        from promptry.storage import get_storage
+
+        storage = get_storage()
+        # seed baseline runs
+        for score in [0.85, 0.87, 0.89]:
+            run_id = storage.save_eval_run(
+                suite_name="test-suite",
+                model_version="gpt-4o",
+                overall_pass=True,
+                overall_score=score,
+            )
+            storage.save_eval_result(
+                run_id=run_id, test_name="test", assertion_type="semantic",
+                passed=True, score=score,
+            )
+        # seed candidate run
+        run_id = storage.save_eval_run(
+            suite_name="test-suite",
+            model_version="claude-sonnet",
+            overall_pass=True,
+            overall_score=0.92,
+        )
+        storage.save_eval_result(
+            run_id=run_id, test_name="test", assertion_type="semantic",
+            passed=True, score=0.92,
+        )
+
+        result = compare_models(
+            suite_name="test-suite",
+            candidate="claude-sonnet",
+            baseline="gpt-4o",
+        )
+        assert "gpt-4o" in result
+        assert "claude-sonnet" in result
+        assert "Verdict" in result
+
+
+# ---- Cost Report tools ----
+
+
+class TestCostReportTools:
+
+    def test_cost_report_empty(self):
+        from promptry.mcp_server import cost_report
+        result = cost_report(days=7)
+        assert "No prompts" in result
+
+    def test_cost_report_with_data(self):
+        import json
+        from promptry.mcp_server import cost_report
+        from promptry.storage import get_storage
+
+        storage = get_storage()
+        storage.save_prompt(
+            name="my-prompt",
+            content="test content",
+            content_hash="abc123",
+            metadata={"tokens_in": 500, "tokens_out": 100, "model": "gpt-4o", "cost": 0.005},
+        )
+        result = cost_report(days=7)
+        assert "my-prompt" in result
+        assert "500" in result
+        assert "gpt-4o" in result
+
+
 # ---- Import error handling ----
 
 

@@ -1,13 +1,19 @@
 """promptry - regression protection for LLM pipelines."""
 
-__version__ = "0.1.0"
+__version__ = "0.4.0"
 
 from promptry.registry import track, track_context, PromptRegistry
-from promptry.evaluator import suite
+from promptry.evaluator import suite, check_all
 from promptry.assertions import (
     assert_semantic,
+    assert_contains,
+    assert_not_contains,
     assert_schema,
     assert_llm,
+    assert_json_valid,
+    assert_matches,
+    assert_grounded,
+    clean_json,
     set_judge,
 )
 from promptry.runner import run_suite
@@ -19,9 +25,16 @@ __all__ = [
     "track_context",
     "PromptRegistry",
     "suite",
+    "check_all",
     "assert_semantic",
+    "assert_contains",
+    "assert_not_contains",
     "assert_schema",
     "assert_llm",
+    "assert_json_valid",
+    "assert_matches",
+    "assert_grounded",
+    "clean_json",
     "set_judge",
     "run_suite",
     "DriftMonitor",

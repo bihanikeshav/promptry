@@ -262,6 +262,145 @@ def run_safety_audit(
     return "\n".join(lines)
 
 
+# ---- Model Comparison ----
+
+
+@mcp.tool()
+def compare_models(
+    suite_name: str,
+    candidate: str,
+    baseline: Optional[str] = None,
+) -> str:
+    """Compare a candidate model against baseline using historical eval data.
+
+    Analyzes score distributions, per-assertion breakdowns, and cost
+    efficiency to recommend whether to switch models.
+
+    Requires eval runs tagged with model_version. If baseline is not
+    specified, auto-detects the model with the most historical runs.
+    """
+    from promptry.model_compare import compare_models as _compare, format_model_compare
+
+    try:
+        report = _compare(
+            suite_name=suite_name,
+            candidate=candidate,
+            baseline=baseline,
+        )
+    except ValueError as e:
+        return f"Error: {e}"
+
+    return format_model_compare(report)
+
+
+# ---- Cost Report ----
+
+
+@mcp.tool()
+def cost_report(
+    days: int = 7,
+    name: Optional[str] = None,
+    model: Optional[str] = None,
+) -> str:
+    """Show token usage and cost aggregated by prompt name.
+
+    Reads metadata from tracked prompts. For this to work, pass token/cost
+    info when calling track() with metadata like:
+    {"tokens_in": 500, "tokens_out": 150, "model": "gpt-4o", "cost": 0.003}
+
+    Args:
+        days: Number of days to look back (default 7).
+        name: Filter by prompt name.
+        model: Filter by model name.
+    """
+    import json
+    from collections import defaultdict
+
+    storage = get_storage()
+
+    with storage._lock:
+        cur = storage._conn.cursor()
+        query = """
+            SELECT name, metadata, created_at FROM prompts
+            WHERE metadata IS NOT NULL
+              AND created_at >= datetime('now', ?)
+        """
+        params: list = [f"-{days} days"]
+
+        if name:
+            query += " AND name = ?"
+            params.append(name)
+
+        query += " ORDER BY created_at ASC"
+        cur.execute(query, params)
+        rows = cur.fetchall()
+
+    if not rows:
+        return f"No prompts with metadata found in the last {days} days."
+
+    by_name: dict[str, dict] = defaultdict(lambda: {
+        "tokens_in": 0, "tokens_out": 0, "cost": 0.0, "calls": 0, "models": set(),
+    })
+
+    for row in rows:
+        try:
+            meta = json.loads(row["metadata"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+        if not isinstance(meta, dict):
+            continue
+
+        has_cost_info = any(k in meta for k in ("tokens_in", "tokens_out", "cost", "input_tokens", "output_tokens"))
+        if not has_cost_info:
+            continue
+
+        tokens_in = meta.get("tokens_in", 0) or meta.get("input_tokens", 0) or 0
+        tokens_out = meta.get("tokens_out", 0) or meta.get("output_tokens", 0) or 0
+        cost = meta.get("cost", 0.0) or 0.0
+        model_name = meta.get("model", "")
+
+        if model and model_name and model.lower() not in model_name.lower():
+            continue
+
+        prompt_name = row["name"]
+        by_name[prompt_name]["tokens_in"] += tokens_in
+        by_name[prompt_name]["tokens_out"] += tokens_out
+        by_name[prompt_name]["cost"] += cost
+        by_name[prompt_name]["calls"] += 1
+        if model_name:
+            by_name[prompt_name]["models"].add(model_name)
+
+    if not by_name:
+        return f"No prompts with token/cost metadata found in the last {days} days."
+
+    lines = [f"Cost report (last {days} days)\n"]
+    total_in = total_out = total_calls = 0
+    total_cost = 0.0
+
+    for pname, agg in sorted(by_name.items(), key=lambda x: x[1]["cost"], reverse=True):
+        models_str = ", ".join(sorted(agg["models"])) if agg["models"] else "-"
+        cost_str = f"${agg['cost']:.4f}" if agg["cost"] > 0 else "-"
+        lines.append(
+            f"  {pname}: {agg['calls']} calls, "
+            f"{agg['tokens_in']:,} in / {agg['tokens_out']:,} out, "
+            f"cost: {cost_str}, models: {models_str}"
+        )
+        total_in += agg["tokens_in"]
+        total_out += agg["tokens_out"]
+        total_cost += agg["cost"]
+        total_calls += agg["calls"]
+
+    total_cost_str = f"${total_cost:.4f}" if total_cost > 0 else "-"
+    lines.append(
+        f"\n  Total: {total_calls} calls, "
+        f"{total_in:,} in / {total_out:,} out, "
+        f"cost: {total_cost_str}"
+    )
+
+    return "\n".join(lines)
+
+
 # ---- Monitor ----
 
 

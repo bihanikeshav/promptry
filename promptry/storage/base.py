@@ -78,5 +78,14 @@ class BaseStorage(ABC):
         ...
 
     @abstractmethod
+    def get_runs_by_model(self, suite_name, model_version, limit=200) -> list[EvalRunRecord]:
+        ...
+
+    @abstractmethod
+    def get_model_versions(self, suite_name) -> list[tuple[str, int]]:
+        """Return (model_version, run_count) pairs for a suite, ordered by most runs."""
+        ...
+
+    @abstractmethod
     def close(self):
         ...

@@ -286,6 +286,48 @@ def drift_cmd(
         raise typer.Exit(1)
 
 
+@app.command("compare")
+def compare_cmd(
+    suite_name: str = typer.Argument(..., help="Suite to compare on."),
+    candidate: str = typer.Option(..., "--candidate", "-c", help="Candidate model version."),
+    baseline: Optional[str] = typer.Option(None, "--baseline", "-b", help="Baseline model version (auto-detected if omitted)."),
+):
+    """Compare two models using historical eval data.
+
+    Analyzes score distributions, per-assertion breakdowns, and cost
+    efficiency to recommend whether to switch models.
+
+    Requires eval runs tagged with --model-version. Example workflow:
+
+        # run evals with your current model
+        promptry run my-suite --module evals --model-version gpt-4o
+
+        # switch to candidate model in your pipeline config, then:
+        promptry run my-suite --module evals --model-version claude-sonnet-4
+
+        # compare
+        promptry compare my-suite --candidate claude-sonnet-4
+    """
+    from promptry.model_compare import compare_models, format_model_compare
+
+    try:
+        report = compare_models(
+            suite_name=suite_name,
+            candidate=candidate,
+            baseline=baseline,
+        )
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+    console.print()
+    console.print(format_model_compare(report))
+    console.print()
+
+    if report.verdict == "keep_baseline":
+        raise typer.Exit(1)
+
+
 # ---- monitor subcommands ----
 
 
@@ -447,6 +489,178 @@ def test_basic_quality():
 def pipeline(prompt: str) -> str:
     return my_pipeline(prompt)
 '''
+
+
+@app.command("cost-report")
+def cost_report_cmd(
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Filter by prompt name."),
+    days: int = typer.Option(7, "--days", "-d", help="Number of days to look back."),
+    model: Optional[str] = typer.Option(None, "--model", help="Filter by model name."),
+):
+    """Show token usage and cost aggregated by prompt name.
+
+    Reads metadata from tracked prompts. For this to work, pass token/cost
+    info when calling track()::
+
+        track(prompt, "my-prompt", metadata={
+            "tokens_in": 500,
+            "tokens_out": 150,
+            "model": "gpt-4o",
+            "cost": 0.003,
+        })
+    """
+    from promptry.storage import get_storage
+
+    storage = get_storage()
+
+    # query prompts with metadata from the last N days
+    with storage._lock:
+        cur = storage._conn.cursor()
+        query = """
+            SELECT name, metadata, created_at FROM prompts
+            WHERE metadata IS NOT NULL
+              AND created_at >= datetime('now', ?)
+        """
+        params: list = [f"-{days} days"]
+
+        if name:
+            query += " AND name = ?"
+            params.append(name)
+
+        query += " ORDER BY created_at ASC"
+        cur.execute(query, params)
+        rows = cur.fetchall()
+
+    if not rows:
+        console.print(f"[yellow]No prompts with metadata found in the last {days} days.[/yellow]")
+        console.print("Tip: pass metadata when calling track():")
+        console.print('  track(prompt, "name", metadata={"tokens_in": 500, "tokens_out": 150, "model": "gpt-4o", "cost": 0.003})')
+        raise typer.Exit(0)
+
+    # aggregate by prompt name and by date
+    from collections import defaultdict
+    by_name: dict[str, dict] = defaultdict(lambda: {
+        "tokens_in": 0, "tokens_out": 0, "cost": 0.0, "calls": 0, "models": set(),
+    })
+    by_date: dict[str, dict] = defaultdict(lambda: {
+        "tokens_in": 0, "tokens_out": 0, "cost": 0.0, "calls": 0,
+    })
+
+    skipped = 0
+    for row in rows:
+        try:
+            meta = json.loads(row["metadata"])
+        except (json.JSONDecodeError, TypeError):
+            skipped += 1
+            continue
+
+        if not isinstance(meta, dict):
+            skipped += 1
+            continue
+
+        # check if this row has any cost/token info
+        has_cost_info = any(k in meta for k in ("tokens_in", "tokens_out", "cost", "input_tokens", "output_tokens"))
+        if not has_cost_info:
+            skipped += 1
+            continue
+
+        # normalize key names (support both conventions)
+        tokens_in = meta.get("tokens_in", 0) or meta.get("input_tokens", 0) or 0
+        tokens_out = meta.get("tokens_out", 0) or meta.get("output_tokens", 0) or 0
+        cost = meta.get("cost", 0.0) or 0.0
+        model_name = meta.get("model", "")
+
+        if model and model_name and model.lower() not in model_name.lower():
+            continue
+
+        prompt_name = row["name"]
+        date_str = row["created_at"][:10]  # YYYY-MM-DD
+
+        by_name[prompt_name]["tokens_in"] += tokens_in
+        by_name[prompt_name]["tokens_out"] += tokens_out
+        by_name[prompt_name]["cost"] += cost
+        by_name[prompt_name]["calls"] += 1
+        if model_name:
+            by_name[prompt_name]["models"].add(model_name)
+
+        by_date[date_str]["tokens_in"] += tokens_in
+        by_date[date_str]["tokens_out"] += tokens_out
+        by_date[date_str]["cost"] += cost
+        by_date[date_str]["calls"] += 1
+
+    if not by_name:
+        console.print(f"[yellow]No prompts with token/cost metadata found in the last {days} days.[/yellow]")
+        raise typer.Exit(0)
+
+    # --- by prompt name ---
+    console.print(f"\n[bold]Cost report[/bold] (last {days} days)\n")
+
+    name_table = Table(show_header=True, header_style="bold", title="By prompt name")
+    name_table.add_column("Prompt")
+    name_table.add_column("Calls", justify="right")
+    name_table.add_column("Tokens In", justify="right")
+    name_table.add_column("Tokens Out", justify="right")
+    name_table.add_column("Cost", justify="right")
+    name_table.add_column("Models")
+
+    total_in = total_out = total_calls = 0
+    total_cost = 0.0
+
+    for pname, agg in sorted(by_name.items(), key=lambda x: x[1]["cost"], reverse=True):
+        models_str = ", ".join(sorted(agg["models"])) if agg["models"] else "-"
+        cost_str = f"${agg['cost']:.4f}" if agg["cost"] > 0 else "-"
+        name_table.add_row(
+            pname,
+            f"{agg['calls']:,}",
+            f"{agg['tokens_in']:,}",
+            f"{agg['tokens_out']:,}",
+            cost_str,
+            models_str,
+        )
+        total_in += agg["tokens_in"]
+        total_out += agg["tokens_out"]
+        total_cost += agg["cost"]
+        total_calls += agg["calls"]
+
+    # totals row
+    name_table.add_section()
+    total_cost_str = f"${total_cost:.4f}" if total_cost > 0 else "-"
+    name_table.add_row(
+        "[bold]Total[/bold]",
+        f"[bold]{total_calls:,}[/bold]",
+        f"[bold]{total_in:,}[/bold]",
+        f"[bold]{total_out:,}[/bold]",
+        f"[bold]{total_cost_str}[/bold]",
+        "",
+    )
+
+    console.print(name_table)
+
+    # --- by date ---
+    if len(by_date) > 1:
+        console.print()
+        date_table = Table(show_header=True, header_style="bold", title="By date")
+        date_table.add_column("Date")
+        date_table.add_column("Calls", justify="right")
+        date_table.add_column("Tokens In", justify="right")
+        date_table.add_column("Tokens Out", justify="right")
+        date_table.add_column("Cost", justify="right")
+
+        for date_str in sorted(by_date.keys()):
+            agg = by_date[date_str]
+            cost_str = f"${agg['cost']:.4f}" if agg["cost"] > 0 else "-"
+            date_table.add_row(
+                date_str,
+                f"{agg['calls']:,}",
+                f"{agg['tokens_in']:,}",
+                f"{agg['tokens_out']:,}",
+                cost_str,
+            )
+
+        console.print(date_table)
+
+    if skipped:
+        console.print(f"\n[dim]{skipped} prompt(s) skipped (no token/cost metadata).[/dim]")
 
 
 @app.command("init")

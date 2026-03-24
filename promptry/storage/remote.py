@@ -246,6 +246,12 @@ class RemoteStorage(BaseStorage):
     def get_score_history(self, suite_name, limit=30):
         return self._local.get_score_history(suite_name, limit)
 
+    def get_runs_by_model(self, suite_name, model_version, limit=200):
+        return self._local.get_runs_by_model(suite_name, model_version, limit)
+
+    def get_model_versions(self, suite_name):
+        return self._local.get_model_versions(suite_name)
+
     def close(self):
         self._running = False
         if self._thread.is_alive():

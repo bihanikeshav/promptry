@@ -268,6 +268,26 @@ class SQLiteStorage(BaseStorage):
             )
             return [self._row_to_eval_result(row) for row in cur.fetchall()]
 
+    def get_runs_by_model(self, suite_name, model_version, limit=200) -> list[EvalRunRecord]:
+        with self._lock:
+            cur = self._conn.execute(
+                """SELECT * FROM eval_runs
+                   WHERE suite_name = ? AND model_version = ?
+                   ORDER BY id DESC LIMIT ?""",
+                (suite_name, model_version, limit),
+            )
+            return [self._row_to_eval_run(row) for row in cur.fetchall()]
+
+    def get_model_versions(self, suite_name) -> list[tuple[str, int]]:
+        with self._lock:
+            cur = self._conn.execute(
+                """SELECT model_version, COUNT(*) as cnt FROM eval_runs
+                   WHERE suite_name = ? AND model_version IS NOT NULL
+                   GROUP BY model_version ORDER BY cnt DESC""",
+                (suite_name,),
+            )
+            return [(row[0], row[1]) for row in cur.fetchall()]
+
     def get_score_history(self, suite_name, limit=30) -> list[tuple[str, float]]:
         with self._lock:
             cur = self._conn.execute(

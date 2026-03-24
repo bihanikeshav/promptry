@@ -1,6 +1,7 @@
 # promptry
 
 [![PyPI](https://img.shields.io/pypi/v/promptry)](https://pypi.org/project/promptry/)
+[![npm](https://img.shields.io/npm/v/promptry-js)](https://www.npmjs.com/package/promptry-js)
 [![CI](https://github.com/bihanikeshav/promptry/actions/workflows/ci.yml/badge.svg)](https://github.com/bihanikeshav/promptry/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -58,9 +59,12 @@ I wanted something that versions prompts automatically, runs eval suites, and te
 | Feature | What it does |
 |---------|--------------|
 | Prompt versioning | Automatically versions prompts when content changes |
-| Eval suites | Write tests that check LLM outputs (semantic, schema, LLM-as-judge) |
+| Eval suites | Write tests that check LLM outputs (semantic, schema, LLM-as-judge, JSON, regex, grounding) |
+| Assertion pipeline | Chain assertions with `check_all()` — run every check, get a full report |
 | Baseline comparison | Compare runs against known-good versions, get root cause hints |
 | Drift detection | Detect slow quality degradation over time |
+| Model comparison | Compare candidate models against baseline history with statistical confidence |
+| Cost tracking | Track token usage and cost per prompt, aggregate with `promptry cost-report` |
 | Safety templates | 25+ built-in jailbreak / injection / PII tests |
 | Background monitoring | Run evals automatically on a schedule |
 | MCP server | Expose all features as tools for LLM agents (Claude Desktop, Cursor, etc.) |
@@ -86,12 +90,21 @@ For that, look at LangSmith or Arize.
 
 ## How promptry differs from other tools
 
-| Tool | Focus |
-|------|-------|
-| RAGAS | Evaluation metrics |
-| LangSmith | Hosted observability platform |
-| Arize | Production monitoring |
-| **promptry** | Prompt versioning + regression detection, locally |
+| | Promptfoo | LangSmith | RAGAS | **promptry** |
+|---|---|---|---|---|
+| **Integration** | External tool (YAML + CLI) | Hosted platform | Python library | Python library |
+| **Production tracking** | No | Yes | No | Yes (`track()`) |
+| **Drift detection** | No | No | No | Yes (score trends) |
+| **Root cause hints** | No | No | No | Yes ("prompt changed v3→v4") |
+| **Model comparison** | Snapshot (A vs B now) | No | No | Historical (A's 90-day stats vs B) |
+| **Python-native asserts** | No (Node.js) | No | Metrics only | Yes (`assert_*()` in pytest) |
+| **Retrieval tracking** | No | Via tracing | No | Yes (`track_context()`) |
+| **Cost analysis** | Basic (per-run) | Yes | No | Per-prompt aggregation + cost-per-score |
+| **Local-first** | Yes | No (SaaS) | Yes | Yes (SQLite) |
+| **Matrix testing** | Yes | No | No | No |
+| **Web UI** | Yes | Yes | No | No |
+
+**Promptfoo** is Postman for prompts — test externally with YAML configs. **promptry** is Sentry for prompts — it instruments your actual pipeline code, versions prompts in production, and tells you *why* things regressed.
 
 ## Install
 
@@ -269,6 +282,205 @@ def test_rag_quality():
 ```
 
 Use `assert_semantic` for fast, free similarity checks and `assert_llm` for things that need actual reasoning (correctness, tone, hallucination detection). The judge is provider-agnostic: OpenAI, Anthropic, local models, whatever you already use.
+
+### Validate JSON responses
+
+Most LLM pipelines return JSON. `assert_json_valid` handles the messy reality of LLM output — markdown fences, trailing commas, leading prose:
+
+```python
+from promptry import assert_json_valid, clean_json, assert_schema
+from pydantic import BaseModel
+
+class PricingModel(BaseModel):
+    vendor: str
+    total_value: float
+    currency: str
+
+response = my_pipeline(document)
+
+# gate: is it parseable JSON at all?
+assert_json_valid(response)
+
+# get the cleaned, parsed object
+data = clean_json(response)
+
+# then validate schema
+assert_schema(data, PricingModel)
+```
+
+`clean_json()` is a standalone utility — use it anywhere you need to extract JSON from LLM output:
+
+```python
+from promptry import clean_json
+
+# all of these return {"key": "value"}:
+clean_json('{"key": "value"}')
+clean_json('```json\n{"key": "value"}\n```')
+clean_json('Here is the JSON: {"key": "value",}')  # trailing comma fixed
+```
+
+### Check output format with regex
+
+`assert_matches` checks that a response matches a pattern. Fullmatch by default (entire response must match), or partial search:
+
+```python
+from promptry import assert_matches
+
+# classification must be exactly one of these words
+assert_matches(classify(doc), r"(tender|rfp|rfq|eoi)")
+
+# response must be a single word
+assert_matches(response, r"\w+")
+
+# response contains an email somewhere
+assert_matches(response, r"[\w.+-]+@[\w-]+\.[\w.]+", fullmatch=False)
+```
+
+### Check factual grounding
+
+`assert_grounded` uses an LLM judge to verify that facts in a response actually exist in the source document. It decomposes the response into claims and checks each one:
+
+```python
+from promptry import assert_grounded
+
+assert_grounded(
+    response=extract_pricing(document),
+    source=document,
+    threshold=0.9,  # strict for financial data
+)
+```
+
+On failure, the details show exactly what was fabricated:
+
+```
+AssertionError: Grounding score 0.500 < threshold 0.9.
+  Fabricated: 3 phases; 15,00,000 per phase
+```
+
+The result details include a claim-by-claim breakdown:
+
+```python
+# in the run_context results:
+details["claims"] = [
+    {"claim": "INR 45,00,000", "verdict": "grounded", "reason": "in source"},
+    {"claim": "3 phases", "verdict": "fabricated", "reason": "not mentioned in source"},
+]
+details["fabricated_count"] = 1
+details["grounded_count"] = 1
+```
+
+Requires a judge — same `set_judge()` you use for `assert_llm`.
+
+### Chain assertions with check_all
+
+By default, assertions stop at the first failure. Use `check_all()` to run every check and get a complete report:
+
+```python
+from promptry import suite, check_all, assert_json_valid, assert_schema, assert_grounded, assert_contains, clean_json
+
+@suite("pricing-pipeline")
+def test_pricing():
+    response = pipeline(document)
+    data = clean_json(response)
+
+    check_all(
+        lambda: assert_json_valid(response),
+        lambda: assert_schema(data, PricingModel),
+        lambda: assert_grounded(response, document),
+        lambda: assert_contains(response, ["total_value", "currency"]),
+    )
+```
+
+If 2 out of 4 fail, you get one error with everything:
+
+```
+AssertionError: 2/4 assertion(s) failed:
+  1. Missing keywords: ['currency']
+  2. Grounding score 0.600 < threshold 0.8. Fabricated: 3 phases
+```
+
+All assertions still record their results — the runner sees every check, not just the first failure.
+
+### Track token usage and cost
+
+Pass token/cost metadata when calling `track()`:
+
+```python
+response = llm.chat(system=prompt, ...)
+
+track(prompt, "pricing-extract", metadata={
+    "tokens_in": response.usage.prompt_tokens,
+    "tokens_out": response.usage.completion_tokens,
+    "model": "gpt-4o",
+    "cost": 0.003,
+})
+```
+
+Then see aggregated reports:
+
+```bash
+$ promptry cost-report --days 30
+
+Cost report (last 30 days)
+
+        By prompt name
+┌──────────────────┬───────┬───────────┬────────────┬─────────┬─────────┐
+│ Prompt           │ Calls │ Tokens In │ Tokens Out │ Cost    │ Models  │
+├──────────────────┼───────┼───────────┼────────────┼─────────┼─────────┤
+│ pricing-extract  │   847 │   423,500 │    84,700  │ $2.5410 │ gpt-4o  │
+│ doc-classify     │ 1,203 │   120,300 │     1,203  │ $0.1203 │ gpt-4o… │
+├──────────────────┼───────┼───────────┼────────────┼─────────┼─────────┤
+│ Total            │ 2,050 │   543,800 │    85,903  │ $2.6613 │         │
+└──────────────────┴───────┴───────────┴────────────┴─────────┴─────────┘
+
+$ promptry cost-report --name pricing-extract --model gpt-4o
+```
+
+### Compare models with historical data
+
+When you're evaluating a model upgrade, promptry does more than a side-by-side snapshot. It compares the candidate against the full statistical distribution of your baseline model's history:
+
+```bash
+# you've been running evals with gpt-4o for weeks
+$ promptry run rag-regression --module evals --model-version gpt-4o
+
+# now try claude-sonnet-4 (change your pipeline config, then)
+$ promptry run rag-regression --module evals --model-version claude-sonnet-4
+
+# compare candidate against baseline history
+$ promptry compare rag-regression --candidate claude-sonnet-4
+```
+
+```
+Model comparison: gpt-4o (47 runs) vs claude-sonnet-4 (1 runs)
+
+                     gpt-4o              claude-sonnet-4
+Overall score        0.887 +/- 0.031         0.921
+                     [0.821 — 0.943]         +0.034 (89th pctl)
+
+By assertion type:
+  json_valid         0.980 +/- 0.020    1.000  [+] better
+  grounding          0.850 +/- 0.050    0.910  [+] better
+  schema             0.970 +/- 0.030    0.940  [~] comparable
+  semantic           0.860 +/- 0.040    0.900  [+] better
+
+Cost analysis:
+  Cost per call:     $0.0050              $0.0030
+  Candidate is 40% cheaper
+  Score/$:           177                   307
+
+Verdict: SWITCH
+  Candidate scores +0.034 higher (above 89th percentile of baseline). Also 40% cheaper.
+  Watch: schema slightly lower.
+```
+
+The key difference from Promptfoo's matrix testing: Promptfoo compares two models at one point in time. promptry compares a candidate against your baseline's **entire history** — mean, variance, percentiles, per-assertion trends, and cost efficiency. You get statistical confidence, not a single data point.
+
+The baseline is auto-detected (model with the most runs), or you can specify it:
+
+```bash
+promptry compare rag-regression --candidate claude-sonnet-4 --baseline gpt-4o
+```
 
 ### Compare against a baseline
 
@@ -561,6 +773,12 @@ promptry run <suite> --module <mod> [--compare prod]
 promptry suites --module <mod>
 promptry drift <suite> --module <mod>
 
+# cost tracking
+promptry cost-report [--days 7] [--name <prompt>] [--model <model>]
+
+# model comparison
+promptry compare <suite> --candidate <model> [--baseline <model>]
+
 # monitoring
 promptry monitor start <suite> --module <mod> [--interval 1440]
 promptry monitor stop
@@ -584,28 +802,27 @@ Exit code 0 on success, 1 on regression. Works in CI:
 
 ## MCP server (LLM agent integration)
 
-promptry includes a built-in [MCP](https://modelcontextprotocol.io/) server so any LLM agent can manage prompts, run evals, check drift, and run safety audits through tool calls.
+promptry includes a built-in [MCP](https://modelcontextprotocol.io/) server so any LLM agent can manage prompts, run evals, compare models, check drift, and run safety audits through tool calls.
 
 ```bash
 promptry mcp
 ```
 
-This starts a stdio-based MCP server. Configure it in your agent:
+This starts a stdio-based MCP server. Add it to your editor/agent:
+
+**Claude Code** (one command, no config file needed):
+
+```bash
+pip install promptry    # must be installed first
+claude mcp add promptry -- promptry mcp
+```
+
+To remove it later: `claude mcp remove promptry`.
 
 **Claude Desktop** (`claude_desktop_config.json`):
 
-```json
-{
-  "mcpServers": {
-    "promptry": {
-      "command": "promptry",
-      "args": ["mcp"]
-    }
-  }
-}
-```
-
-**Cursor** (`.cursor/mcp.json`):
+On macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+On Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
@@ -617,6 +834,60 @@ This starts a stdio-based MCP server. Configure it in your agent:
   }
 }
 ```
+
+Restart Claude Desktop after editing.
+
+**Cursor** (`.cursor/mcp.json` in your project root):
+
+```json
+{
+  "mcpServers": {
+    "promptry": {
+      "command": "promptry",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**Windsurf** (`~/.codeium/windsurf/mcp_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "promptry": {
+      "command": "promptry",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**VS Code** (`.vscode/mcp.json` in your project root):
+
+```json
+{
+  "servers": {
+    "promptry": {
+      "command": "promptry",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+> **Tip: virtualenvs and PATH**
+>
+> `promptry` must be on your PATH for the MCP server to work. If it's in a virtualenv, either:
+> - Use the full path: `"command": "/path/to/venv/bin/promptry"` (Linux/macOS) or `"command": "C:\\path\\to\\venv\\Scripts\\promptry.exe"` (Windows)
+> - Or use `uvx` to run without a global install:
+>   ```bash
+>   # Claude Code (no pip install needed)
+>   claude mcp add promptry -- uvx promptry mcp
+>
+>   # Other editors (in the JSON config)
+>   "command": "uvx", "args": ["promptry", "mcp"]
+>   ```
 
 **Available tools:**
 
@@ -630,6 +901,8 @@ This starts a stdio-based MCP server. Configure it in your agent:
 | `list_suites` | List registered eval suites from a module |
 | `run_eval` | Run an eval suite with optional baseline comparison |
 | `check_drift` | Check for score drift in recent runs |
+| `compare_models` | Compare candidate model against baseline using historical eval data |
+| `cost_report` | Show token usage and cost aggregated by prompt name |
 | `list_templates` | List safety/jailbreak test templates |
 | `run_safety_audit` | Run safety templates against a pipeline function |
 | `monitor_status` | Check if the background monitor is running |
@@ -680,14 +953,22 @@ Check the [`examples/`](examples/) directory for working demos:
 
 - **[`basic_rag.py`](examples/basic_rag.py)** — self-contained RAG pipeline with tracking, eval suites, and safety testing. No API keys needed.
 - **[`llm_judge.py`](examples/llm_judge.py)** — wiring up `assert_llm` with OpenAI/Anthropic/local models.
+- **[`assertion_pipeline.py`](examples/assertion_pipeline.py)** — chaining assertions (`assert_json_valid`, `assert_matches`, `assert_grounded`, `check_all`) into validation pipelines for document extraction.
 
-Run the basic demo:
+Run the demos:
 
 ```bash
 pip install -e .
+
+# basic RAG pipeline
 python examples/basic_rag.py
-promptry prompt list
-promptry run rag-regression --module examples.basic_rag
+
+# assertion pipelines (JSON validation, regex, grounding, check_all)
+python examples/assertion_pipeline.py
+
+# run specific suites via CLI
+promptry run pricing-failfast --module examples.assertion_pipeline
+promptry run doc-classify --module examples.assertion_pipeline
 ```
 
 ## Known limitations
@@ -698,7 +979,7 @@ Being upfront about what this is and isn't:
 - **Local-first storage.** Everything defaults to a local SQLite file. Remote mode adds centralized collection via HTTP, but there's no hosted dashboard or multi-user UI. If you need that, look at LangSmith or Arize.
 - **The background monitor is a simple daemon.** It works fine on a dev machine or a long-running server, but it's not designed for container orchestration. For production, use `promptry run` in a cron job or CI pipeline instead.
 - **Drift detection uses linear regression.** It catches steady degradation over a configurable window (default 30 runs). It won't catch sudden one-off drops — that's what baseline comparison is for.
-- **`assert_llm` costs money.** Each call sends a grading prompt to your LLM provider. Use it for high-value checks and `assert_semantic` for everything else.
+- **`assert_llm` and `assert_grounded` cost money.** Each call sends a grading prompt to your LLM provider. Use them for high-value checks (correctness, grounding) and `assert_semantic` / `assert_json_valid` / `assert_matches` for everything else.
 - **First `assert_semantic` call downloads a model.** `all-MiniLM-L6-v2` (~80MB) downloads on first use. Subsequent calls are instant.
 - **Early-stage project.** This is v0.1. The API is stable but the project is young. If you find bugs, [open an issue](https://github.com/bihanikeshav/promptry/issues).
 
