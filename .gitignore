@@ -22,3 +22,4 @@ htmlcov/
 .pypirc
 promptry-js/node_modules/
 promptry-js/dist/
+dashboard-ui/node_modules/
