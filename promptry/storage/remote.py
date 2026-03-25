@@ -252,6 +252,15 @@ class RemoteStorage(BaseStorage):
     def get_model_versions(self, suite_name):
         return self._local.get_model_versions(suite_name)
 
+    def list_suite_names(self) -> list[str]:
+        return self._local.list_suite_names()
+
+    def get_eval_run_by_id(self, run_id: int):
+        return self._local.get_eval_run_by_id(run_id)
+
+    def get_cost_data(self, days: int = 7, name=None, model=None) -> dict:
+        return self._local.get_cost_data(days, name, model)
+
     def close(self):
         self._running = False
         if self._thread.is_alive():

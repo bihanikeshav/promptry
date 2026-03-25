@@ -139,6 +139,15 @@ class AsyncWriter(BaseStorage):
     def get_model_versions(self, suite_name):
         return self._storage.get_model_versions(suite_name)
 
+    def list_suite_names(self) -> list[str]:
+        return self._storage.list_suite_names()
+
+    def get_eval_run_by_id(self, run_id: int):
+        return self._storage.get_eval_run_by_id(run_id)
+
+    def get_cost_data(self, days: int = 7, name=None, model=None) -> dict:
+        return self._storage.get_cost_data(days, name, model)
+
     def close(self):
         self._running = False
         self.flush()

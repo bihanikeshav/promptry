@@ -298,6 +298,136 @@ class SQLiteStorage(BaseStorage):
             )
             return [(row[0], row[1]) for row in cur.fetchall()]
 
+    def list_suite_names(self) -> list[str]:
+        with self._lock:
+            cur = self._conn.execute(
+                "SELECT DISTINCT suite_name FROM eval_runs ORDER BY suite_name"
+            )
+            return [row[0] for row in cur.fetchall()]
+
+    def get_eval_run_by_id(self, run_id: int) -> EvalRunRecord | None:
+        with self._lock:
+            cur = self._conn.execute(
+                "SELECT * FROM eval_runs WHERE id = ?",
+                (run_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return self._row_to_eval_run(row)
+
+    def get_cost_data(self, days: int = 7, name: str | None = None, model: str | None = None) -> dict:
+        with self._lock:
+            params: list = [days]
+            name_filter = ""
+            if name is not None:
+                name_filter = " AND name = ?"
+                params.append(name)
+
+            cur = self._conn.execute(
+                f"""SELECT name, metadata, created_at
+                    FROM prompts
+                    WHERE created_at >= datetime('now', ? || ' days')
+                    {name_filter}
+                    ORDER BY created_at ASC""",
+                [f"-{days}"] + params[1:],
+            )
+            rows = cur.fetchall()
+
+        total_cost = 0.0
+        total_calls = 0
+        total_tokens_in = 0
+        total_tokens_out = 0
+
+        # by_name aggregation: name -> {calls, tokens_in, tokens_out, cost, models: set}
+        by_name_map: dict[str, dict] = {}
+        # by_date aggregation: date_str -> {calls, tokens_in, tokens_out, cost}
+        by_date_map: dict[str, dict] = {}
+
+        for row in rows:
+            try:
+                meta = json.loads(row["metadata"]) if row["metadata"] else {}
+            except (json.JSONDecodeError, TypeError):
+                meta = {}
+
+            row_model = meta.get("model", "")
+            if model is not None and row_model != model:
+                continue
+
+            tokens_in = int(meta.get("tokens_in", meta.get("input_tokens", 0)) or 0)
+            tokens_out = int(meta.get("tokens_out", meta.get("output_tokens", 0)) or 0)
+            cost = float(meta.get("cost", 0) or 0)
+            row_name = row["name"]
+            # extract date portion from created_at (format: "YYYY-MM-DD HH:MM:SS")
+            date_str = row["created_at"][:10] if row["created_at"] else ""
+
+            total_calls += 1
+            total_cost += cost
+            total_tokens_in += tokens_in
+            total_tokens_out += tokens_out
+
+            # by_name
+            if row_name not in by_name_map:
+                by_name_map[row_name] = {"calls": 0, "tokens_in": 0, "tokens_out": 0, "cost": 0.0, "models": set()}
+            entry = by_name_map[row_name]
+            entry["calls"] += 1
+            entry["tokens_in"] += tokens_in
+            entry["tokens_out"] += tokens_out
+            entry["cost"] += cost
+            if row_model:
+                entry["models"].add(row_model)
+
+            # by_date
+            if date_str:
+                if date_str not in by_date_map:
+                    by_date_map[date_str] = {"calls": 0, "tokens_in": 0, "tokens_out": 0, "cost": 0.0}
+                d_entry = by_date_map[date_str]
+                d_entry["calls"] += 1
+                d_entry["tokens_in"] += tokens_in
+                d_entry["tokens_out"] += tokens_out
+                d_entry["cost"] += cost
+
+        avg_cost = (total_cost / total_calls) if total_calls > 0 else 0.0
+
+        by_name = sorted(
+            [
+                {
+                    "name": n,
+                    "calls": v["calls"],
+                    "tokens_in": v["tokens_in"],
+                    "tokens_out": v["tokens_out"],
+                    "cost": v["cost"],
+                    "models": sorted(v["models"]),
+                }
+                for n, v in by_name_map.items()
+            ],
+            key=lambda x: x["cost"],
+            reverse=True,
+        )
+
+        by_date = [
+            {
+                "date": d,
+                "calls": v["calls"],
+                "tokens_in": v["tokens_in"],
+                "tokens_out": v["tokens_out"],
+                "cost": v["cost"],
+            }
+            for d, v in sorted(by_date_map.items())
+        ]
+
+        return {
+            "summary": {
+                "total_cost": total_cost,
+                "total_calls": total_calls,
+                "total_tokens_in": total_tokens_in,
+                "total_tokens_out": total_tokens_out,
+                "avg_cost": avg_cost,
+            },
+            "by_name": by_name,
+            "by_date": by_date,
+        }
+
     # ---- row converters ----
 
     def _row_to_prompt(self, row) -> PromptRecord:

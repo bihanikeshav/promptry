@@ -1,3 +1,4 @@
+import pytest
 
 
 class TestPromptStorage:
@@ -120,3 +121,62 @@ class TestEvalStorage:
         history = storage.get_score_history("s1")
         assert len(history) == 2
         assert all(isinstance(s, float) for _, s in history)
+
+
+class TestSuiteNames:
+
+    def test_list_suite_names_empty(self, storage):
+        assert storage.list_suite_names() == []
+
+    def test_list_suite_names(self, storage):
+        storage.save_eval_run(suite_name="alpha", overall_pass=True, overall_score=0.9)
+        storage.save_eval_run(suite_name="beta", overall_pass=True, overall_score=0.8)
+        storage.save_eval_run(suite_name="alpha", overall_pass=True, overall_score=0.85)
+        names = storage.list_suite_names()
+        assert sorted(names) == ["alpha", "beta"]
+
+
+class TestGetRunById:
+
+    def test_get_existing_run(self, storage):
+        run_id = storage.save_eval_run(suite_name="test", overall_pass=True, overall_score=0.9)
+        run = storage.get_eval_run_by_id(run_id)
+        assert run is not None
+        assert run.id == run_id
+        assert run.suite_name == "test"
+
+    def test_get_nonexistent_run(self, storage):
+        assert storage.get_eval_run_by_id(9999) is None
+
+
+class TestGetCostData:
+
+    def test_cost_data_empty(self, storage):
+        result = storage.get_cost_data(days=7)
+        assert result["summary"]["total_calls"] == 0
+        assert result["by_name"] == []
+
+    def test_cost_data_with_metadata(self, storage):
+        storage.save_prompt(name="my-prompt", content="test", content_hash="h1",
+            metadata={"tokens_in": 500, "tokens_out": 100, "model": "gpt-4o", "cost": 0.005})
+        storage.save_prompt(name="my-prompt", content="test2", content_hash="h2",
+            metadata={"tokens_in": 300, "tokens_out": 50, "model": "gpt-4o", "cost": 0.003})
+        result = storage.get_cost_data(days=7)
+        assert result["summary"]["total_calls"] == 2
+        assert result["summary"]["total_cost"] == pytest.approx(0.008)
+        assert len(result["by_name"]) == 1
+        assert result["by_name"][0]["name"] == "my-prompt"
+        assert result["by_name"][0]["tokens_in"] == 800
+
+    def test_cost_data_filter_by_name(self, storage):
+        storage.save_prompt(name="a", content="x", content_hash="h1", metadata={"cost": 0.01})
+        storage.save_prompt(name="b", content="y", content_hash="h2", metadata={"cost": 0.02})
+        result = storage.get_cost_data(days=7, name="a")
+        assert len(result["by_name"]) == 1
+        assert result["by_name"][0]["name"] == "a"
+
+    def test_cost_data_filter_by_model(self, storage):
+        storage.save_prompt(name="p", content="x", content_hash="h1", metadata={"cost": 0.01, "model": "gpt-4o"})
+        storage.save_prompt(name="p", content="y", content_hash="h2", metadata={"cost": 0.02, "model": "claude"})
+        result = storage.get_cost_data(days=7, model="gpt-4o")
+        assert result["summary"]["total_cost"] == pytest.approx(0.01)

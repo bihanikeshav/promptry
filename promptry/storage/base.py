@@ -87,5 +87,17 @@ class BaseStorage(ABC):
         ...
 
     @abstractmethod
+    def list_suite_names(self) -> list[str]:
+        ...
+
+    @abstractmethod
+    def get_eval_run_by_id(self, run_id: int) -> "EvalRunRecord | None":
+        ...
+
+    @abstractmethod
+    def get_cost_data(self, days: int = 7, name: str | None = None, model: str | None = None) -> dict:
+        ...
+
+    @abstractmethod
     def close(self):
         ...
