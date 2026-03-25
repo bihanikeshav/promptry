@@ -788,6 +788,9 @@ promptry monitor status
 promptry templates list [--category <cat>]
 promptry templates run --module <mod> [--func <name>] [--category <cat>]
 
+# dashboard
+promptry dashboard [--port 8420] [--no-open] [--local]
+
 # MCP server
 promptry mcp
 ```
@@ -909,6 +912,37 @@ Restart Claude Desktop after editing.
 
 All tools return plain text so agents can reason about the results directly.
 
+## Dashboard
+
+A web UI for visualizing eval history, prompt diffs, model comparisons, and cost data.
+
+```bash
+pip install promptry[dashboard]
+promptry dashboard
+```
+
+This starts a local API server and opens the dashboard. The UI is hosted at `promptry.meownikov.xyz/dashboard` and connects to your local server — data never leaves your machine.
+
+**What you get:**
+
+| Page | What it shows |
+|------|---------------|
+| **Overview** | All eval suites with pass/fail status, sparklines, drift detection |
+| **Suite Detail** | Score history chart, assertion breakdown, root cause hints ("prompt changed v4→v5") |
+| **Run Detail** | Per-assertion results with expandable details and grounding claim breakdowns |
+| **Prompts** | Version history with git-diff style comparison (red/green lines, line numbers) |
+| **Models** | Statistical model comparison with cost efficiency analysis and SWITCH/KEEP verdict |
+| **Cost** | Token usage and cost charts over time, by prompt name |
+
+```bash
+promptry dashboard                # start on :8420, open hosted dashboard
+promptry dashboard --port 9000    # custom port
+promptry dashboard --local        # open localhost instead of hosted URL
+promptry dashboard --no-open      # don't auto-open browser
+```
+
+The dashboard reads from the same SQLite database as the CLI — no separate data source.
+
 ## Config
 
 Drop a `promptry.toml` in your project root:
@@ -981,7 +1015,7 @@ Being upfront about what this is and isn't:
 - **Drift detection uses linear regression.** It catches steady degradation over a configurable window (default 30 runs). It won't catch sudden one-off drops — that's what baseline comparison is for.
 - **`assert_llm` and `assert_grounded` cost money.** Each call sends a grading prompt to your LLM provider. Use them for high-value checks (correctness, grounding) and `assert_semantic` / `assert_json_valid` / `assert_matches` for everything else.
 - **First `assert_semantic` call downloads a model.** `all-MiniLM-L6-v2` (~80MB) downloads on first use. Subsequent calls are instant.
-- **Early-stage project.** This is v0.1. The API is stable but the project is young. If you find bugs, [open an issue](https://github.com/bihanikeshav/promptry/issues).
+- **Early-stage project.** This is v0.4. The API is stable but the project is young. If you find bugs, [open an issue](https://github.com/bihanikeshav/promptry/issues).
 
 ## License
 
