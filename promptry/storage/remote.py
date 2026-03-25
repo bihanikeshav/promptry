@@ -223,6 +223,19 @@ class RemoteStorage(BaseStorage):
         self._local.tag_prompt(prompt_id, tag)
         self._emit("prompt_tag", {"prompt_id": prompt_id, "tag": tag})
 
+    def save_vote(self, prompt_name, response, score, prompt_version=None, message=None, metadata=None) -> int:
+        vote_id = self._local.save_vote(prompt_name, response, score, prompt_version, message, metadata)
+        self._emit("vote", {
+            "vote_id": vote_id,
+            "prompt_name": prompt_name,
+            "prompt_version": prompt_version,
+            "response": response,
+            "score": score,
+            "message": message,
+            "metadata": metadata,
+        })
+        return vote_id
+
     # ---- read methods (local SQLite passthrough) ----
 
     def get_prompt(self, name, version=None):
@@ -260,6 +273,12 @@ class RemoteStorage(BaseStorage):
 
     def get_cost_data(self, days: int = 7, name=None, model=None) -> dict:
         return self._local.get_cost_data(days, name, model)
+
+    def get_votes(self, prompt_name=None, days=30, limit=200):
+        return self._local.get_votes(prompt_name, days, limit)
+
+    def get_vote_stats(self, prompt_name=None, days=30):
+        return self._local.get_vote_stats(prompt_name, days)
 
     def close(self):
         self._running = False

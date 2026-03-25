@@ -491,6 +491,83 @@ def pipeline(prompt: str) -> str:
 '''
 
 
+@app.command("votes")
+def votes_cmd(
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Filter by prompt name."),
+    days: int = typer.Option(30, "--days", "-d", help="Number of days to look back."),
+    analyze: bool = typer.Option(False, "--analyze", "-a", help="Use LLM judge to analyze downvote patterns."),
+):
+    """Show vote statistics for prompts."""
+    from promptry.storage import get_storage
+
+    storage = get_storage()
+    stats = storage.get_vote_stats(prompt_name=name, days=days)
+
+    if stats["total_votes"] == 0:
+        console.print("[yellow]No votes found.[/yellow]")
+        raise typer.Exit(0)
+
+    table = Table(show_header=True, header_style="bold", title=f"Vote stats (last {days} days)")
+    table.add_column("Prompt")
+    table.add_column("Version", justify="right")
+    table.add_column("Total", justify="right")
+    table.add_column("Up", justify="right")
+    table.add_column("Down", justify="right")
+    table.add_column("Upvote %", justify="right")
+
+    for p in stats["prompts"]:
+        # prompt-level row
+        rate_str = f"{p['upvote_rate'] * 100:.0f}%"
+        table.add_row(
+            f"[bold]{p['name']}[/bold]",
+            "",
+            str(p["total"]),
+            str(p["upvotes"]),
+            str(p["downvotes"]),
+            rate_str,
+        )
+        # per-version rows
+        for v in p["versions"]:
+            v_rate = f"{v['upvote_rate'] * 100:.0f}%"
+            table.add_row(
+                "",
+                str(v["version"]) if v["version"] is not None else "?",
+                str(v["total"]),
+                str(v["upvotes"]),
+                str(v["downvotes"]),
+                v_rate,
+            )
+
+    table.add_section()
+    overall_rate = f"{stats['overall_upvote_rate'] * 100:.0f}%"
+    table.add_row(
+        "[bold]Total[/bold]",
+        "",
+        f"[bold]{stats['total_votes']}[/bold]",
+        "",
+        "",
+        f"[bold]{overall_rate}[/bold]",
+    )
+
+    console.print(table)
+
+    if analyze:
+        from promptry.feedback import analyze_votes
+        from promptry.assertions import get_judge
+
+        judge = get_judge()
+
+        prompt_names = [p["name"] for p in stats["prompts"]]
+        if name:
+            prompt_names = [name]
+
+        for pname in prompt_names:
+            result = analyze_votes(pname, days=days, judge=judge, storage=storage)
+            if result["total_downvotes"] > 0:
+                console.print(f"\n[bold]Downvote analysis: {pname}[/bold]")
+                console.print(result["analysis"])
+
+
 @app.command("cost-report")
 def cost_report_cmd(
     name: Optional[str] = typer.Option(None, "--name", "-n", help="Filter by prompt name."),

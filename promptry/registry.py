@@ -198,3 +198,42 @@ def track_context(
         _track_cache[cache_key] = None
 
     return chunks
+
+
+def vote(
+    name: str,
+    response: str,
+    score: int,
+    message: str | None = None,
+    metadata: dict | None = None,
+) -> int:
+    """Record user feedback on an LLM response.
+
+    Args:
+        name: Prompt name (same as used in track()).
+        response: The LLM response text the user is voting on.
+        score: +1 for upvote, -1 for downvote.
+        message: Optional user comment explaining the vote.
+        metadata: Optional dict (user_id, query, etc.).
+
+    Returns:
+        The vote ID.
+    """
+    if score not in (1, -1):
+        raise ValueError(f"score must be +1 or -1, got {score}")
+
+    registry = _get_registry()
+    storage = registry.storage
+
+    # look up latest prompt version for this name
+    prompt = storage.get_prompt(name)
+    prompt_version = prompt.version if prompt else None
+
+    return storage.save_vote(
+        prompt_name=name,
+        response=response,
+        score=score,
+        prompt_version=prompt_version,
+        message=message,
+        metadata=metadata,
+    )

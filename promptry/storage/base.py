@@ -98,6 +98,23 @@ class BaseStorage(ABC):
     def get_cost_data(self, days: int = 7, name: str | None = None, model: str | None = None) -> dict:
         ...
 
+    # ---- votes ----
+
+    @abstractmethod
+    def save_vote(self, prompt_name, response, score, prompt_version=None, message=None, metadata=None) -> int:
+        """Save a vote. Returns vote id."""
+        ...
+
+    @abstractmethod
+    def get_votes(self, prompt_name=None, days=30, limit=200) -> list[dict]:
+        """Get recent votes. Returns list of vote dicts."""
+        ...
+
+    @abstractmethod
+    def get_vote_stats(self, prompt_name=None, days=30) -> dict:
+        """Aggregate vote stats per prompt name and version."""
+        ...
+
     @abstractmethod
     def close(self):
         ...

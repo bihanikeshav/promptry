@@ -2,7 +2,8 @@
 
 __version__ = "0.4.0"
 
-from promptry.registry import track, track_context, PromptRegistry
+from promptry.registry import track, track_context, vote, PromptRegistry
+from promptry.feedback import analyze_votes
 from promptry.evaluator import suite, check_all
 from promptry.assertions import (
     assert_semantic,
@@ -23,6 +24,8 @@ from promptry.templates import get_templates, run_safety_audit
 __all__ = [
     "track",
     "track_context",
+    "vote",
+    "analyze_votes",
     "PromptRegistry",
     "suite",
     "check_all",

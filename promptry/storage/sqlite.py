@@ -58,11 +58,24 @@ CREATE TABLE IF NOT EXISTS eval_results (
     FOREIGN KEY (run_id) REFERENCES eval_runs(id)
 );
 
+CREATE TABLE IF NOT EXISTS votes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    prompt_name TEXT NOT NULL,
+    prompt_version INTEGER,
+    response TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    message TEXT,
+    metadata TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_prompts_name ON prompts(name);
 CREATE INDEX IF NOT EXISTS idx_prompts_hash ON prompts(hash);
 CREATE INDEX IF NOT EXISTS idx_prompt_tags_tag ON prompt_tags(tag);
 CREATE INDEX IF NOT EXISTS idx_eval_runs_suite ON eval_runs(suite_name);
 CREATE INDEX IF NOT EXISTS idx_eval_results_run ON eval_results(run_id);
+CREATE INDEX IF NOT EXISTS idx_votes_prompt ON votes(prompt_name);
+CREATE INDEX IF NOT EXISTS idx_votes_created ON votes(created_at);
 """
 
 
@@ -426,6 +439,132 @@ class SQLiteStorage(BaseStorage):
             },
             "by_name": by_name,
             "by_date": by_date,
+        }
+
+    # ---- votes ----
+
+    def save_vote(self, prompt_name, response, score, prompt_version=None, message=None, metadata=None) -> int:
+        """Save a vote. Returns vote id."""
+        with self._lock:
+            meta_json = json.dumps(metadata) if metadata else None
+            cur = self._conn.execute(
+                """INSERT INTO votes (prompt_name, prompt_version, response, score, message, metadata)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (prompt_name, prompt_version, response, score, message, meta_json),
+            )
+            self._conn.commit()
+            return cur.lastrowid
+
+    def get_votes(self, prompt_name=None, days=30, limit=200) -> list[dict]:
+        """Get recent votes. Returns list of vote dicts."""
+        with self._lock:
+            params: list = [f"-{days}"]
+            name_filter = ""
+            if prompt_name is not None:
+                name_filter = " AND prompt_name = ?"
+                params.append(prompt_name)
+            cur = self._conn.execute(
+                f"""SELECT * FROM votes
+                    WHERE created_at >= datetime('now', ? || ' days')
+                    {name_filter}
+                    ORDER BY id DESC LIMIT ?""",
+                params + [limit],
+            )
+            rows = cur.fetchall()
+            result = []
+            for row in rows:
+                try:
+                    meta = json.loads(row["metadata"]) if row["metadata"] else None
+                except (json.JSONDecodeError, TypeError):
+                    meta = None
+                result.append({
+                    "id": row["id"],
+                    "prompt_name": row["prompt_name"],
+                    "prompt_version": row["prompt_version"],
+                    "response": row["response"],
+                    "score": row["score"],
+                    "message": row["message"],
+                    "metadata": meta,
+                    "created_at": row["created_at"],
+                })
+            return result
+
+    def get_vote_stats(self, prompt_name=None, days=30) -> dict:
+        """Aggregate vote stats per prompt name and version."""
+        with self._lock:
+            params: list = [f"-{days}"]
+            name_filter = ""
+            if prompt_name is not None:
+                name_filter = " AND prompt_name = ?"
+                params.append(prompt_name)
+
+            # per prompt name
+            cur = self._conn.execute(
+                f"""SELECT prompt_name,
+                           COUNT(*) as total,
+                           SUM(CASE WHEN score = 1 THEN 1 ELSE 0 END) as upvotes,
+                           SUM(CASE WHEN score = -1 THEN 1 ELSE 0 END) as downvotes
+                    FROM votes
+                    WHERE created_at >= datetime('now', ? || ' days')
+                    {name_filter}
+                    GROUP BY prompt_name
+                    ORDER BY total DESC""",
+                params,
+            )
+            prompt_rows = cur.fetchall()
+
+            # per prompt name + version
+            cur2 = self._conn.execute(
+                f"""SELECT prompt_name, prompt_version,
+                           COUNT(*) as total,
+                           SUM(CASE WHEN score = 1 THEN 1 ELSE 0 END) as upvotes,
+                           SUM(CASE WHEN score = -1 THEN 1 ELSE 0 END) as downvotes
+                    FROM votes
+                    WHERE created_at >= datetime('now', ? || ' days')
+                    {name_filter}
+                    GROUP BY prompt_name, prompt_version
+                    ORDER BY prompt_name, prompt_version""",
+                params,
+            )
+            version_rows = cur2.fetchall()
+
+        # build version lookup: prompt_name -> list of version dicts
+        version_map: dict[str, list[dict]] = {}
+        for vr in version_rows:
+            vr_total = vr["total"]
+            vr_up = vr["upvotes"]
+            vr_down = vr["downvotes"]
+            entry = {
+                "version": vr["prompt_version"],
+                "total": vr_total,
+                "upvotes": vr_up,
+                "downvotes": vr_down,
+                "upvote_rate": vr_up / vr_total if vr_total > 0 else 0.0,
+            }
+            version_map.setdefault(vr["prompt_name"], []).append(entry)
+
+        total_votes = 0
+        total_upvotes = 0
+        prompts = []
+        for pr in prompt_rows:
+            pr_total = pr["total"]
+            pr_up = pr["upvotes"]
+            pr_down = pr["downvotes"]
+            total_votes += pr_total
+            total_upvotes += pr_up
+            prompts.append({
+                "name": pr["prompt_name"],
+                "total": pr_total,
+                "upvotes": pr_up,
+                "downvotes": pr_down,
+                "upvote_rate": pr_up / pr_total if pr_total > 0 else 0.0,
+                "versions": version_map.get(pr["prompt_name"], []),
+            })
+
+        return {
+            "prompts": prompts,
+            "total_votes": total_votes,
+            "overall_upvote_rate": total_upvotes / total_votes if total_votes > 0 else 0.0,
         }
 
     # ---- row converters ----

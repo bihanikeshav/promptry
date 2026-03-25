@@ -110,6 +110,10 @@ class AsyncWriter(BaseStorage):
     def tag_prompt(self, prompt_id, tag):
         self._enqueue("tag_prompt", prompt_id, tag)
 
+    def save_vote(self, prompt_name, response, score, prompt_version=None, message=None, metadata=None) -> int:
+        # synchronous -- callers need the returned vote_id
+        return self._storage.save_vote(prompt_name, response, score, prompt_version, message, metadata)
+
     # ---- read methods (direct passthrough) ----
 
     def get_prompt(self, name, version=None):
@@ -147,6 +151,12 @@ class AsyncWriter(BaseStorage):
 
     def get_cost_data(self, days: int = 7, name=None, model=None) -> dict:
         return self._storage.get_cost_data(days, name, model)
+
+    def get_votes(self, prompt_name=None, days=30, limit=200):
+        return self._storage.get_votes(prompt_name, days, limit)
+
+    def get_vote_stats(self, prompt_name=None, days=30):
+        return self._storage.get_vote_stats(prompt_name, days)
 
     def close(self):
         self._running = False

@@ -296,6 +296,40 @@ def cost_data(
     return storage.get_cost_data(days=days, name=name, model=model)
 
 
+# ---- Votes ----
+
+@app.get("/api/votes/stats")
+def vote_stats(
+    name: Optional[str] = Query(default=None),
+    days: int = Query(default=30),
+):
+    storage = get_storage()
+    return storage.get_vote_stats(prompt_name=name, days=days)
+
+
+@app.get("/api/votes")
+def list_votes(
+    name: Optional[str] = Query(default=None),
+    days: int = Query(default=30),
+    limit: int = Query(default=50),
+):
+    storage = get_storage()
+    return storage.get_votes(prompt_name=name, days=days, limit=limit)
+
+
+@app.get("/api/votes/analyze")
+def vote_analyze(
+    name: str = Query(...),
+    days: int = Query(default=30),
+):
+    from promptry.feedback import analyze_votes
+    from promptry.assertions import get_judge
+
+    storage = get_storage()
+    judge = get_judge()
+    return analyze_votes(name, days=days, judge=judge, storage=storage)
+
+
 # ---- SPA fallback: serve static files if directory exists ----
 
 _static_dir = Path(__file__).parent / "static"

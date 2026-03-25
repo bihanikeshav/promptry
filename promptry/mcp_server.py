@@ -401,6 +401,40 @@ def cost_report(
     return "\n".join(lines)
 
 
+# ---- Votes ----
+
+
+@mcp.tool()
+def vote_stats(name: Optional[str] = None, days: int = 30) -> str:
+    """Show vote statistics for prompts."""
+    storage = get_storage()
+    stats = storage.get_vote_stats(prompt_name=name, days=days)
+
+    if stats["total_votes"] == 0:
+        return "No votes found."
+
+    lines = [f"Vote stats (last {days} days)\n"]
+    for p in stats["prompts"]:
+        rate_str = f"{p['upvote_rate'] * 100:.0f}%"
+        lines.append(
+            f"  {p['name']}: {p['total']} votes, "
+            f"{p['upvotes']} up / {p['downvotes']} down, "
+            f"upvote rate: {rate_str}"
+        )
+        for v in p["versions"]:
+            v_rate = f"{v['upvote_rate'] * 100:.0f}%"
+            v_str = str(v["version"]) if v["version"] is not None else "?"
+            lines.append(
+                f"    v{v_str}: {v['total']} votes, "
+                f"{v['upvotes']} up / {v['downvotes']} down, "
+                f"upvote rate: {v_rate}"
+            )
+
+    overall_rate = f"{stats['overall_upvote_rate'] * 100:.0f}%"
+    lines.append(f"\n  Total: {stats['total_votes']} votes, overall upvote rate: {overall_rate}")
+    return "\n".join(lines)
+
+
 # ---- Monitor ----
 
 
