@@ -39,6 +39,10 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
 ]
+dashboard = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+]
 
 [project.scripts]
 promptry = "promptry.cli:main"
@@ -50,6 +54,9 @@ Issues = "https://github.com/bihanikeshav/promptry/issues"
 
 [tool.setuptools.packages.find]
 include = ["promptry*"]
+
+[tool.setuptools.package-data]
+"promptry.dashboard" = ["static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
