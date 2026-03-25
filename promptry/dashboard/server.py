@@ -301,5 +301,15 @@ def cost_data(
 _static_dir = Path(__file__).parent / "static"
 if _static_dir.is_dir():
     from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
 
-    app.mount("/", StaticFiles(directory=str(_static_dir), html=True), name="static")
+    # Serve static assets (JS, CSS, etc.)
+    app.mount("/assets", StaticFiles(directory=str(_static_dir / "assets")), name="assets")
+
+    # Catch-all: serve index.html for any non-API route (SPA client-side routing)
+    @app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str):
+        index = _static_dir / "index.html"
+        if index.exists():
+            return FileResponse(str(index))
+        raise HTTPException(404, detail="Dashboard not built. Run: cd dashboard-ui && npm run build")
