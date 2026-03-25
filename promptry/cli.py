@@ -663,6 +663,38 @@ def cost_report_cmd(
         console.print(f"\n[dim]{skipped} prompt(s) skipped (no token/cost metadata).[/dim]")
 
 
+@app.command("dashboard")
+def dashboard_cmd(
+    port: int = typer.Option(8420, "--port", "-p", help="Port to serve on."),
+    no_open: bool = typer.Option(False, "--no-open", help="Don't auto-open browser."),
+    local: bool = typer.Option(False, "--local", help="Open localhost instead of hosted URL."),
+):
+    """Start the promptry dashboard web UI."""
+    try:
+        import uvicorn
+    except ImportError:
+        console.print("[red]Error:[/red] Dashboard dependencies not installed.")
+        console.print("  Install with: pip install promptry[dashboard]")
+        raise typer.Exit(1)
+
+    hosted_url = f"https://promptry.meownikov.xyz/dashboard?port={port}"
+    local_url = f"http://localhost:{port}"
+    open_url = local_url if local else hosted_url
+
+    console.print(f"\n[bold]promptry dashboard[/bold] starting on port {port}\n")
+    console.print(f"  Local API:  {local_url}/api/health")
+    console.print(f"  Dashboard:  {hosted_url}")
+    console.print(f"  Local UI:   {local_url}/")
+    console.print()
+
+    if not no_open:
+        import webbrowser
+        webbrowser.open(open_url)
+
+    from promptry.dashboard.server import app as dashboard_app
+    uvicorn.run(dashboard_app, host="127.0.0.1", port=port, log_level="info")
+
+
 @app.command("init")
 def init_cmd():
     """Scaffold a new promptry project in the current directory."""
