@@ -31,9 +31,6 @@ def analyze_votes(
     downvotes = [v for v in votes if v["score"] == -1]
 
     messages = [v["message"] for v in downvotes if v.get("message")]
-    response_previews = [
-        v["response"][:200] for v in downvotes if v.get("response")
-    ]
 
     result: dict = {
         "prompt_name": name,

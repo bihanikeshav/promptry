@@ -12,7 +12,7 @@ import json
 import re
 import threading
 import time
-from typing import Any, Callable, Type, Literal
+from typing import Any, Callable, Type
 
 from pydantic import BaseModel, ValidationError
 
