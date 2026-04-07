@@ -549,6 +549,80 @@ section p {
     font-size: 15px;
 }
 
+/* ---- screenshot showcase ---- */
+
+.screenshot-showcase {
+    margin-top: 48px;
+    max-width: 780px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.screenshot-tabs {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.screenshot-tab {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px 8px 0 0;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.screenshot-tab:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+}
+
+.screenshot-tab.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    border-bottom-color: var(--code-bg);
+    background: var(--code-bg);
+}
+
+.screenshot-panels {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    position: relative;
+    min-height: 200px;
+}
+
+.screenshot-panel {
+    display: none;
+    animation: fadePanel 0.3s ease;
+}
+
+.screenshot-panel.active {
+    display: block;
+}
+
+@keyframes fadePanel {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.screenshot-panel img {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    display: block;
+}
+
 /* ---- footer ---- */
 
 footer {
@@ -596,5 +670,17 @@ footer a:hover { color: var(--text); }
     .install-box {
         padding: 12px 20px;
         font-size: 14px;
+    }
+
+    /* Screenshot tabs: smaller on mobile */
+    .screenshot-tab {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+    .screenshot-showcase {
+        margin-top: 36px;
+    }
+    .screenshot-panels {
+        padding: 8px;
     }
 }

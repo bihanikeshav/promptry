@@ -14,6 +14,7 @@
         <a href="index.html" class="logo">prompt<span>ry</span></a>
         <div class="topnav-links">
             <a href="#features">Features</a>
+            <a href="#compare">Compare</a>
             <a href="#quickstart">Quick Start</a>
             <a href="#js-client">JS Client</a>
             <a href="architecture.html">Architecture</a>
@@ -34,6 +35,33 @@
             <span class="dollar">$ </span>pip install promptry
             <span class="copy-hint">Click to copy</span>
         </button>
+
+        <div class="screenshot-showcase">
+            <div class="screenshot-tabs" role="tablist">
+                <button class="screenshot-tab active" role="tab" aria-selected="true" data-tab="overview">Overview</button>
+                <button class="screenshot-tab" role="tab" aria-selected="false" data-tab="suite-detail">Suite Detail</button>
+                <button class="screenshot-tab" role="tab" aria-selected="false" data-tab="prompts">Prompts</button>
+                <button class="screenshot-tab" role="tab" aria-selected="false" data-tab="models">Models</button>
+                <button class="screenshot-tab" role="tab" aria-selected="false" data-tab="cost">Cost</button>
+            </div>
+            <div class="screenshot-panels">
+                <div class="screenshot-panel active" data-panel="overview">
+                    <img src="screenshots/dashboard-overview.png" alt="Dashboard overview showing suite results and score trends" loading="lazy">
+                </div>
+                <div class="screenshot-panel" data-panel="suite-detail">
+                    <img src="screenshots/dashboard-suite-detail.png" alt="Suite detail view with individual test results and drift analysis" loading="lazy">
+                </div>
+                <div class="screenshot-panel" data-panel="prompts">
+                    <img src="screenshots/dashboard-prompts.png" alt="Prompt versioning view showing tracked prompts and their history" loading="lazy">
+                </div>
+                <div class="screenshot-panel" data-panel="models">
+                    <img src="screenshots/dashboard-models.png" alt="Model comparison view with performance metrics across providers" loading="lazy">
+                </div>
+                <div class="screenshot-panel" data-panel="cost">
+                    <img src="screenshots/dashboard-cost.png" alt="Cost tracking dashboard showing token usage and spend over time" loading="lazy">
+                </div>
+            </div>
+        </div>
     </div>
 
     <section id="features">
@@ -198,6 +226,23 @@ function copyCmd(el, text) {
 }
 function copyInstall(el) { copyCmd(el, 'pip install promptry'); }
 function copyNpm(el) { copyCmd(el, 'npm install promptry-js'); }
+
+/* Screenshot tab switching */
+document.querySelectorAll('.screenshot-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        var target = this.getAttribute('data-tab');
+        document.querySelectorAll('.screenshot-tab').forEach(function(t) {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('.screenshot-panel').forEach(function(p) {
+            p.classList.remove('active');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-selected', 'true');
+        document.querySelector('.screenshot-panel[data-panel="' + target + '"]').classList.add('active');
+    });
+});
 </script>
 
 </body>
