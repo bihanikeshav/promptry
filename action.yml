@@ -1,0 +1,57 @@
+name: "promptry eval"
+description: "Run promptry eval suites in CI. Catches LLM regressions."
+
+branding:
+  icon: check-circle
+  color: orange
+
+inputs:
+  suite:
+    description: "Eval suite to run"
+    required: true
+  module:
+    description: "Python module containing the eval suite"
+    required: true
+  compare:
+    description: "Baseline to compare against (e.g. prod)"
+    required: false
+    default: ""
+  python-version:
+    description: "Python version to use"
+    required: false
+    default: "3.12"
+  extras:
+    description: "pip extras to install with promptry"
+    required: false
+    default: "semantic"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install promptry
+      shell: bash
+      run: pip install "promptry[${{ inputs.extras }}]"
+
+    - name: Install project dependencies
+      shell: bash
+      run: |
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+        fi
+        if [ -f pyproject.toml ]; then
+          pip install -e .
+        fi
+
+    - name: Run eval suite
+      shell: bash
+      run: |
+        COMPARE_FLAG=""
+        if [ -n "${{ inputs.compare }}" ]; then
+          COMPARE_FLAG="--compare ${{ inputs.compare }}"
+        fi
+        promptry run ${{ inputs.suite }} --module ${{ inputs.module }} $COMPARE_FLAG
