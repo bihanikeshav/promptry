@@ -105,6 +105,22 @@ class TestInitCLI:
             data = tomllib.load(f)
         assert "storage" in data
 
+    def test_init_evals_contains_rag_and_classification(self, tmp_path, monkeypatch):
+        """The generated evals.py should include rag-qa and classification suites."""
+        monkeypatch.chdir(tmp_path)
+        runner.invoke(app, ["init"])
+        content = (tmp_path / "evals.py").read_text(encoding="utf-8")
+        assert "rag-qa" in content
+        assert "classification" in content
+
+    def test_init_evals_is_valid_python(self, tmp_path, monkeypatch):
+        """The generated evals.py must be valid Python that compiles without errors."""
+        monkeypatch.chdir(tmp_path)
+        runner.invoke(app, ["init"])
+        source = (tmp_path / "evals.py").read_text(encoding="utf-8")
+        # compile() will raise SyntaxError if the source is invalid
+        compile(source, "evals.py", "exec")
+
 
 class TestTemplatesCLI:
 

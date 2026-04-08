@@ -469,13 +469,36 @@ def templates_run(
 # ---- init ----
 
 _EXAMPLE_EVAL = '''"""Example eval suite for promptry."""
-from promptry import suite, assert_semantic
+from promptry import suite, assert_semantic, assert_contains, assert_matches
 
 
-# replace this with your actual LLM call
+# ---------------------------------------------------------------------------
+# Replace this with your actual LLM call.  Every suite below calls one of
+# these helpers -- swap in your real model client and you're good to go.
+# ---------------------------------------------------------------------------
+
 def my_pipeline(question: str) -> str:
+    """General-purpose LLM call.  Replace with your real implementation."""
     return "This is a placeholder response. Hook up your LLM here."
 
+
+def my_rag_pipeline(question: str) -> str:
+    """RAG pipeline: retrieve context, then generate.  Replace with yours."""
+    # e.g. context = retriever.search(question)
+    #      return llm(question, context=context)
+    return "Machine learning is a subset of artificial intelligence."
+
+
+def my_classifier(text: str) -> str:
+    """Classification pipeline.  Should return a single label.  Replace with yours."""
+    # e.g. return llm(f"Classify the sentiment: {text}")
+    return "positive"
+
+
+# ---------------------------------------------------------------------------
+# Suite 1 -- smoke-test
+# Basic sanity check that your pipeline returns something reasonable.
+# ---------------------------------------------------------------------------
 
 @suite("smoke-test")
 def test_basic_quality():
@@ -484,8 +507,43 @@ def test_basic_quality():
     assert_semantic(response, "An explanation of machine learning concepts")
 
 
-# to define a pipeline function for safety template testing:
-# promptry templates run --module evals
+# ---------------------------------------------------------------------------
+# Suite 2 -- rag-qa
+# Evaluate a retrieval-augmented generation pipeline.
+# Uses assert_semantic for answer quality and assert_contains to verify
+# that key facts appear in the response.
+# ---------------------------------------------------------------------------
+
+@suite("rag-qa")
+def test_rag_quality():
+    """Check that the RAG pipeline returns relevant, factual answers."""
+    response = my_rag_pipeline("What is machine learning?")
+
+    # The answer should be semantically close to a good reference answer.
+    assert_semantic(response, "Machine learning is a branch of AI that learns from data")
+
+    # The answer must mention these key terms.
+    assert_contains(response, ["machine learning", "artificial intelligence"])
+
+
+# ---------------------------------------------------------------------------
+# Suite 3 -- classification
+# Verify that a classifier returns well-formed labels.
+# Uses assert_matches to enforce the expected output format.
+# ---------------------------------------------------------------------------
+
+@suite("classification")
+def test_classification_format():
+    """Ensure the classifier returns a valid label."""
+    label = my_classifier("I love this product!")
+
+    # The label must be exactly one of the allowed values.
+    assert_matches(label, r"(positive|negative|neutral)")
+
+
+# ---------------------------------------------------------------------------
+# Safety testing pipeline -- used by  promptry templates run --module evals
+# ---------------------------------------------------------------------------
 def pipeline(prompt: str) -> str:
     return my_pipeline(prompt)
 '''
@@ -823,7 +881,9 @@ def init_cmd():
         console.print("Next steps:")
         console.print("  1. Edit evals.py and hook up your LLM pipeline")
         console.print("  2. Run: promptry run smoke-test --module evals")
-        console.print("  3. Run safety tests: promptry templates run --module evals")
+        console.print("  3. Run: promptry run rag-qa --module evals")
+        console.print("  4. Run: promptry run classification --module evals")
+        console.print("  5. Run safety tests: promptry templates run --module evals")
     else:
         console.print("[yellow]Nothing to create, project already initialized.[/yellow]")
 
@@ -837,6 +897,114 @@ def mcp_cmd():
         console.print("[red]Error:[/red] MCP dependencies not installed.\n  Install with: pip install promptry[mcp]")
         raise typer.Exit(1)
     mcp_server.run()
+
+
+@app.command("doctor")
+def doctor_cmd():
+    """Check environment health: dependencies, config, storage, and optional extras."""
+    ok_count = 0
+    warn_count = 0
+
+    def _ok(label: str, detail: str = ""):
+        nonlocal ok_count
+        ok_count += 1
+        msg = f"[green]OK[/green]   {label}"
+        if detail:
+            msg += f"  ({detail})"
+        console.print(msg)
+
+    def _warn(label: str, detail: str = ""):
+        nonlocal warn_count
+        warn_count += 1
+        msg = f"[yellow]WARN[/yellow] {label}"
+        if detail:
+            msg += f"  ({detail})"
+        console.print(msg)
+
+    def _fail(label: str, detail: str = ""):
+        nonlocal warn_count  # failures also count toward warnings for summary
+        warn_count += 1
+        msg = f"[red]FAIL[/red] {label}"
+        if detail:
+            msg += f"  ({detail})"
+        console.print(msg)
+
+    console.print("[bold]promptry doctor[/bold]\n")
+
+    # 1. Python version >= 3.10
+    v = sys.version_info
+    version_str = f"{v.major}.{v.minor}.{v.micro}"
+    if (v.major, v.minor) >= (3, 10):
+        _ok("Python version", version_str)
+    else:
+        _fail("Python version", f"{version_str} -- requires >= 3.10")
+
+    # 2. Config file found
+    from promptry.config import _find_config_file
+    config_file = _find_config_file()
+    if config_file:
+        _ok("Config file", str(config_file))
+    else:
+        _warn("Config file", "promptry.toml not found -- using defaults")
+
+    # 3. Storage writable
+    try:
+        storage = Storage()
+        storage.save_prompt(
+            name="__doctor_check__",
+            version=0,
+            content="health check",
+            content_hash="doctor",
+        )
+        # clean up the test row
+        with storage._lock:
+            storage._conn.execute(
+                "DELETE FROM prompts WHERE name = '__doctor_check__'"
+            )
+            storage._conn.commit()
+        _ok("Storage writable", storage._db_path)
+    except Exception as e:
+        _fail("Storage writable", str(e))
+
+    # 4. sentence-transformers installed (optional)
+    try:
+        import sentence_transformers  # noqa: F401
+        _ok("sentence-transformers", sentence_transformers.__version__)
+    except ImportError:
+        _warn("sentence-transformers", "not installed -- needed for semantic assertions")
+
+    # 5. Embedding model downloaded (optional)
+    try:
+        from promptry.assertions import _get_model
+        _get_model()
+        from promptry.config import get_config
+        _ok("Embedding model", get_config().model.embedding_model)
+    except ImportError:
+        _warn("Embedding model", "sentence-transformers not available")
+    except Exception as e:
+        _warn("Embedding model", f"not downloaded or failed to load: {e}")
+
+    # 6. Dashboard deps (fastapi, uvicorn -- optional)
+    dashboard_ok = True
+    for pkg in ("fastapi", "uvicorn"):
+        try:
+            importlib.import_module(pkg)
+        except ImportError:
+            dashboard_ok = False
+            break
+    if dashboard_ok:
+        _ok("Dashboard deps", "fastapi, uvicorn")
+    else:
+        _warn("Dashboard deps", "fastapi/uvicorn not installed -- pip install promptry[dashboard]")
+
+    # 7. LLM judge configured (optional)
+    from promptry.assertions import get_judge
+    if get_judge() is not None:
+        _ok("LLM judge", "configured")
+    else:
+        _warn("LLM judge", "not configured -- call set_judge() to enable assert_llm")
+
+    console.print(f"\n{ok_count} ok, {warn_count} warnings")
 
 
 def main():
