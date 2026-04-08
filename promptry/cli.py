@@ -952,7 +952,6 @@ def doctor_cmd():
         storage = Storage()
         storage.save_prompt(
             name="__doctor_check__",
-            version=0,
             content="health check",
             content_hash="doctor",
         )
