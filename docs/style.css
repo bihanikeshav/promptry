@@ -549,6 +549,59 @@ section p {
     font-size: 15px;
 }
 
+/* ---- comparison table ---- */
+
+.compare-table-wrap {
+    overflow-x: auto;
+    margin: 24px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.compare-table {
+    margin: 0;
+    min-width: 560px;
+}
+
+.compare-table th,
+.compare-table td {
+    text-align: center;
+    padding: 12px 16px;
+    white-space: nowrap;
+}
+
+.compare-table th:first-child,
+.compare-table td.row-label {
+    text-align: left;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.compare-table .col-highlight {
+    background: var(--accent-subtle);
+}
+
+.compare-table thead .col-highlight {
+    color: var(--accent);
+    position: relative;
+}
+
+.compare-table .check {
+    font-weight: 500;
+    font-size: 13px;
+}
+.compare-table .check.yes { color: var(--green); }
+.compare-table .check.no { color: var(--text-dim); }
+.compare-table .check.partial { color: var(--yellow); }
+
+@media (max-width: 640px) {
+    .compare-table th,
+    .compare-table td {
+        padding: 10px 10px;
+        font-size: 12px;
+    }
+}
+
 /* ---- screenshot showcase ---- */
 
 .screenshot-showcase {
