@@ -160,6 +160,24 @@ class TestPromptsList:
         assert data[0]["latest_version"] == 2
 
 
+    def test_prompts_pagination(self, client, storage):
+        for i in range(5):
+            _seed_prompt(storage, f"prompt-{i}", [f"content {i}"])
+        resp = client.get("/api/prompts?offset=0&limit=2")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 2
+
+        resp2 = client.get("/api/prompts?offset=2&limit=2")
+        assert resp2.status_code == 200
+        data2 = resp2.json()
+        assert len(data2) == 2
+        # Pages should not overlap
+        names_page1 = {p["name"] for p in data}
+        names_page2 = {p["name"] for p in data2}
+        assert names_page1.isdisjoint(names_page2)
+
+
 class TestPromptVersions:
     def test_prompt_versions(self, client, storage):
         records = _seed_prompt(storage, "summarizer", ["v1", "v2", "v3"])

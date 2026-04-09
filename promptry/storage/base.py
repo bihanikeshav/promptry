@@ -27,7 +27,7 @@ class BaseStorage(ABC):
         ...
 
     @abstractmethod
-    def list_prompts(self, name=None) -> list[PromptRecord]:
+    def list_prompts(self, name=None, offset=0, limit=100) -> list[PromptRecord]:
         ...
 
     @abstractmethod
@@ -66,11 +66,28 @@ class BaseStorage(ABC):
         ...
 
     @abstractmethod
-    def get_eval_runs(self, suite_name, limit=50) -> list[EvalRunRecord]:
+    def get_eval_runs(self, suite_name, offset=0, limit=50) -> list[EvalRunRecord]:
+        ...
+
+    @abstractmethod
+    def get_eval_runs_batch(self, suite_names: list[str], limit_per_suite: int = 20) -> dict[str, list[EvalRunRecord]]:
+        """Fetch eval runs for multiple suites in one query.
+
+        Returns a dict mapping suite_name -> list of EvalRunRecord,
+        with at most limit_per_suite runs per suite (newest first).
+        """
         ...
 
     @abstractmethod
     def get_eval_results(self, run_id) -> list[EvalResultRecord]:
+        ...
+
+    @abstractmethod
+    def get_eval_results_batch(self, run_ids: list[int]) -> dict[int, list[EvalResultRecord]]:
+        """Fetch eval results for multiple run IDs in one query.
+
+        Returns a dict mapping run_id -> list of EvalResultRecord.
+        """
         ...
 
     @abstractmethod
@@ -106,7 +123,7 @@ class BaseStorage(ABC):
         ...
 
     @abstractmethod
-    def get_votes(self, prompt_name=None, days=30, limit=200) -> list[dict]:
+    def get_votes(self, prompt_name=None, days=30, offset=0, limit=200) -> list[dict]:
         """Get recent votes. Returns list of vote dicts."""
         ...
 

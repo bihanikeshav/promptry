@@ -77,6 +77,57 @@ class TestPromptStorage:
         assert found.version == 2
 
 
+class TestPromptPagination:
+
+    def test_list_prompts_limit(self, storage):
+        for i in range(5):
+            storage.save_prompt(f"p{i}", f"content {i}", f"hash{i}")
+        records = storage.list_prompts(limit=2)
+        assert len(records) == 2
+
+    def test_list_prompts_offset(self, storage):
+        for i in range(5):
+            storage.save_prompt(f"p{i}", f"content {i}", f"hash{i}")
+        all_records = storage.list_prompts()
+        page = storage.list_prompts(offset=2, limit=2)
+        assert len(page) == 2
+        assert page[0].name == all_records[2].name
+        assert page[1].name == all_records[3].name
+
+    def test_list_prompts_offset_past_end(self, storage):
+        storage.save_prompt("a", "content", "h1")
+        records = storage.list_prompts(offset=10)
+        assert records == []
+
+
+class TestEvalPagination:
+
+    def test_get_eval_runs_limit(self, storage):
+        for i in range(5):
+            storage.save_eval_run(suite_name="s1", overall_pass=True, overall_score=0.8 + i * 0.01)
+        runs = storage.get_eval_runs("s1", limit=3)
+        assert len(runs) == 3
+
+    def test_get_eval_runs_offset(self, storage):
+        for i in range(5):
+            storage.save_eval_run(suite_name="s1", overall_pass=True, overall_score=0.8 + i * 0.01)
+        all_runs = storage.get_eval_runs("s1")
+        page = storage.get_eval_runs("s1", offset=2, limit=2)
+        assert len(page) == 2
+        assert page[0].id == all_runs[2].id
+
+
+class TestVotePagination:
+
+    def test_get_votes_offset(self, storage):
+        for i in range(5):
+            storage.save_vote(prompt_name="p", response=f"resp {i}", score=1)
+        all_votes = storage.get_votes(prompt_name="p")
+        page = storage.get_votes(prompt_name="p", offset=1, limit=2)
+        assert len(page) == 2
+        assert page[0]["id"] == all_votes[1]["id"]
+
+
 class TestEvalStorage:
 
     def test_save_run(self, storage):

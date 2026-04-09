@@ -64,11 +64,14 @@ def list_suites():
 
     names = storage.list_suite_names()
     drift_monitor = DriftMonitor(storage=storage)
-    result = []
 
+    # Batch-fetch the latest run per suite (1 query instead of N)
+    runs_by_suite = storage.get_eval_runs_batch(names, limit_per_suite=1)
+
+    result = []
     for name in names:
-        runs = storage.get_eval_runs(name, limit=1)
-        latest = runs[0] if runs else None
+        suite_runs = runs_by_suite.get(name, [])
+        latest = suite_runs[0] if suite_runs else None
 
         history = storage.get_score_history(name, limit=10)
         sparkline = [score for _, score in reversed(history)]
@@ -93,9 +96,9 @@ def list_suites():
 # ---- Suite Runs ----
 
 @app.get("/api/suite/{name}/runs")
-def suite_runs(name: str, limit: int = Query(default=20)):
+def suite_runs(name: str, offset: int = Query(default=0), limit: int = Query(default=20)):
     storage = get_storage()
-    runs = storage.get_eval_runs(name, limit=limit)
+    runs = storage.get_eval_runs(name, offset=offset, limit=limit)
     return [_dc_to_dict(r) for r in runs]
 
 
@@ -122,9 +125,9 @@ def run_detail(name: str, run_id: int):
 # ---- Prompts ----
 
 @app.get("/api/prompts")
-def list_prompts():
+def list_prompts(offset: int = Query(default=0), limit: int = Query(default=100)):
     storage = get_storage()
-    all_prompts = storage.list_prompts()
+    all_prompts = storage.list_prompts(offset=offset, limit=limit)
     if not all_prompts:
         return []
 
@@ -306,10 +309,11 @@ def vote_stats(
 def list_votes(
     name: Optional[str] = Query(default=None),
     days: int = Query(default=30),
+    offset: int = Query(default=0),
     limit: int = Query(default=50),
 ):
     storage = get_storage()
-    return storage.get_votes(prompt_name=name, days=days, limit=limit)
+    return storage.get_votes(prompt_name=name, days=days, offset=offset, limit=limit)
 
 
 @app.get("/api/votes/analyze")

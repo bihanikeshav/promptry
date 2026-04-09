@@ -244,17 +244,23 @@ class RemoteStorage(BaseStorage):
     def get_prompt_by_tag(self, name, tag):
         return self._local.get_prompt_by_tag(name, tag)
 
-    def list_prompts(self, name=None):
-        return self._local.list_prompts(name)
+    def list_prompts(self, name=None, offset=0, limit=100):
+        return self._local.list_prompts(name, offset=offset, limit=limit)
 
     def get_tags(self, prompt_id):
         return self._local.get_tags(prompt_id)
 
-    def get_eval_runs(self, suite_name, limit=50):
-        return self._local.get_eval_runs(suite_name, limit)
+    def get_eval_runs(self, suite_name, offset=0, limit=50):
+        return self._local.get_eval_runs(suite_name, offset=offset, limit=limit)
+
+    def get_eval_runs_batch(self, suite_names, limit_per_suite=20):
+        return self._local.get_eval_runs_batch(suite_names, limit_per_suite)
 
     def get_eval_results(self, run_id):
         return self._local.get_eval_results(run_id)
+
+    def get_eval_results_batch(self, run_ids):
+        return self._local.get_eval_results_batch(run_ids)
 
     def get_score_history(self, suite_name, limit=30):
         return self._local.get_score_history(suite_name, limit)
@@ -274,8 +280,8 @@ class RemoteStorage(BaseStorage):
     def get_cost_data(self, days: int = 7, name=None, model=None) -> dict:
         return self._local.get_cost_data(days, name, model)
 
-    def get_votes(self, prompt_name=None, days=30, limit=200):
-        return self._local.get_votes(prompt_name, days, limit)
+    def get_votes(self, prompt_name=None, days=30, offset=0, limit=200):
+        return self._local.get_votes(prompt_name, days, offset=offset, limit=limit)
 
     def get_vote_stats(self, prompt_name=None, days=30):
         return self._local.get_vote_stats(prompt_name, days)

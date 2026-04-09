@@ -300,13 +300,13 @@ class SQLiteStorage(BaseStorage):
             self._conn.commit()
             return cur.lastrowid
 
-    def get_eval_runs(self, suite_name, limit=50) -> list[EvalRunRecord]:
+    def get_eval_runs(self, suite_name, offset=0, limit=50) -> list[EvalRunRecord]:
         with self._lock:
             cur = self._conn.execute(
                 """SELECT * FROM eval_runs
                    WHERE suite_name = ?
-                   ORDER BY id DESC LIMIT ?""",
-                (suite_name, limit),
+                   ORDER BY id DESC LIMIT ? OFFSET ?""",
+                (suite_name, limit, offset),
             )
             return [self._row_to_eval_run(row) for row in cur.fetchall()]
 
@@ -528,7 +528,7 @@ class SQLiteStorage(BaseStorage):
             self._conn.commit()
             return cur.lastrowid
 
-    def get_votes(self, prompt_name=None, days=30, limit=200) -> list[dict]:
+    def get_votes(self, prompt_name=None, days=30, offset=0, limit=200) -> list[dict]:
         """Get recent votes. Returns list of vote dicts."""
         with self._lock:
             params: list = [f"-{days}"]
@@ -540,8 +540,8 @@ class SQLiteStorage(BaseStorage):
                 f"""SELECT * FROM votes
                     WHERE created_at >= datetime('now', ? || ' days')
                     {name_filter}
-                    ORDER BY id DESC LIMIT ?""",
-                params + [limit],
+                    ORDER BY id DESC LIMIT ? OFFSET ?""",
+                params + [limit, offset],
             )
             rows = cur.fetchall()
             result = []
