@@ -14,70 +14,82 @@ from promptry.config import get_config
 from promptry.models import PromptRecord, EvalRunRecord, EvalResultRecord
 from promptry.storage.base import BaseStorage
 
-_SCHEMA = """
-CREATE TABLE IF NOT EXISTS prompts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    version INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    hash TEXT NOT NULL,
-    metadata TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE(name, version),
-    UNIQUE(name, hash)
-);
-
-CREATE TABLE IF NOT EXISTS prompt_tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    prompt_id INTEGER NOT NULL,
-    tag TEXT NOT NULL,
-    FOREIGN KEY (prompt_id) REFERENCES prompts(id),
-    UNIQUE(prompt_id, tag)
-);
-
-CREATE TABLE IF NOT EXISTS eval_runs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    suite_name TEXT NOT NULL,
-    prompt_name TEXT,
-    prompt_version INTEGER,
-    model_version TEXT,
-    timestamp TEXT NOT NULL DEFAULT (datetime('now')),
-    overall_pass INTEGER NOT NULL DEFAULT 1,
-    overall_score REAL
-);
-
-CREATE TABLE IF NOT EXISTS eval_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id INTEGER NOT NULL,
-    test_name TEXT NOT NULL,
-    assertion_type TEXT NOT NULL,
-    passed INTEGER NOT NULL,
-    score REAL,
-    details TEXT,
-    latency_ms REAL,
-    FOREIGN KEY (run_id) REFERENCES eval_runs(id)
-);
-
-CREATE TABLE IF NOT EXISTS votes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    prompt_name TEXT NOT NULL,
-    prompt_version INTEGER,
-    response TEXT NOT NULL,
-    score INTEGER NOT NULL,
-    message TEXT,
-    metadata TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_prompts_name ON prompts(name);
-CREATE INDEX IF NOT EXISTS idx_prompts_hash ON prompts(hash);
-CREATE INDEX IF NOT EXISTS idx_prompt_tags_tag ON prompt_tags(tag);
-CREATE INDEX IF NOT EXISTS idx_eval_runs_suite ON eval_runs(suite_name);
-CREATE INDEX IF NOT EXISTS idx_eval_runs_model ON eval_runs(model_version);
-CREATE INDEX IF NOT EXISTS idx_eval_results_run ON eval_results(run_id);
-CREATE INDEX IF NOT EXISTS idx_votes_prompt ON votes(prompt_name);
-CREATE INDEX IF NOT EXISTS idx_votes_created ON votes(created_at);
+_SCHEMA_VERSION_DDL = """
+CREATE TABLE IF NOT EXISTS schema_version (
+    version INTEGER PRIMARY KEY,
+    description TEXT,
+    applied_at TEXT DEFAULT (datetime('now'))
+)
 """
+
+# Each entry: (version, description, list_of_sql_statements)
+# Migration 1 uses CREATE TABLE IF NOT EXISTS so it works on both fresh and
+# pre-existing databases (which already have the tables but no schema_version).
+_MIGRATIONS: list[tuple[int, str, list[str]]] = [
+    (1, "initial schema", [
+        """CREATE TABLE IF NOT EXISTS prompts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            version INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            hash TEXT NOT NULL,
+            metadata TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(name, version),
+            UNIQUE(name, hash)
+        )""",
+        """CREATE TABLE IF NOT EXISTS prompt_tags (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prompt_id INTEGER NOT NULL,
+            tag TEXT NOT NULL,
+            FOREIGN KEY (prompt_id) REFERENCES prompts(id),
+            UNIQUE(prompt_id, tag)
+        )""",
+        """CREATE TABLE IF NOT EXISTS eval_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            suite_name TEXT NOT NULL,
+            prompt_name TEXT,
+            prompt_version INTEGER,
+            model_version TEXT,
+            timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+            overall_pass INTEGER NOT NULL DEFAULT 1,
+            overall_score REAL
+        )""",
+        """CREATE TABLE IF NOT EXISTS eval_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_id INTEGER NOT NULL,
+            test_name TEXT NOT NULL,
+            assertion_type TEXT NOT NULL,
+            passed INTEGER NOT NULL,
+            score REAL,
+            details TEXT,
+            latency_ms REAL,
+            FOREIGN KEY (run_id) REFERENCES eval_runs(id)
+        )""",
+        """CREATE TABLE IF NOT EXISTS votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prompt_name TEXT NOT NULL,
+            prompt_version INTEGER,
+            response TEXT NOT NULL,
+            score INTEGER NOT NULL,
+            message TEXT,
+            metadata TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_prompts_name ON prompts(name)",
+        "CREATE INDEX IF NOT EXISTS idx_prompts_hash ON prompts(hash)",
+        "CREATE INDEX IF NOT EXISTS idx_prompt_tags_tag ON prompt_tags(tag)",
+        "CREATE INDEX IF NOT EXISTS idx_eval_runs_suite ON eval_runs(suite_name)",
+        "CREATE INDEX IF NOT EXISTS idx_eval_runs_model ON eval_runs(model_version)",
+        "CREATE INDEX IF NOT EXISTS idx_eval_results_run ON eval_results(run_id)",
+        "CREATE INDEX IF NOT EXISTS idx_votes_prompt ON votes(prompt_name)",
+        "CREATE INDEX IF NOT EXISTS idx_votes_created ON votes(created_at)",
+    ]),
+    # Future migrations go here:
+    # (2, "add tokens column to eval_results", [
+    #     "ALTER TABLE eval_results ADD COLUMN tokens_in INTEGER",
+    # ]),
+]
 
 
 class SQLiteStorage(BaseStorage):
@@ -99,7 +111,28 @@ class SQLiteStorage(BaseStorage):
         return conn
 
     def _init_schema(self):
-        self._conn.executescript(_SCHEMA)
+        self._conn.executescript(_SCHEMA_VERSION_DDL)
+        self._conn.commit()
+        self._run_migrations()
+
+    def _get_current_version(self) -> int:
+        cur = self._conn.execute(
+            "SELECT MAX(version) FROM schema_version"
+        )
+        row = cur.fetchone()
+        return row[0] if row[0] is not None else 0
+
+    def _run_migrations(self):
+        current = self._get_current_version()
+        for version, description, statements in _MIGRATIONS:
+            if version <= current:
+                continue
+            for sql in statements:
+                self._conn.execute(sql)
+            self._conn.execute(
+                "INSERT INTO schema_version (version, description) VALUES (?, ?)",
+                (version, description),
+            )
         self._conn.commit()
 
     def close(self):
@@ -178,21 +211,24 @@ class SQLiteStorage(BaseStorage):
             record.tags = self._get_tags_unlocked(cur, record.id)
             return record
 
-    def list_prompts(self, name=None) -> list[PromptRecord]:
+    def list_prompts(self, name=None, offset=0, limit=100) -> list[PromptRecord]:
         with self._lock:
             cur = self._conn.cursor()
             if name:
                 cur.execute(
                     """SELECT p.*, GROUP_CONCAT(pt.tag) as tags_csv
                        FROM prompts p LEFT JOIN prompt_tags pt ON p.id = pt.prompt_id
-                       WHERE p.name = ? GROUP BY p.id ORDER BY p.version ASC""",
-                    (name,),
+                       WHERE p.name = ? GROUP BY p.id ORDER BY p.version ASC
+                       LIMIT ? OFFSET ?""",
+                    (name, limit, offset),
                 )
             else:
                 cur.execute(
                     """SELECT p.*, GROUP_CONCAT(pt.tag) as tags_csv
                        FROM prompts p LEFT JOIN prompt_tags pt ON p.id = pt.prompt_id
-                       GROUP BY p.id ORDER BY p.name, p.version ASC"""
+                       GROUP BY p.id ORDER BY p.name, p.version ASC
+                       LIMIT ? OFFSET ?""",
+                    (limit, offset),
                 )
             records = []
             for row in cur.fetchall():
@@ -274,6 +310,27 @@ class SQLiteStorage(BaseStorage):
             )
             return [self._row_to_eval_run(row) for row in cur.fetchall()]
 
+    def get_eval_runs_batch(self, suite_names: list[str], limit_per_suite: int = 20) -> dict[str, list[EvalRunRecord]]:
+        if not suite_names:
+            return {}
+        with self._lock:
+            placeholders = ",".join("?" for _ in suite_names)
+            cur = self._conn.execute(
+                f"""SELECT * FROM (
+                        SELECT *, ROW_NUMBER() OVER (
+                            PARTITION BY suite_name ORDER BY id DESC
+                        ) AS rn
+                        FROM eval_runs
+                        WHERE suite_name IN ({placeholders})
+                    ) WHERE rn <= ?""",
+                list(suite_names) + [limit_per_suite],
+            )
+            result: dict[str, list[EvalRunRecord]] = {name: [] for name in suite_names}
+            for row in cur.fetchall():
+                record = self._row_to_eval_run(row)
+                result[record.suite_name].append(record)
+            return result
+
     def get_eval_results(self, run_id) -> list[EvalResultRecord]:
         with self._lock:
             cur = self._conn.execute(
@@ -281,6 +338,21 @@ class SQLiteStorage(BaseStorage):
                 (run_id,),
             )
             return [self._row_to_eval_result(row) for row in cur.fetchall()]
+
+    def get_eval_results_batch(self, run_ids: list[int]) -> dict[int, list[EvalResultRecord]]:
+        if not run_ids:
+            return {}
+        with self._lock:
+            placeholders = ",".join("?" for _ in run_ids)
+            cur = self._conn.execute(
+                f"SELECT * FROM eval_results WHERE run_id IN ({placeholders})",
+                list(run_ids),
+            )
+            result: dict[int, list[EvalResultRecord]] = {rid: [] for rid in run_ids}
+            for row in cur.fetchall():
+                record = self._row_to_eval_result(row)
+                result[record.run_id].append(record)
+            return result
 
     def get_runs_by_model(self, suite_name, model_version, limit=200) -> list[EvalRunRecord]:
         with self._lock:
