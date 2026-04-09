@@ -73,6 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_prompts_name ON prompts(name);
 CREATE INDEX IF NOT EXISTS idx_prompts_hash ON prompts(hash);
 CREATE INDEX IF NOT EXISTS idx_prompt_tags_tag ON prompt_tags(tag);
 CREATE INDEX IF NOT EXISTS idx_eval_runs_suite ON eval_runs(suite_name);
+CREATE INDEX IF NOT EXISTS idx_eval_runs_model ON eval_runs(model_version);
 CREATE INDEX IF NOT EXISTS idx_eval_results_run ON eval_results(run_id);
 CREATE INDEX IF NOT EXISTS idx_votes_prompt ON votes(prompt_name);
 CREATE INDEX IF NOT EXISTS idx_votes_created ON votes(created_at);
