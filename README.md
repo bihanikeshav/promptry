@@ -111,7 +111,10 @@ For that, look at LangSmith or Arize.
 Requires **Python 3.10+**.
 
 ```bash
-pip install promptry
+pip install promptry                # core (no ML dependencies)
+pip install promptry[semantic]      # + sentence-transformers for semantic assertions
+pip install promptry[dashboard]     # + web dashboard
+pip install promptry[semantic,dashboard]  # everything
 ```
 
 ## Quick start (2 minutes)
@@ -933,6 +936,12 @@ This starts a local API server and opens the dashboard. The UI is hosted at `pro
 | **Prompts** | Version history with git-diff style comparison (red/green lines, line numbers) |
 | **Models** | Statistical model comparison with cost efficiency analysis and SWITCH/KEEP verdict |
 | **Cost** | Token usage and cost charts over time, by prompt name |
+
+![Overview](docs/screenshots/dashboard-overview.png)
+![Suite Detail](docs/screenshots/dashboard-suite-detail.png)
+![Prompts](docs/screenshots/dashboard-prompts.png)
+![Models](docs/screenshots/dashboard-models.png)
+![Cost](docs/screenshots/dashboard-cost.png)
 
 ```bash
 promptry dashboard                # start on :8420, open hosted dashboard
