@@ -35,7 +35,13 @@ def _get_model():
     global _model
     with _assertions_lock:
         if _model is None:
-            from sentence_transformers import SentenceTransformer
+            try:
+                from sentence_transformers import SentenceTransformer
+            except ImportError:
+                raise ImportError(
+                    "sentence-transformers is required for semantic assertions. "
+                    "Install it with: pip install promptry[semantic]"
+                )
             from promptry.config import get_config
             name = _model_name_override or get_config().model.embedding_model
             _model = SentenceTransformer(name)
@@ -98,7 +104,7 @@ def assert_semantic(actual: str, expected: str, threshold: float | None = None) 
 
     model = _get_model()
     embeddings = model.encode([actual, expected])
-    from sentence_transformers.util import cos_sim
+    from sentence_transformers.util import cos_sim  # guarded by _get_model above
     score = float(cos_sim(embeddings[0], embeddings[1])[0][0])
 
     passed = score >= threshold

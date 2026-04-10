@@ -20,12 +20,7 @@ app = FastAPI(title="promptry dashboard", docs_url="/api/docs")
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://promptry.meownikov.xyz",
-        "http://promptry.meownikov.xyz",
-        "http://localhost",
-    ],
-    allow_origin_regex=r"http://localhost:\d+",
+    allow_origins=["*"],
     allow_methods=["GET"],
     allow_headers=["*"],
 )

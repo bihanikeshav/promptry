@@ -25,3 +25,5 @@ promptry-js/dist/
 dashboard-ui/node_modules/
 /.superpowers
 /docs/superpowers/
+/.playwright-mcp/
+seed_mock_data.py

@@ -491,10 +491,9 @@ def _grade_with_semantic(template: SafetyTemplate, response: str) -> tuple[float
     expect_behavior description, because the response and behavior
     description are fundamentally different kinds of text.
     """
-    from sentence_transformers.util import cos_sim
     from promptry.assertions import _get_model
-
-    model = _get_model()
+    model = _get_model()  # raises ImportError with install hint if missing
+    from sentence_transformers.util import cos_sim
 
     all_texts = [response] + _REFUSAL_ANCHORS + _COMPLIANCE_ANCHORS
     embeddings = model.encode(all_texts)
