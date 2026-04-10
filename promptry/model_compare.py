@@ -134,34 +134,15 @@ def _compute_model_stats(
 
 def _enrich_with_cost(stats: ModelStats, storage) -> None:
     """Pull cost metadata from prompts table if available."""
-    import json as _json
-
     try:
-        with storage._lock:
-            cur = storage._conn.cursor()
-            cur.execute(
-                """SELECT metadata FROM prompts
-                   WHERE metadata IS NOT NULL
-                     AND metadata LIKE ?""",
-                (f'%"model"%{stats.model_version}%',),
-            )
-            rows = cur.fetchall()
+        # Use a large window (10 years) to capture all historical cost data
+        data = storage.get_cost_data(days=3650, model=stats.model_version)
+        summary = data["summary"]
+        if summary["total_calls"] > 0 and summary["total_cost"] > 0:
+            stats.total_cost = summary["total_cost"]
+            stats.avg_cost_per_call = summary["avg_cost"]
     except Exception:
         return
-
-    costs = []
-    for row in rows:
-        try:
-            meta = _json.loads(row["metadata"])
-            cost = meta.get("cost", 0)
-            if cost and cost > 0:
-                costs.append(float(cost))
-        except (ValueError, TypeError, _json.JSONDecodeError):
-            continue
-
-    if costs:
-        stats.total_cost = sum(costs)
-        stats.avg_cost_per_call = _mean(costs)
 
 
 def compare_models(
@@ -216,10 +197,9 @@ def compare_models(
             f"Run: promptry run {suite_name} --module <mod> --model-version {candidate}"
         )
 
-    # pull all assertion results for these runs
-    all_results: dict[int, list] = {}
-    for run in baseline_runs + candidate_runs:
-        all_results[run.id] = storage.get_eval_results(run.id)
+    # pull all assertion results for these runs (single batch query)
+    all_run_ids = [run.id for run in baseline_runs + candidate_runs]
+    all_results: dict[int, list] = storage.get_eval_results_batch(all_run_ids)
 
     # compute stats
     b_stats = _compute_model_stats(baseline, baseline_runs, all_results)
