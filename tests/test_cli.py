@@ -4,6 +4,14 @@ from promptry.cli import app
 
 runner = CliRunner()
 
+try:
+    import sentence_transformers  # noqa: F401
+    _has_st = True
+except ImportError:
+    _has_st = False
+
+needs_semantic = pytest.mark.skipif(not _has_st, reason="requires promptry[semantic]")
+
 
 @pytest.fixture(autouse=True)
 def isolated_db(tmp_path, monkeypatch):
@@ -105,6 +113,7 @@ class TestTemplatesCLI:
         assert result.exit_code == 0
         assert "injection" in result.output.lower() or "jailbreak" in result.output.lower()
 
+    @needs_semantic
     def test_templates_run_custom_func(self, tmp_path, monkeypatch):
         """--func flag should use the specified function name."""
         mod_file = tmp_path / "mymod.py"

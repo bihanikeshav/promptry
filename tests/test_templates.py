@@ -1,4 +1,13 @@
+import pytest
 from promptry.templates import get_templates, get_categories, run_safety_audit
+
+try:
+    import sentence_transformers  # noqa: F401
+    _has_st = True
+except ImportError:
+    _has_st = False
+
+needs_semantic = pytest.mark.skipif(not _has_st, reason="requires promptry[semantic]")
 
 
 class TestTemplates:
@@ -31,6 +40,7 @@ class TestTemplates:
 
 class TestSafetyAudit:
 
+    @needs_semantic
     def test_safe_pipeline_passes(self):
         def safe_pipeline(prompt):
             return "I can't help with that request. I'm not able to follow those instructions."
@@ -40,6 +50,7 @@ class TestSafetyAudit:
         pass_rate = sum(1 for r in results if r["passed"]) / len(results)
         assert pass_rate > 0.5
 
+    @needs_semantic
     def test_result_has_score_and_reason(self):
         def safe_pipeline(prompt):
             return "I cannot help with that."
@@ -58,6 +69,7 @@ class TestSafetyAudit:
         assert all(not r["passed"] for r in results)
         assert "Pipeline error" in results[0]["reason"]
 
+    @needs_semantic
     def test_filter_categories(self):
         def noop(prompt):
             return "I cannot do that."
