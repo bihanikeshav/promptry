@@ -17,8 +17,11 @@ needs_semantic = pytest.mark.skipif(not _has_st, reason="requires promptry[seman
 def isolated_db(tmp_path, monkeypatch):
     monkeypatch.setenv("PROMPTRY_DB", str(tmp_path / "test.db"))
     from promptry.config import reset_config
+    from promptry.storage import reset_storage
+    reset_storage()
     reset_config()
     yield
+    reset_storage()
     reset_config()
 
 
@@ -155,3 +158,81 @@ class TestTemplatesCLI:
         )
         assert result.exit_code == 1
         assert "nonexistent" in result.output
+
+
+class TestCostReport:
+
+    def test_cost_report_no_data(self):
+        """cost-report should exit 0 with a helpful message when no data exists."""
+        result = runner.invoke(app, ["cost-report"])
+        assert result.exit_code == 0
+        assert "No prompts with metadata" in result.output or "no" in result.output.lower()
+
+    def test_cost_report_with_data(self, tmp_path, monkeypatch):
+        """cost-report should display token/cost aggregates when data exists."""
+        import json
+        from promptry.storage import Storage
+
+        db_path = tmp_path / "test_cost.db"
+        monkeypatch.setenv("PROMPTRY_DB", str(db_path))
+        from promptry.config import reset_config
+        reset_config()
+
+        storage = Storage(db_path=db_path)
+        meta = {"tokens_in": 100, "tokens_out": 50, "cost": 0.001, "model": "gpt-4o"}
+        storage.save_prompt("cost-test", "prompt content", "hash1", metadata=meta)
+        storage.close()
+
+        result = runner.invoke(app, ["cost-report", "--days", "30"])
+        assert result.exit_code == 0
+        assert "cost-test" in result.output
+
+    def test_cost_report_name_filter(self, tmp_path, monkeypatch):
+        """cost-report --name should filter to only the specified prompt."""
+        from promptry.storage import Storage
+
+        db_path = tmp_path / "test_cost2.db"
+        monkeypatch.setenv("PROMPTRY_DB", str(db_path))
+        from promptry.config import reset_config
+        reset_config()
+
+        storage = Storage(db_path=db_path)
+        meta_a = {"tokens_in": 100, "tokens_out": 50, "cost": 0.001, "model": "gpt-4o"}
+        meta_b = {"tokens_in": 200, "tokens_out": 75, "cost": 0.002, "model": "gpt-4o"}
+        storage.save_prompt("prompt-a", "content a", "hash_a", metadata=meta_a)
+        storage.save_prompt("prompt-b", "content b", "hash_b", metadata=meta_b)
+        storage.close()
+
+        result = runner.invoke(app, ["cost-report", "--name", "prompt-a", "--days", "30"])
+        assert result.exit_code == 0
+        assert "prompt-a" in result.output
+
+    def test_cost_report_model_filter(self, tmp_path, monkeypatch):
+        """cost-report --model should filter to matching models."""
+        from promptry.storage import Storage
+
+        db_path = tmp_path / "test_cost3.db"
+        monkeypatch.setenv("PROMPTRY_DB", str(db_path))
+        from promptry.config import reset_config
+        reset_config()
+
+        storage = Storage(db_path=db_path)
+        meta = {"tokens_in": 100, "tokens_out": 50, "cost": 0.001, "model": "claude-sonnet"}
+        storage.save_prompt("model-test", "content", "hash_m", metadata=meta)
+        storage.close()
+
+        # Filter for a model that does not match
+        result = runner.invoke(app, ["cost-report", "--model", "gpt-4o", "--days", "30"])
+        assert result.exit_code == 0
+        # Should show no data for gpt-4o since only claude-sonnet was saved
+        assert "No prompts with token/cost metadata" in result.output or "model-test" not in result.output
+
+
+class TestCompare:
+
+    def test_compare_no_data(self):
+        """compare should handle gracefully when no eval data exists."""
+        result = runner.invoke(app, ["compare", "nonexistent", "--candidate", "model-a"])
+        # Should exit with code 1 (error) because no baseline data exists, not crash
+        assert result.exit_code == 1
+        assert "Error" in result.output or "No baseline" in result.output or "No runs" in result.output

@@ -313,88 +313,30 @@ def cost_report(
         name: Filter by prompt name.
         model: Filter by model name.
     """
-    import json
-    from collections import defaultdict
-
     storage = get_storage()
+    data = storage.get_cost_data(days=days, name=name, model=model)
 
-    with storage._lock:
-        cur = storage._conn.cursor()
-        query = """
-            SELECT name, metadata, created_at FROM prompts
-            WHERE metadata IS NOT NULL
-              AND created_at >= datetime('now', ?)
-        """
-        params: list = [f"-{days} days"]
+    summary = data["summary"]
+    by_name_list = data["by_name"]
 
-        if name:
-            query += " AND name = ?"
-            params.append(name)
-
-        query += " ORDER BY created_at ASC"
-        cur.execute(query, params)
-        rows = cur.fetchall()
-
-    if not rows:
+    if summary["total_calls"] == 0:
         return f"No prompts with metadata found in the last {days} days."
 
-    by_name: dict[str, dict] = defaultdict(lambda: {
-        "tokens_in": 0, "tokens_out": 0, "cost": 0.0, "calls": 0, "models": set(),
-    })
-
-    for row in rows:
-        try:
-            meta = json.loads(row["metadata"])
-        except (json.JSONDecodeError, TypeError):
-            continue
-
-        if not isinstance(meta, dict):
-            continue
-
-        has_cost_info = any(k in meta for k in ("tokens_in", "tokens_out", "cost", "input_tokens", "output_tokens"))
-        if not has_cost_info:
-            continue
-
-        tokens_in = meta.get("tokens_in", 0) or meta.get("input_tokens", 0) or 0
-        tokens_out = meta.get("tokens_out", 0) or meta.get("output_tokens", 0) or 0
-        cost = meta.get("cost", 0.0) or 0.0
-        model_name = meta.get("model", "")
-
-        if model and model_name and model.lower() not in model_name.lower():
-            continue
-
-        prompt_name = row["name"]
-        by_name[prompt_name]["tokens_in"] += tokens_in
-        by_name[prompt_name]["tokens_out"] += tokens_out
-        by_name[prompt_name]["cost"] += cost
-        by_name[prompt_name]["calls"] += 1
-        if model_name:
-            by_name[prompt_name]["models"].add(model_name)
-
-    if not by_name:
-        return f"No prompts with token/cost metadata found in the last {days} days."
-
     lines = [f"Cost report (last {days} days)\n"]
-    total_in = total_out = total_calls = 0
-    total_cost = 0.0
 
-    for pname, agg in sorted(by_name.items(), key=lambda x: x[1]["cost"], reverse=True):
-        models_str = ", ".join(sorted(agg["models"])) if agg["models"] else "-"
-        cost_str = f"${agg['cost']:.4f}" if agg["cost"] > 0 else "-"
+    for entry in by_name_list:
+        models_str = ", ".join(entry["models"]) if entry["models"] else "-"
+        cost_str = f"${entry['cost']:.4f}" if entry["cost"] > 0 else "-"
         lines.append(
-            f"  {pname}: {agg['calls']} calls, "
-            f"{agg['tokens_in']:,} in / {agg['tokens_out']:,} out, "
+            f"  {entry['name']}: {entry['calls']} calls, "
+            f"{entry['tokens_in']:,} in / {entry['tokens_out']:,} out, "
             f"cost: {cost_str}, models: {models_str}"
         )
-        total_in += agg["tokens_in"]
-        total_out += agg["tokens_out"]
-        total_cost += agg["cost"]
-        total_calls += agg["calls"]
 
-    total_cost_str = f"${total_cost:.4f}" if total_cost > 0 else "-"
+    total_cost_str = f"${summary['total_cost']:.4f}" if summary["total_cost"] > 0 else "-"
     lines.append(
-        f"\n  Total: {total_calls} calls, "
-        f"{total_in:,} in / {total_out:,} out, "
+        f"\n  Total: {summary['total_calls']} calls, "
+        f"{summary['total_tokens_in']:,} in / {summary['total_tokens_out']:,} out, "
         f"cost: {total_cost_str}"
     )
 
