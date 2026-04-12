@@ -131,7 +131,7 @@ The [full guide](docs/guide.md) covers all assertions, cost tracking, model comp
 
 - **No auto-instrumentation.** You add `track()` calls manually. Explicit > magic.
 - **Local-first.** No hosted multi-user UI. For that, look at LangSmith or Arize.
-- **Early-stage.** v0.5 — API is stable but the project is young. [Issues welcome.](https://github.com/bihanikeshav/promptry/issues)
+- **Early-stage.** v0.6 — API is stable but the project is young. [Issues welcome.](https://github.com/bihanikeshav/promptry/issues)
 
 ## License
 

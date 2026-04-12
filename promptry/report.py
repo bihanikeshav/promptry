@@ -127,7 +127,6 @@ def render_run_report(results: dict) -> str:
     overall_score = results.get("overall_score", 0.0)
     tests = results.get("tests", [])
 
-    pass_class = "pass" if overall_pass else "fail"
     pass_label = "PASS" if overall_pass else "FAIL"
     badge_class = "badge-pass" if overall_pass else "badge-fail"
 
