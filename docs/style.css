@@ -175,8 +175,11 @@ pre code {
 .hero {
     padding: 80px 0 60px;
     text-align: center;
+}
+.hero h1, .hero .tagline, .hero .install-row {
     max-width: 640px;
-    margin: 0 auto;
+    margin-left: auto;
+    margin-right: auto;
 }
 .hero h1 {
     font-size: 52px;
@@ -299,33 +302,23 @@ pre code {
 
 .main-content strong { color: var(--text); font-weight: 600; }
 
-/* ---- feature grid ---- */
+/* ---- feature list ---- */
 
-.features {
+.feature-list {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin: 24px 0;
+    gap: 0;
+    margin: 20px 0;
 }
-.feature {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
-    transition: border-color 0.2s;
-}
-.feature:hover { border-color: var(--border-hover); }
-.feature h3 {
+.feature-item {
     font-size: 14px;
-    font-weight: 600;
-    margin: 0 0 6px;
-    color: var(--text);
-}
-.feature p {
-    font-size: 13.5px;
     color: var(--text-dim);
-    margin: 0;
-    line-height: 1.5;
+    padding: 8px 0;
+    line-height: 1.4;
+}
+.feature-item strong {
+    color: var(--text);
+    font-weight: 600;
 }
 
 /* ---- integrate banner (below feature grid) ---- */
@@ -516,7 +509,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 /* ---- content wrapper ---- */
 
 .content-wrap {
-    max-width: 850px;
+    max-width: 1080px;
     margin: 0 auto;
     padding: 0 24px;
 }
@@ -594,6 +587,15 @@ section p {
 .compare-table .check.no { color: var(--text-dim); }
 .compare-table .check.partial { color: var(--yellow); }
 
+.brand-cell {
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    text-transform: none;
+    font-size: 14px;
+}
+.brand-cell span { color: var(--accent); }
+
 @media (max-width: 640px) {
     .compare-table th,
     .compare-table td {
@@ -602,78 +604,124 @@ section p {
     }
 }
 
-/* ---- screenshot showcase ---- */
+/* ---- install row ---- */
 
-.screenshot-showcase {
-    margin-top: 48px;
-    max-width: 780px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.screenshot-tabs {
+.install-row {
     display: flex;
-    gap: 4px;
+    gap: 12px;
     justify-content: center;
-    margin-bottom: 16px;
     flex-wrap: wrap;
 }
-
-.screenshot-tab {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px 8px 0 0;
-    padding: 10px 20px;
-    font-size: 13px;
-    font-weight: 500;
+.install-alt {
+    font-size: 14px;
+    background: transparent;
+    border-color: var(--border);
     color: var(--text-secondary);
-    cursor: pointer;
-    transition: color 0.2s, border-color 0.2s, background 0.2s;
-    font-family: inherit;
-    -webkit-appearance: none;
-    appearance: none;
 }
-
-.screenshot-tab:hover {
+.install-alt:hover {
     color: var(--text);
-    border-color: var(--border-hover);
-}
-
-.screenshot-tab.active {
-    color: var(--accent);
     border-color: var(--accent);
-    border-bottom-color: var(--code-bg);
-    background: var(--code-bg);
 }
 
-.screenshot-panels {
+/* ---- showcase (nav + screenshot) ---- */
+
+.showcase {
+    margin-top: 56px;
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    gap: 24px;
+    max-width: 1060px;
+    margin-left: auto;
+    margin-right: auto;
+    align-items: start;
+}
+
+.showcase-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+}
+
+.showcase-pick {
+    display: block;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    padding: 8px 0;
+    transition: color 0.2s;
+    -webkit-appearance: none;
+    line-height: 1.3;
+    border-bottom: 1px solid transparent;
+}
+.showcase-pick span {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-dim);
+    opacity: 0.5;
+    margin-top: 2px;
+    transition: opacity 0.2s;
+}
+
+.showcase-pick:hover {
+    color: var(--text-secondary);
+}
+.showcase-pick:hover span { opacity: 0.7; }
+
+.showcase-pick.active {
+    color: var(--text);
+}
+.showcase-pick.active span {
+    color: var(--accent);
+    opacity: 1;
+}
+
+.showcase-screen {
     background: var(--code-bg);
+    border-radius: 8px;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
     position: relative;
-    min-height: 200px;
+    aspect-ratio: 1280 / 800;
+    overflow: hidden;
 }
 
-.screenshot-panel {
-    display: none;
-    animation: fadePanel 0.3s ease;
-}
-
-.screenshot-panel.active {
-    display: block;
-}
-
-@keyframes fadePanel {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.screenshot-panel img {
+.showcase-img {
+    position: absolute;
+    inset: 0;
     width: 100%;
-    height: auto;
-    border-radius: 6px;
-    display: block;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 7px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.showcase-img.active {
+    opacity: 1;
+}
+
+@media (max-width: 700px) {
+    .showcase {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .showcase-nav {
+        flex-direction: row;
+        gap: 16px;
+        overflow-x: auto;
+        padding-top: 0;
+    }
+    .showcase-pick {
+        white-space: nowrap;
+        padding: 6px 0;
+        font-size: 13px;
+    }
+    .showcase-pick span { display: none; }
 }
 
 /* ---- footer ---- */
@@ -700,7 +748,7 @@ footer { border-top: 1px solid var(--border); padding: 48px 24px 32px; color: va
     .hero { padding: 56px 0 40px; }
     .hero h1 { font-size: 36px; }
     .hero .tagline { font-size: 16px; }
-    .features { grid-template-columns: 1fr; }
+    .feature-list { grid-template-columns: 1fr; }
     section { padding: 40px 0; }
     section h2 { font-size: 22px; }
     section .sub-h2 { margin-top: 36px; }
@@ -727,15 +775,8 @@ footer { border-top: 1px solid var(--border); padding: 48px 24px 32px; color: va
         font-size: 14px;
     }
 
-    /* Screenshot tabs: smaller on mobile */
-    .screenshot-tab {
-        padding: 8px 14px;
-        font-size: 12px;
-    }
-    .screenshot-showcase {
-        margin-top: 36px;
-    }
-    .screenshot-panels {
-        padding: 8px;
+    .install-row {
+        flex-direction: column;
+        align-items: center;
     }
 }

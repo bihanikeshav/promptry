@@ -6,6 +6,7 @@
     <title>promptry - Sentry for prompts</title>
     <meta name="description" content="Local-first regression testing for LLM pipelines. Track prompt versions, run eval suites, detect drift, catch regressions before your users do.">
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.png" type="image/png">
 </head>
 <body>
 
@@ -29,79 +30,46 @@
             Track prompt versions, run evals, detect drift,
             catch regressions before your users do.
         </p>
-        <button class="install-box" onclick="copyInstall(this)" aria-label="Copy pip install promptry to clipboard">
-            <span class="dollar">$ </span>pip install promptry
-            <span class="copy-hint">Click to copy</span>
-        </button>
+        <div class="install-row">
+            <button class="install-box" onclick="copyInstall(this)" aria-label="Copy pip install promptry to clipboard">
+                <span class="dollar">$ </span>pip install promptry
+                <span class="copy-hint">Click to copy</span>
+            </button>
+            <button class="install-box install-alt" onclick="copyNpm(this)" aria-label="Copy npm install promptry-js to clipboard">
+                <span class="dollar">$ </span>npm install promptry-js
+                <span class="copy-hint">Click to copy</span>
+            </button>
+        </div>
 
-        <div class="screenshot-showcase">
-            <div class="screenshot-tabs" role="tablist">
-                <button class="screenshot-tab active" role="tab" aria-selected="true" data-tab="overview">Overview</button>
-                <button class="screenshot-tab" role="tab" aria-selected="false" data-tab="suite-detail">Suite Detail</button>
-                <button class="screenshot-tab" role="tab" aria-selected="false" data-tab="prompts">Prompts</button>
-                <button class="screenshot-tab" role="tab" aria-selected="false" data-tab="models">Models</button>
-                <button class="screenshot-tab" role="tab" aria-selected="false" data-tab="cost">Cost</button>
+        <div class="showcase">
+            <div class="showcase-nav">
+                <button class="showcase-pick active" data-idx="0">Overview <span>suites, scores, drift</span></button>
+                <button class="showcase-pick" data-idx="1">Suite Detail <span>history, root cause</span></button>
+                <button class="showcase-pick" data-idx="2">Prompts <span>versions, diffs</span></button>
+                <button class="showcase-pick" data-idx="3">Models <span>compare, cost/score</span></button>
+                <button class="showcase-pick" data-idx="4">Cost <span>tokens, spend</span></button>
             </div>
-            <div class="screenshot-panels">
-                <div class="screenshot-panel active" data-panel="overview">
-                    <img src="screenshots/dashboard-overview.png" alt="Dashboard overview showing suite results and score trends" loading="lazy">
-                </div>
-                <div class="screenshot-panel" data-panel="suite-detail">
-                    <img src="screenshots/dashboard-suite-detail.png" alt="Suite detail view with individual test results and drift analysis" loading="lazy">
-                </div>
-                <div class="screenshot-panel" data-panel="prompts">
-                    <img src="screenshots/dashboard-prompts.png" alt="Prompt versioning view showing tracked prompts and their history" loading="lazy">
-                </div>
-                <div class="screenshot-panel" data-panel="models">
-                    <img src="screenshots/dashboard-models.png" alt="Model comparison view with performance metrics across providers" loading="lazy">
-                </div>
-                <div class="screenshot-panel" data-panel="cost">
-                    <img src="screenshots/dashboard-cost.png" alt="Cost tracking dashboard showing token usage and spend over time" loading="lazy">
-                </div>
+            <div class="showcase-screen">
+                <img class="showcase-img active" data-img="0" src="screenshots/dashboard-overview.png" alt="Overview">
+                <img class="showcase-img" data-img="1" src="screenshots/dashboard-suite-detail.png" alt="Suite Detail">
+                <img class="showcase-img" data-img="2" src="screenshots/dashboard-prompts.png" alt="Prompts">
+                <img class="showcase-img" data-img="3" src="screenshots/dashboard-models.png" alt="Models">
+                <img class="showcase-img" data-img="4" src="screenshots/dashboard-cost.png" alt="Cost">
             </div>
         </div>
     </div>
 
     <section id="features">
         <h2>What it does</h2>
-        <div class="features">
-            <div class="feature">
-                <h3>Prompt versioning</h3>
-                <p>Content-hashed with automatic dedup. Changed prompt = new version. Same prompt = zero overhead.</p>
-            </div>
-            <div class="feature">
-                <h3>Eval suites</h3>
-                <p>Write test functions for your LLM outputs. Semantic similarity, schema validation, LLM-as-judge.</p>
-            </div>
-            <div class="feature">
-                <h3>Baseline comparison</h3>
-                <p>Compare against known-good versions. When scores drop, see what changed: prompt, model, or retrieval.</p>
-            </div>
-            <div class="feature">
-                <h3>Drift detection</h3>
-                <p>Linear regression over score history catches slow degradation that single-run comparisons miss.</p>
-            </div>
-            <div class="feature">
-                <h3>Safety templates</h3>
-                <p>25+ built-in attack prompts: injection, jailbreak, PII fishing, hallucination triggers. Add your own.</p>
-            </div>
-            <div class="feature">
-                <h3>Background monitoring</h3>
-                <p>Runs your suites on a schedule. Sends webhooks or emails when regressions are detected.</p>
-            </div>
-        </div>
-        <div class="integrate-banner">
-            <div class="integrate-item">
-                <span class="integrate-label">JS/TS client</span>
-                <span class="integrate-desc">Same API from frontend and Node apps.</span>
-                <code>npm install promptry-js</code>
-            </div>
-            <div class="integrate-sep"></div>
-            <div class="integrate-item">
-                <span class="integrate-label">Remote telemetry</span>
-                <span class="integrate-desc">Centralize events from multiple services.</span>
-                <code>mode = "remote"</code>
-            </div>
+        <div class="feature-list">
+            <div class="feature-item"><strong>Prompt versioning</strong> — content-hashed, automatic dedup</div>
+            <div class="feature-item"><strong>Eval suites</strong> — semantic, schema, LLM-as-judge, JSON, regex, grounding</div>
+            <div class="feature-item"><strong>Regression detection</strong> — baseline comparison with root cause hints</div>
+            <div class="feature-item"><strong>Drift detection</strong> — catches slow degradation over time</div>
+            <div class="feature-item"><strong>Safety templates</strong> — 25+ built-in attack prompts</div>
+            <div class="feature-item"><strong>Cost tracking</strong> — tokens and cost per prompt, aggregated reports</div>
+            <div class="feature-item"><strong>CI + GitHub Action</strong> — one-line CI integration with alerts</div>
+            <div class="feature-item"><strong>MCP server</strong> — expose everything to LLM agents</div>
         </div>
     </section>
 
@@ -113,7 +81,7 @@
                 <thead>
                     <tr>
                         <th></th>
-                        <th class="col-highlight">promptry</th>
+                        <th class="col-highlight"><span class="brand-cell">prompt<span>ry</span></span></th>
                         <th>Promptfoo</th>
                         <th>DeepEval</th>
                         <th>LangSmith</th>
@@ -123,23 +91,23 @@
                     <tr>
                         <td class="row-label">Language</td>
                         <td class="col-highlight">Python + JS</td>
-                        <td>Node.js</td>
+                        <td>TypeScript</td>
                         <td>Python</td>
                         <td>Python + JS</td>
                     </tr>
                     <tr>
                         <td class="row-label">Local-first</td>
-                        <td class="col-highlight"><span class="check yes">Yes</span></td>
+                        <td class="col-highlight"><span class="check yes">SQLite</span></td>
                         <td><span class="check yes">Yes</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
+                        <td><span class="check partial">Cloud push</span></td>
+                        <td><span class="check no">SaaS only</span></td>
                     </tr>
                     <tr>
                         <td class="row-label">Prompt versioning</td>
-                        <td class="col-highlight"><span class="check yes">Yes</span></td>
+                        <td class="col-highlight"><span class="check yes">Automatic</span></td>
                         <td><span class="check no">No</span></td>
                         <td><span class="check no">No</span></td>
-                        <td><span class="check partial">Manual</span></td>
+                        <td><span class="check yes">Hub</span></td>
                     </tr>
                     <tr>
                         <td class="row-label">Drift detection</td>
@@ -157,8 +125,8 @@
                     </tr>
                     <tr>
                         <td class="row-label">Safety templates</td>
-                        <td class="col-highlight"><span class="check yes">25+</span></td>
-                        <td><span class="check partial">Plugin</span></td>
+                        <td class="col-highlight"><span class="check yes">25+ built-in</span></td>
+                        <td><span class="check yes">Built-in</span></td>
                         <td><span class="check yes">Yes</span></td>
                         <td><span class="check no">No</span></td>
                     </tr>
@@ -172,9 +140,9 @@
                     <tr>
                         <td class="row-label">Vendor-neutral</td>
                         <td class="col-highlight"><span class="check yes">Yes</span></td>
+                        <td><span class="check partial">OpenAI-owned</span></td>
                         <td><span class="check yes">Yes</span></td>
-                        <td><span class="check partial">Mostly</span></td>
-                        <td><span class="check no">No</span></td>
+                        <td><span class="check no">LangChain</span></td>
                     </tr>
                     <tr>
                         <td class="row-label">Cost</td>
@@ -189,96 +157,31 @@
     </section>
 
     <section id="quickstart">
-        <h2>One line to start tracking</h2>
-        <p>Add <code>track()</code> to your existing code. Nothing else changes.</p>
-        <pre><code><span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> track
+        <h2>How it works</h2>
+        <pre><code><span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> track, suite, assert_semantic
 
-<span class="cmt"># returns the string unchanged, versions it behind the scenes</span>
 prompt = track(<span class="str">"You are a helpful assistant..."</span>, <span class="str">"rag-qa"</span>)
-response = llm.chat(system=prompt, ...)</code></pre>
-
-        <h2 class="sub-h2">Write evals like tests</h2>
-        <p>Embedding similarity for fast checks, LLM-as-judge for correctness. Bring your own LLM via <code>set_judge()</code>.</p>
-        <pre><code><span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> suite, assert_semantic, assert_llm
+response = llm.chat(system=prompt, ...)
 
 <span class="kw">@suite</span>(<span class="str">"rag-regression"</span>)
-<span class="kw">def</span> <span class="fn">test_rag_quality</span>():
+<span class="kw">def</span> <span class="fn">test_quality</span>():
     response = my_pipeline(<span class="str">"What is photosynthesis?"</span>)
-    assert_semantic(response, <span class="str">"Converts light into chemical energy"</span>)
-    assert_llm(response, criteria=<span class="str">"Accurate, no hallucinations"</span>)</code></pre>
+    assert_semantic(response, <span class="str">"Converts light into chemical energy"</span>)</code></pre>
 
-        <h2 class="sub-h2">Catch regressions automatically</h2>
         <div class="terminal">
 <span class="dim">$ promptry run rag-regression --module evals --compare prod</span>
 
-  <span class="pass">PASS</span> rag-regression (142ms)
+  <span class="pass">PASS</span> test_quality (142ms)
     semantic (0.891) ok
-
   Overall: <span class="pass">PASS</span>  score: 0.891
 
   Comparing against <b>prod</b> baseline:
   Overall score: 0.910 -> 0.946  ok
-
-<span class="dim">$ promptry drift rag-regression --module evals</span>
-
-  Suite: rag-regression
-  Window: 12/30 runs
-  Slope: -0.0072
-  Status: <span class="warn">DRIFTING</span> (threshold: -0.05)
         </div>
-    </section>
-
-    <section>
-        <h2>No infrastructure required</h2>
-        <p>
-            Everything runs locally. Data lives in a SQLite file. No Docker, no Redis, no SaaS accounts.
-            In production, use <code>async</code> mode for zero-latency writes or <code>remote</code> to centralize telemetry.
+        <p style="color: var(--text-dim); font-size: 13px; margin-top: 8px;">
+            Local SQLite. No Docker. No SaaS. No API keys.
+            <a href="docs.html">Full docs</a> &middot; <a href="https://github.com/bihanikeshav/promptry/tree/main/examples">Examples</a>
         </p>
-        <div class="tag-list">
-            <span class="tag">Semantic similarity</span>
-            <span class="tag">Schema validation</span>
-            <span class="tag">LLM-as-judge</span>
-            <span class="tag">Drift detection</span>
-            <span class="tag">Safety templates</span>
-            <span class="tag">Background monitor</span>
-            <span class="tag">MCP server</span>
-            <span class="tag">Full CLI</span>
-        </div>
-        <p class="tag-note">
-            <code>pip install promptry</code> gives you everything above. Embedding model (~80MB) downloads on first use.
-            LLM judge is provider-agnostic — bring any function via <code>set_judge()</code>.
-        </p>
-    </section>
-
-    <section id="js-client">
-        <h2>Same API. Python and JavaScript.</h2>
-        <p>
-            <a href="https://www.npmjs.com/package/promptry-js">promptry-js</a> ships tracking events from frontend or Node apps to the same endpoint.
-            Python handles evals and drift detection. JS just ships data. Both use <code>track()</code>.
-        </p>
-        <div class="code-compare">
-            <div class="code-compare-pane">
-                <div class="code-compare-label">py</div>
-                <pre><code><span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> track, track_context
-
-prompt = track(system_prompt, <span class="str">"rag-qa"</span>)
-chunks = track_context(retrieved, <span class="str">"rag-qa"</span>)</code></pre>
-            </div>
-            <div class="code-compare-pane">
-                <div class="code-compare-label">js</div>
-                <pre><code><span class="kw">import</span> { track, trackContext } <span class="kw">from</span> <span class="str">'promptry-js'</span>;
-
-<span class="kw">const</span> prompt = track(systemPrompt, <span class="str">'rag-qa'</span>);
-<span class="kw">const</span> chunks = trackContext(retrieved, <span class="str">'rag-qa'</span>);</code></pre>
-            </div>
-        </div>
-        <p class="js-details">
-            Zero runtime dependencies. ~5KB minified. Batched HTTP POST with retry, offline queue, <code>sendBeacon</code> on page unload.
-        </p>
-        <button class="install-box" onclick="copyNpm(this)" aria-label="Copy npm install promptry-js to clipboard">
-            <span class="dollar">$ </span>npm install promptry-js
-            <span class="copy-hint">Click to copy</span>
-        </button>
     </section>
 
 
@@ -328,20 +231,14 @@ function copyCmd(el, text) {
 function copyInstall(el) { copyCmd(el, 'pip install promptry'); }
 function copyNpm(el) { copyCmd(el, 'npm install promptry-js'); }
 
-/* Screenshot tab switching */
-document.querySelectorAll('.screenshot-tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-        var target = this.getAttribute('data-tab');
-        document.querySelectorAll('.screenshot-tab').forEach(function(t) {
-            t.classList.remove('active');
-            t.setAttribute('aria-selected', 'false');
-        });
-        document.querySelectorAll('.screenshot-panel').forEach(function(p) {
-            p.classList.remove('active');
-        });
+/* Showcase switching */
+document.querySelectorAll('.showcase-pick').forEach(function(item) {
+    item.addEventListener('click', function() {
+        var idx = this.dataset.idx;
+        document.querySelectorAll('.showcase-pick').forEach(function(i) { i.classList.remove('active'); });
+        document.querySelectorAll('.showcase-img').forEach(function(i) { i.classList.remove('active'); });
         this.classList.add('active');
-        this.setAttribute('aria-selected', 'true');
-        document.querySelector('.screenshot-panel[data-panel="' + target + '"]').classList.add('active');
+        document.querySelector('.showcase-img[data-img="' + idx + '"]').classList.add('active');
     });
 });
 </script>
