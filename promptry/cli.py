@@ -22,9 +22,11 @@ app = typer.Typer(
 prompt_app = typer.Typer(help="Manage prompt versions.", no_args_is_help=True)
 monitor_app = typer.Typer(help="Background monitoring.", no_args_is_help=True)
 templates_app = typer.Typer(help="Safety and jailbreak test templates.", no_args_is_help=True)
+dataset_app = typer.Typer(help="Manage test datasets.", no_args_is_help=True)
 app.add_typer(prompt_app, name="prompt")
 app.add_typer(monitor_app, name="monitor")
 app.add_typer(templates_app, name="templates")
+app.add_typer(dataset_app, name="dataset")
 
 console = Console()
 
@@ -174,6 +176,90 @@ def prompt_tag(
     console.print(f"[green]Tagged[/green] {name} v{version} as [bold]{tag}[/bold]")
 
 
+# ---- dataset subcommands ----
+
+
+@dataset_app.command("save")
+def dataset_save(
+    file: Path = typer.Argument(..., help="JSON file with dataset items."),
+    name: str = typer.Option(..., "--name", "-n", help="Dataset name."),
+    metadata: Optional[str] = typer.Option(None, "--metadata", "-m", help="JSON metadata."),
+):
+    """Save a dataset from a JSON file."""
+    if not file.is_file():
+        console.print(f"[red]Error:[/red] File not found: {file}")
+        raise typer.Exit(1)
+
+    try:
+        items = json.loads(file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        console.print(f"[red]Error:[/red] Invalid JSON: {e}")
+        raise typer.Exit(1)
+
+    if not isinstance(items, list):
+        console.print("[red]Error:[/red] JSON file must contain a list of objects.")
+        raise typer.Exit(1)
+
+    if metadata:
+        try:
+            meta = json.loads(metadata)
+        except json.JSONDecodeError as e:
+            console.print(f"[red]Error:[/red] Invalid JSON in --metadata: {e}")
+            raise typer.Exit(1)
+    else:
+        meta = None
+
+    from promptry.storage import get_storage
+    storage = get_storage()
+    version = storage.save_dataset(name, items, meta)
+    console.print(f"[green]Saved[/green] dataset '{name}' v{version} ({len(items)} items)")
+
+
+@dataset_app.command("list")
+def dataset_list():
+    """List all datasets."""
+    from promptry.storage import get_storage
+    storage = get_storage()
+    datasets = storage.list_datasets()
+
+    if not datasets:
+        console.print("[yellow]No datasets found.[/yellow]")
+        raise typer.Exit(0)
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Name")
+    table.add_column("Latest Version", justify="right")
+    table.add_column("Items", justify="right")
+
+    for d in datasets:
+        table.add_row(d["name"], str(d["latest_version"]), str(d["item_count"]))
+
+    console.print(table)
+
+
+@dataset_app.command("show")
+def dataset_show(
+    name: str = typer.Argument(..., help="Dataset name."),
+    version: Optional[int] = typer.Option(None, "--version", "-v", help="Version number."),
+):
+    """Show dataset contents."""
+    from promptry.storage import get_storage
+    storage = get_storage()
+    dataset = storage.get_dataset(name, version)
+
+    if not dataset:
+        v_str = f" v{version}" if version else ""
+        console.print(f"[red]Error:[/red] Dataset '{name}'{v_str} not found.")
+        raise typer.Exit(1)
+
+    console.print(f"[bold]{dataset['name']}[/bold] v{dataset['version']} ({len(dataset['items'])} items)")
+    console.print(f"[dim]Created: {dataset['created_at']}[/dim]")
+    if dataset["metadata"]:
+        console.print(f"[dim]Metadata: {json.dumps(dataset['metadata'])}[/dim]")
+    console.print()
+    console.print(json.dumps(dataset["items"], indent=2))
+
+
 # ---- eval commands ----
 
 
@@ -194,6 +280,7 @@ def run_cmd(
     prompt_name: Optional[str] = typer.Option(None, "--prompt-name"),
     prompt_version: Optional[int] = typer.Option(None, "--prompt-version"),
     model_version: Optional[str] = typer.Option(None, "--model-version"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Write HTML report to file."),
 ):
     """Run an eval suite. Exit code 1 on regression."""
     _import_module(module)
@@ -236,11 +323,19 @@ def run_cmd(
         if not comparisons:
             console.print("  [yellow]No baseline found to compare against.[/yellow]")
         else:
-            output = format_comparison(comparisons, hints)
-            console.print(output)
+            fmt_output = format_comparison(comparisons, hints)
+            console.print(fmt_output)
 
             if any(not c.passed for c in comparisons):
                 raise typer.Exit(1)
+
+    if output:
+        from promptry.report import render_run_report
+
+        results_dict = _suite_result_to_dict(result)
+        html_content = render_run_report(results_dict)
+        output.write_text(html_content, encoding="utf-8")
+        console.print(f"\n[green]Report written to[/green] {output}")
 
     if not result.overall_pass:
         raise typer.Exit(1)
@@ -291,6 +386,7 @@ def compare_cmd(
     suite_name: str = typer.Argument(..., help="Suite to compare on."),
     candidate: str = typer.Option(..., "--candidate", "-c", help="Candidate model version."),
     baseline: Optional[str] = typer.Option(None, "--baseline", "-b", help="Baseline model version (auto-detected if omitted)."),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Write HTML report to file."),
 ):
     """Compare two models using historical eval data.
 
@@ -323,6 +419,14 @@ def compare_cmd(
     console.print()
     console.print(format_model_compare(report))
     console.print()
+
+    if output:
+        from promptry.report import render_compare_report
+
+        report_dict = _compare_report_to_dict(report)
+        html_content = render_compare_report(report_dict)
+        output.write_text(html_content, encoding="utf-8")
+        console.print(f"[green]Report written to[/green] {output}")
 
     if report.verdict == "keep_baseline":
         raise typer.Exit(1)
@@ -469,7 +573,14 @@ def templates_run(
 # ---- init ----
 
 _EXAMPLE_EVAL = '''"""Example eval suite for promptry."""
-from promptry import suite, assert_semantic, assert_contains, assert_matches
+from promptry import (
+    suite,
+    assert_semantic,
+    assert_contains,
+    assert_matches,
+    assert_json_valid,
+    assert_schema,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -493,6 +604,25 @@ def my_classifier(text: str) -> str:
     """Classification pipeline.  Should return a single label.  Replace with yours."""
     # e.g. return llm(f"Classify the sentiment: {text}")
     return "positive"
+
+
+def my_chat_pipeline(message: str) -> str:
+    """Conversational AI pipeline.  Replace with your chatbot / assistant call."""
+    # e.g. return chatbot.send(message)
+    return "I'd be happy to help you with that! Here's what I found."
+
+
+def my_extraction_pipeline(document: str) -> str:
+    """Document extraction pipeline.  Should return a JSON string.  Replace with yours."""
+    # e.g. return llm(f"Extract structured data from: {document}", response_format="json")
+    import json
+    return json.dumps({"name": "Jane Doe", "email": "jane@example.com", "amount": 99.99})
+
+
+def my_summarizer(text: str) -> str:
+    """Summarization pipeline.  Replace with your summarization call."""
+    # e.g. return llm(f"Summarize the following text: {text}")
+    return "The article discusses the impact of artificial intelligence on healthcare."
 
 
 # ---------------------------------------------------------------------------
@@ -539,6 +669,78 @@ def test_classification_format():
 
     # The label must be exactly one of the allowed values.
     assert_matches(label, r"(positive|negative|neutral)")
+
+
+# ---------------------------------------------------------------------------
+# Suite 4 -- chat-quality
+# Evaluate conversational AI for tone and helpfulness.
+# Uses assert_semantic for overall helpfulness and assert_contains to
+# verify the response has a friendly, supportive tone.
+# ---------------------------------------------------------------------------
+
+@suite("chat-quality")
+def test_chat_quality():
+    """Ensure the chatbot responds helpfully with an appropriate tone."""
+    response = my_chat_pipeline("Can you help me reset my password?")
+
+    # The response should be semantically helpful and address the request.
+    assert_semantic(response, "A helpful response guiding the user through password reset")
+
+    # The response should contain polite, helpful language.
+    assert_contains(response, ["help"])
+
+
+# ---------------------------------------------------------------------------
+# Suite 5 -- extraction
+# Evaluate document extraction pipelines for structured output.
+# Uses assert_json_valid to ensure the output is well-formed JSON,
+# and assert_schema to verify it matches the expected structure.
+# ---------------------------------------------------------------------------
+
+@suite("extraction")
+def test_extraction_format():
+    """Ensure the extraction pipeline returns valid, well-structured JSON."""
+    document = "Invoice from Jane Doe (jane@example.com) for $99.99."
+    response = my_extraction_pipeline(document)
+
+    # The output must be valid JSON.
+    assert_json_valid(response)
+
+    # The JSON must conform to the expected schema.
+    assert_schema(response, {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "email": {"type": "string"},
+            "amount": {"type": "number"},
+        },
+        "required": ["name", "email", "amount"],
+    })
+
+
+# ---------------------------------------------------------------------------
+# Suite 6 -- summarization
+# Evaluate summarization quality for key-point coverage and relevance.
+# Uses assert_semantic to check the summary captures the main idea,
+# and assert_contains to verify key points are mentioned.
+# ---------------------------------------------------------------------------
+
+@suite("summarization")
+def test_summarization_quality():
+    """Ensure the summarizer captures key points accurately."""
+    article = (
+        "Artificial intelligence is transforming healthcare by enabling faster "
+        "diagnosis, personalized treatment plans, and drug discovery. Researchers "
+        "at major hospitals are using AI to detect diseases from medical imaging "
+        "with higher accuracy than traditional methods."
+    )
+    response = my_summarizer(article)
+
+    # The summary should capture the main theme of the article.
+    assert_semantic(response, "AI is improving healthcare through better diagnosis and treatment")
+
+    # Key concepts from the article should appear in the summary.
+    assert_contains(response, ["artificial intelligence", "healthcare"])
 
 
 # ---------------------------------------------------------------------------
@@ -804,7 +1006,10 @@ def init_cmd():
         console.print("  2. Run: promptry run smoke-test --module evals")
         console.print("  3. Run: promptry run rag-qa --module evals")
         console.print("  4. Run: promptry run classification --module evals")
-        console.print("  5. Run safety tests: promptry templates run --module evals")
+        console.print("  5. Run: promptry run chat-quality --module evals")
+        console.print("  6. Run: promptry run extraction --module evals")
+        console.print("  7. Run: promptry run summarization --module evals")
+        console.print("  8. Run safety tests: promptry templates run --module evals")
     else:
         console.print("[yellow]Nothing to create, project already initialized.[/yellow]")
 
@@ -852,7 +1057,11 @@ def doctor_cmd():
 
     console.print("[bold]promptry doctor[/bold]\n")
 
-    # 1. Python version >= 3.10
+    # 1. promptry version
+    from promptry import __version__
+    _ok("promptry version", __version__)
+
+    # 2. Python version >= 3.10
     v = sys.version_info
     version_str = f"{v.major}.{v.minor}.{v.micro}"
     if (v.major, v.minor) >= (3, 10):
@@ -860,15 +1069,29 @@ def doctor_cmd():
     else:
         _fail("Python version", f"{version_str} -- requires >= 3.10")
 
-    # 2. Config file found
+    # 3. Config file found + validation
     from promptry.config import _find_config_file
     config_file = _find_config_file()
     if config_file:
         _ok("Config file", str(config_file))
+        # Validate TOML syntax
+        try:
+            if sys.version_info >= (3, 11):
+                import tomllib as _tomllib
+            else:
+                try:
+                    import tomllib as _tomllib
+                except ImportError:
+                    import tomli as _tomllib  # type: ignore[no-redef]
+            with open(config_file, "rb") as _f:
+                _tomllib.load(_f)
+            _ok("Config valid", "TOML parsed successfully")
+        except Exception as e:
+            _fail("Config valid", f"parse error: {e}")
     else:
         _warn("Config file", "promptry.toml not found -- using defaults")
 
-    # 3. Storage writable
+    # 4. Storage writable
     try:
         from promptry.storage import get_storage
         storage = get_storage()
@@ -878,25 +1101,43 @@ def doctor_cmd():
     except Exception as e:
         _fail("Storage writable", str(e))
 
-    # 4. sentence-transformers installed (optional)
+    # 5. Disk space check on the DB directory
+    try:
+        from promptry.config import get_config
+        import shutil
+        db_path = Path(get_config().storage.db_path)
+        db_dir = db_path.parent
+        if db_dir.exists():
+            usage = shutil.disk_usage(str(db_dir))
+            free_mb = usage.free / (1024 * 1024)
+            if free_mb >= 100:
+                _ok("Disk space", f"{free_mb:.0f} MB free in {db_dir}")
+            else:
+                _warn("Disk space", f"only {free_mb:.0f} MB free in {db_dir} -- consider freeing space")
+        else:
+            _warn("Disk space", f"DB directory does not exist yet: {db_dir}")
+    except Exception as e:
+        _warn("Disk space", f"could not check: {e}")
+
+    # 6. sentence-transformers installed (optional)
     try:
         import sentence_transformers  # noqa: F401
         _ok("sentence-transformers", sentence_transformers.__version__)
     except ImportError:
         _warn("sentence-transformers", "not installed -- needed for semantic assertions")
 
-    # 5. Embedding model downloaded (optional)
+    # 7. Embedding model downloaded (optional)
     try:
         from promptry.assertions import _get_model
         _get_model()
-        from promptry.config import get_config
-        _ok("Embedding model", get_config().model.embedding_model)
+        from promptry.config import get_config as _gc
+        _ok("Embedding model", _gc().model.embedding_model)
     except ImportError:
         _warn("Embedding model", "sentence-transformers not available")
     except Exception as e:
         _warn("Embedding model", f"not downloaded or failed to load: {e}")
 
-    # 6. Dashboard deps (fastapi, uvicorn -- optional)
+    # 8. Dashboard deps (fastapi, uvicorn -- optional)
     dashboard_ok = True
     for pkg in ("fastapi", "uvicorn"):
         try:
@@ -909,7 +1150,27 @@ def doctor_cmd():
     else:
         _warn("Dashboard deps", "fastapi/uvicorn not installed -- pip install promptry[dashboard]")
 
-    # 7. LLM judge configured (optional)
+    # 9. Python packages -- optional extras with versions
+    _extras = [
+        ("sentence-transformers", "sentence_transformers"),
+        ("fastapi", "fastapi"),
+        ("uvicorn", "uvicorn"),
+        ("mcp", "mcp"),
+    ]
+    installed_extras = []
+    for display_name, import_name in _extras:
+        try:
+            mod = importlib.import_module(import_name)
+            ver = getattr(mod, "__version__", "installed")
+            installed_extras.append(f"{display_name} {ver}")
+        except ImportError:
+            pass
+    if installed_extras:
+        _ok("Installed extras", ", ".join(installed_extras))
+    else:
+        _warn("Installed extras", "no optional extras found")
+
+    # 10. LLM judge configured (optional)
     from promptry.assertions import get_judge
     if get_judge() is not None:
         _ok("LLM judge", "configured")

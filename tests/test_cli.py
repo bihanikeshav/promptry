@@ -116,6 +116,15 @@ class TestInitCLI:
         assert "rag-qa" in content
         assert "classification" in content
 
+    def test_init_evals_contains_new_suites(self, tmp_path, monkeypatch):
+        """The generated evals.py should include chat-quality, extraction, and summarization suites."""
+        monkeypatch.chdir(tmp_path)
+        runner.invoke(app, ["init"])
+        content = (tmp_path / "evals.py").read_text(encoding="utf-8")
+        assert "chat-quality" in content
+        assert "extraction" in content
+        assert "summarization" in content
+
     def test_init_evals_is_valid_python(self, tmp_path, monkeypatch):
         """The generated evals.py must be valid Python that compiles without errors."""
         monkeypatch.chdir(tmp_path)
@@ -226,6 +235,30 @@ class TestCostReport:
         assert result.exit_code == 0
         # Should show no data for gpt-4o since only claude-sonnet was saved
         assert "No prompts with token/cost metadata" in result.output or "model-test" not in result.output
+
+
+class TestDoctor:
+
+    def test_doctor_shows_version(self):
+        """doctor should display the promptry version number."""
+        result = runner.invoke(app, ["doctor"])
+        assert result.exit_code == 0
+        from promptry import __version__
+        assert __version__ in result.output
+
+    def test_doctor_shows_python_version(self):
+        """doctor should display the Python version."""
+        import sys
+        result = runner.invoke(app, ["doctor"])
+        assert result.exit_code == 0
+        v = sys.version_info
+        assert f"{v.major}.{v.minor}.{v.micro}" in result.output
+
+    def test_doctor_checks_disk_space(self):
+        """doctor should report on disk space."""
+        result = runner.invoke(app, ["doctor"])
+        assert result.exit_code == 0
+        assert "Disk space" in result.output
 
 
 class TestCompare:
