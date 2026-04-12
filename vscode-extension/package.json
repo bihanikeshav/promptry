@@ -1,0 +1,36 @@
+{
+  "name": "promptry",
+  "displayName": "promptry",
+  "description": "Regression testing for LLM prompts — run evals, view results, detect drift",
+  "version": "0.1.0",
+  "publisher": "bihanikeshav",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Testing", "Machine Learning"],
+  "activationEvents": ["workspaceContains:promptry.toml"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "promptry.runSuite", "title": "promptry: Run Eval Suite" },
+      { "command": "promptry.doctor", "title": "promptry: Doctor" },
+      { "command": "promptry.dashboard", "title": "promptry: Open Dashboard" }
+    ],
+    "configuration": {
+      "title": "promptry",
+      "properties": {
+        "promptry.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to Python executable with promptry installed"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
