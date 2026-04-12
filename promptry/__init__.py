@@ -1,6 +1,6 @@
 """promptry - regression protection for LLM pipelines."""
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 from promptry.registry import track, track_context, vote, PromptRegistry
 from promptry.feedback import analyze_votes
