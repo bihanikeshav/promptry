@@ -7,6 +7,7 @@ import Prompts from "./pages/Prompts";
 import PromptDetail from "./pages/PromptDetail";
 import Models from "./pages/Models";
 import Cost from "./pages/Cost";
+import Playground from "./pages/Playground";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/prompts/:name" element={<PromptDetail />} />
         <Route path="/models" element={<Models />} />
         <Route path="/cost" element={<Cost />} />
+        <Route path="/playground" element={<Playground />} />
       </Route>
     </Routes>
   );

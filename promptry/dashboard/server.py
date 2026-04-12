@@ -10,7 +10,7 @@ import difflib
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from promptry.storage import get_storage
@@ -21,7 +21,7 @@ app = FastAPI(title="promptry dashboard", docs_url="/api/docs")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -327,6 +327,114 @@ def vote_analyze(
     storage = get_storage()
     judge = get_judge()
     return analyze_votes(name, days=days, judge=judge, storage=storage)
+
+
+# ---- Playground ----
+
+@app.post("/api/playground/eval")
+async def playground_eval(request: Request):
+    """Run lightweight assertions against a user-provided mock response.
+
+    Accepts a JSON body with:
+      - response (str): the mock LLM output to evaluate
+      - assertions (list[dict]): each dict has:
+          - type: "contains" | "not_contains" | "json_valid" | "matches"
+          - value: argument for the assertion (keywords list, pattern, etc.)
+          - options: optional dict of extra args (case_sensitive, fullmatch)
+
+    Returns a list of assertion results with pass/fail and details.
+    """
+    import re as _re
+    import json as _json
+
+    body = await request.json()
+    response_text = body.get("response", "")
+    assertion_defs = body.get("assertions", [])
+
+    if not response_text:
+        raise HTTPException(status_code=400, detail="response field is required")
+    if not assertion_defs:
+        raise HTTPException(status_code=400, detail="assertions list is required")
+
+    results = []
+    for i, adef in enumerate(assertion_defs):
+        atype = adef.get("type", "")
+        value = adef.get("value")
+        options = adef.get("options", {})
+        result = {"index": i, "type": atype, "passed": False, "score": 0.0, "details": {}}
+
+        try:
+            if atype == "contains":
+                keywords = value if isinstance(value, list) else [value]
+                case_sensitive = options.get("case_sensitive", False)
+                check = response_text if case_sensitive else response_text.lower()
+                found = []
+                missing = []
+                for kw in keywords:
+                    if (kw if case_sensitive else kw.lower()) in check:
+                        found.append(kw)
+                    else:
+                        missing.append(kw)
+                score = len(found) / len(keywords) if keywords else 1.0
+                passed = len(missing) == 0
+                result.update(passed=passed, score=score, details={"found": found, "missing": missing})
+
+            elif atype == "not_contains":
+                keywords = value if isinstance(value, list) else [value]
+                case_sensitive = options.get("case_sensitive", False)
+                check = response_text if case_sensitive else response_text.lower()
+                found_bad = []
+                for kw in keywords:
+                    if (kw if case_sensitive else kw.lower()) in check:
+                        found_bad.append(kw)
+                score = 1.0 - (len(found_bad) / len(keywords)) if keywords else 1.0
+                passed = len(found_bad) == 0
+                result.update(passed=passed, score=score, details={"found_forbidden": found_bad})
+
+            elif atype == "json_valid":
+                try:
+                    parsed = _json.loads(response_text.strip())
+                    result.update(passed=True, score=1.0, details={"parsed_type": type(parsed).__name__})
+                except _json.JSONDecodeError as e:
+                    result.update(passed=False, score=0.0, details={"error": str(e)})
+
+            elif atype == "matches":
+                pattern = value or ""
+                fullmatch = options.get("fullmatch", True)
+                try:
+                    compiled = _re.compile(pattern, _re.DOTALL)
+                    text_stripped = response_text.strip()
+                    match = compiled.fullmatch(text_stripped) if fullmatch else compiled.search(text_stripped)
+                    passed = match is not None
+                    details = {"pattern": pattern, "fullmatch": fullmatch}
+                    if match:
+                        details["matched"] = match.group()[:200]
+                    result.update(passed=passed, score=1.0 if passed else 0.0, details=details)
+                except _re.error as e:
+                    result.update(passed=False, score=0.0, details={"error": f"Invalid regex: {e}"})
+
+            else:
+                result.update(
+                    passed=False,
+                    score=0.0,
+                    details={"error": f"Unknown assertion type: {atype}"},
+                )
+        except Exception as e:
+            result.update(passed=False, score=0.0, details={"error": str(e)})
+
+        results.append(result)
+
+    total = len(results)
+    passed_count = sum(1 for r in results if r["passed"])
+    overall_score = sum(r["score"] for r in results) / total if total else 0.0
+
+    return {
+        "overall_passed": passed_count == total,
+        "overall_score": overall_score,
+        "passed_count": passed_count,
+        "total_count": total,
+        "results": results,
+    }
 
 
 # ---- SPA fallback: serve static files if directory exists ----

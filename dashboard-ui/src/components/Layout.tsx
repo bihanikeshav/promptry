@@ -6,6 +6,7 @@ const navItems = [
   { to: "/prompts", label: "Prompts" },
   { to: "/models", label: "Models" },
   { to: "/cost", label: "Cost" },
+  { to: "/playground", label: "Playground" },
 ];
 
 export default function Layout() {

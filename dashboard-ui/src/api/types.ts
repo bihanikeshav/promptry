@@ -101,6 +101,28 @@ export interface ModelCompareReport {
   verdict_reason: string;
 }
 
+export interface PlaygroundAssertionDef {
+  type: "contains" | "not_contains" | "json_valid" | "matches";
+  value?: string | string[];
+  options?: Record<string, unknown>;
+}
+
+export interface PlaygroundAssertionResult {
+  index: number;
+  type: string;
+  passed: boolean;
+  score: number;
+  details: Record<string, unknown>;
+}
+
+export interface PlaygroundEvalResponse {
+  overall_passed: boolean;
+  overall_score: number;
+  passed_count: number;
+  total_count: number;
+  results: PlaygroundAssertionResult[];
+}
+
 export interface CostResponse {
   summary: {
     total_cost: number;

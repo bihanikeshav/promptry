@@ -8,6 +8,8 @@ import type {
   ModelVersion,
   ModelCompareReport,
   CostResponse,
+  PlaygroundAssertionDef,
+  PlaygroundEvalResponse,
 } from "./types";
 
 function getBaseUrl(): string {
@@ -98,6 +100,25 @@ export function compareModels(
   return fetchJson(
     `/api/models/${encodeURIComponent(suite)}/compare?baseline=${encodeURIComponent(baseline)}&candidate=${encodeURIComponent(candidate)}`
   );
+}
+
+// ---- Cost ----
+
+// ---- Playground ----
+
+export async function runPlaygroundEval(
+  response: string,
+  assertions: PlaygroundAssertionDef[],
+): Promise<PlaygroundEvalResponse> {
+  const res = await fetch(`${BASE}/api/playground/eval`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ response, assertions }),
+  });
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}: ${await res.text()}`);
+  }
+  return res.json();
 }
 
 // ---- Cost ----
