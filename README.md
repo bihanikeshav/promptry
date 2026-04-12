@@ -87,6 +87,34 @@ promptry dashboard
 | **Local-first** | Yes | No (SaaS) | Yes | Yes (SQLite) |
 | **Cost** | Free | Paid | Free | Free |
 
+## GitHub Action
+
+Run eval suites in CI with one line. [View on Marketplace.](https://github.com/marketplace/actions/promptry-eval)
+
+```yaml
+# .github/workflows/eval.yml
+name: Eval
+on: [push]
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bihanikeshav/promptry@v0.5.0
+        with:
+          suite: rag-regression
+          module: evals
+          compare: prod  # optional — compare against baseline
+```
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `suite` | Yes | | Eval suite name |
+| `module` | Yes | | Python module containing the suite |
+| `compare` | No | | Baseline tag to compare against |
+| `python-version` | No | `3.12` | Python version |
+| `extras` | No | `semantic` | pip extras to install |
+
 ## MCP server
 
 ```bash
