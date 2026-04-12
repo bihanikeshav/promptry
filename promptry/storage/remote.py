@@ -223,6 +223,22 @@ class RemoteStorage(BaseStorage):
         self._local.tag_prompt(prompt_id, tag)
         self._emit("prompt_tag", {"prompt_id": prompt_id, "tag": tag})
 
+    def save_dataset(self, name, items, metadata=None) -> int:
+        version = self._local.save_dataset(name, items, metadata)
+        self._emit("dataset_save", {
+            "name": name,
+            "version": version,
+            "item_count": len(items),
+            "metadata": metadata,
+        })
+        return version
+
+    def get_dataset(self, name, version=None):
+        return self._local.get_dataset(name, version)
+
+    def list_datasets(self):
+        return self._local.list_datasets()
+
     def save_vote(self, prompt_name, response, score, prompt_version=None, message=None, metadata=None) -> int:
         vote_id = self._local.save_vote(prompt_name, response, score, prompt_version, message, metadata)
         self._emit("vote", {

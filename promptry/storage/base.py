@@ -115,6 +115,23 @@ class BaseStorage(ABC):
     def get_cost_data(self, days: int = 7, name: str | None = None, model: str | None = None) -> dict:
         ...
 
+    # ---- datasets ----
+
+    @abstractmethod
+    def save_dataset(self, name: str, items: list, metadata=None) -> int:
+        """Save a dataset of input/output pairs. Returns version number."""
+        ...
+
+    @abstractmethod
+    def get_dataset(self, name: str, version: int | None = None) -> dict | None:
+        """Get a dataset by name. Returns latest version if no version given."""
+        ...
+
+    @abstractmethod
+    def list_datasets(self) -> list[dict]:
+        """List all datasets with name, latest version, and item count."""
+        ...
+
     # ---- votes ----
 
     @abstractmethod

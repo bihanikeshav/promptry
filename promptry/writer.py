@@ -114,6 +114,16 @@ class AsyncWriter(BaseStorage):
         # synchronous -- callers need the returned vote_id
         return self._storage.save_vote(prompt_name, response, score, prompt_version, message, metadata)
 
+    def save_dataset(self, name, items, metadata=None) -> int:
+        # synchronous -- callers need the returned version number
+        return self._storage.save_dataset(name, items, metadata)
+
+    def get_dataset(self, name, version=None):
+        return self._storage.get_dataset(name, version)
+
+    def list_datasets(self):
+        return self._storage.list_datasets()
+
     # ---- read methods (direct passthrough) ----
 
     def get_prompt(self, name, version=None):

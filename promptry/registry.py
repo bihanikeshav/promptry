@@ -200,6 +200,21 @@ def track_context(
     return chunks
 
 
+def save_dataset(name: str, items: list[dict], metadata: dict | None = None) -> int:
+    """Save a dataset of input/output pairs. Returns version number."""
+    registry = _get_registry()
+    return registry.storage.save_dataset(name, items, metadata)
+
+
+def load_dataset(name: str, version: int | None = None) -> list[dict]:
+    """Load a dataset. Returns list of {input, expected, metadata} dicts."""
+    registry = _get_registry()
+    dataset = registry.storage.get_dataset(name, version)
+    if dataset is None:
+        raise ValueError(f"Dataset '{name}' not found")
+    return dataset["items"]
+
+
 def vote(
     name: str,
     response: str,

@@ -85,10 +85,18 @@ _MIGRATIONS: list[tuple[int, str, list[str]]] = [
         "CREATE INDEX IF NOT EXISTS idx_votes_prompt ON votes(prompt_name)",
         "CREATE INDEX IF NOT EXISTS idx_votes_created ON votes(created_at)",
     ]),
-    # Future migrations go here:
-    # (2, "add tokens column to eval_results", [
-    #     "ALTER TABLE eval_results ADD COLUMN tokens_in INTEGER",
-    # ]),
+    (2, "add datasets table", [
+        """CREATE TABLE IF NOT EXISTS datasets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            version INTEGER NOT NULL,
+            items TEXT NOT NULL,
+            metadata TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(name, version)
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_datasets_name ON datasets(name)",
+    ]),
 ]
 
 
@@ -513,6 +521,76 @@ class SQLiteStorage(BaseStorage):
             "by_name": by_name,
             "by_date": by_date,
         }
+
+    # ---- datasets ----
+
+    def save_dataset(self, name: str, items: list, metadata=None) -> int:
+        """Save a dataset of input/output pairs. Returns version number."""
+        with self._lock:
+            cur = self._conn.cursor()
+            items_json = json.dumps(items)
+            meta_json = json.dumps(metadata) if metadata else None
+            cur.execute(
+                """INSERT INTO datasets (name, version, items, metadata)
+                   VALUES (?, (SELECT COALESCE(MAX(version), 0) + 1 FROM datasets WHERE name = ?), ?, ?)""",
+                (name, name, items_json, meta_json),
+            )
+            self._conn.commit()
+            cur.execute("SELECT version FROM datasets WHERE id = ?", (cur.lastrowid,))
+            return cur.fetchone()[0]
+
+    def get_dataset(self, name: str, version: int | None = None) -> dict | None:
+        """Get a dataset by name. Returns latest version if no version given."""
+        with self._lock:
+            cur = self._conn.cursor()
+            if version is not None:
+                cur.execute(
+                    "SELECT * FROM datasets WHERE name = ? AND version = ?",
+                    (name, version),
+                )
+            else:
+                cur.execute(
+                    "SELECT * FROM datasets WHERE name = ? ORDER BY version DESC LIMIT 1",
+                    (name,),
+                )
+            row = cur.fetchone()
+            if not row:
+                return None
+            try:
+                meta = json.loads(row["metadata"]) if row["metadata"] else None
+            except (json.JSONDecodeError, TypeError):
+                meta = None
+            return {
+                "id": row["id"],
+                "name": row["name"],
+                "version": row["version"],
+                "items": json.loads(row["items"]),
+                "metadata": meta,
+                "created_at": row["created_at"],
+            }
+
+    def list_datasets(self) -> list[dict]:
+        """List all datasets with name, latest version, and item count."""
+        with self._lock:
+            cur = self._conn.execute(
+                """SELECT name, MAX(version) as latest_version, items
+                   FROM datasets
+                   GROUP BY name
+                   ORDER BY name"""
+            )
+            results = []
+            for row in cur.fetchall():
+                try:
+                    items = json.loads(row["items"])
+                    item_count = len(items)
+                except (json.JSONDecodeError, TypeError):
+                    item_count = 0
+                results.append({
+                    "name": row["name"],
+                    "latest_version": row["latest_version"],
+                    "item_count": item_count,
+                })
+            return results
 
     # ---- votes ----
 

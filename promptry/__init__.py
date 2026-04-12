@@ -2,7 +2,7 @@
 
 __version__ = "0.5.0"
 
-from promptry.registry import track, track_context, vote, PromptRegistry
+from promptry.registry import track, track_context, vote, save_dataset, load_dataset, PromptRegistry
 from promptry.feedback import analyze_votes
 from promptry.evaluator import suite, check_all
 from promptry.assertions import (
@@ -25,6 +25,8 @@ __all__ = [
     "track",
     "track_context",
     "vote",
+    "save_dataset",
+    "load_dataset",
     "analyze_votes",
     "PromptRegistry",
     "suite",
