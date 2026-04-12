@@ -7,9 +7,9 @@
     --text: #ececef;
     --text-secondary: #a1a1aa;
     --text-dim: #71717a;
-    --accent: #f97316;
-    --accent-hover: #fb923c;
-    --accent-subtle: rgba(249, 115, 22, 0.1);
+    --accent: #fb923c;
+    --accent-hover: #fdba74;
+    --accent-subtle: rgba(251, 146, 60, 0.1);
     --green: #4ade80;
     --red: #f87171;
     --yellow: #fbbf24;
@@ -571,7 +571,7 @@ section p {
 }
 
 .compare-table .col-highlight {
-    background: var(--accent-subtle);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .compare-table thead .col-highlight {
@@ -647,17 +647,17 @@ section p {
     display: block;
     background: none;
     border: none;
+    border-left: 2px solid transparent;
     cursor: pointer;
     text-align: left;
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
     color: var(--text-dim);
-    padding: 8px 0;
-    transition: color 0.2s;
+    padding: 8px 0 8px 12px;
+    transition: color 0.2s, border-color 0.2s;
     -webkit-appearance: none;
     line-height: 1.3;
-    border-bottom: 1px solid transparent;
 }
 .showcase-pick span {
     display: block;
@@ -676,6 +676,7 @@ section p {
 
 .showcase-pick.active {
     color: var(--text);
+    border-left-color: var(--accent);
 }
 .showcase-pick.active span {
     color: var(--accent);

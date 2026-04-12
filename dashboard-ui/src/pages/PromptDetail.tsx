@@ -47,7 +47,7 @@ export default function PromptDetail() {
   return (
     <div>
       {/* Breadcrumbs */}
-      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         <Link
           to="/prompts"
           style={{ color: theme.accent, textDecoration: "none" }}
@@ -64,6 +64,7 @@ export default function PromptDetail() {
           fontWeight: 600,
           color: theme.text,
           marginBottom: 20,
+          fontFamily: theme.fontUI,
         }}
       >
         {name}
@@ -80,7 +81,7 @@ export default function PromptDetail() {
           style={{
             color: theme.error,
             padding: 16,
-            background: "rgba(248,81,73,0.1)",
+            background: "rgba(248,113,113,0.1)",
             borderRadius: 6,
             fontSize: 13,
           }}
@@ -108,6 +109,7 @@ export default function PromptDetail() {
                   fontSize: 12,
                   fontWeight: 600,
                   color: theme.text,
+                  fontFamily: theme.fontUI,
                 }}
               >
                 Versions ({versions.length})
@@ -122,7 +124,7 @@ export default function PromptDetail() {
                       padding: "8px 14px",
                       borderBottom: `1px solid ${theme.border}`,
                       background: isSelected
-                        ? "rgba(88,166,255,0.08)"
+                        ? "rgba(249,115,22,0.08)"
                         : "transparent",
                       cursor: "pointer",
                       fontSize: 12,
@@ -139,15 +141,16 @@ export default function PromptDetail() {
                         style={{
                           color: isSelected ? theme.accent : theme.text,
                           fontWeight: isSelected ? 600 : 400,
+                          fontFamily: theme.fontMono,
                         }}
                       >
                         v{v.version}
                       </span>
-                      <span style={{ color: theme.muted, fontSize: 10 }}>
+                      <span style={{ color: theme.muted, fontSize: 10, fontFamily: theme.fontMono }}>
                         {v.hash.substring(0, 8)}
                       </span>
                     </div>
-                    <div style={{ color: theme.muted, fontSize: 10, marginTop: 2 }}>
+                    <div style={{ color: theme.muted, fontSize: 10, marginTop: 2, fontFamily: theme.fontMono }}>
                       {new Date(v.created_at).toLocaleString()}
                     </div>
                     {v.tags.length > 0 && (
@@ -164,10 +167,11 @@ export default function PromptDetail() {
                             key={t}
                             style={{
                               padding: "1px 5px",
-                              background: "rgba(88,166,255,0.1)",
+                              background: "rgba(249,115,22,0.1)",
                               color: theme.accent,
                               borderRadius: 3,
                               fontSize: 9,
+                              fontFamily: theme.fontUI,
                             }}
                           >
                             {t}
@@ -189,9 +193,10 @@ export default function PromptDetail() {
                   marginBottom: 12,
                   fontSize: 12,
                   color: theme.secondary,
+                  fontFamily: theme.fontUI,
                 }}
               >
-                Comparing v{selectedV1} → v{selectedV2}
+                Comparing <span style={{ fontFamily: theme.fontMono }}>v{selectedV1}</span> → <span style={{ fontFamily: theme.fontMono }}>v{selectedV2}</span>
               </div>
             )}
             {diff ? (

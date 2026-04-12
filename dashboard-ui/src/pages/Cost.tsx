@@ -46,7 +46,7 @@ export default function Cost() {
 
   return (
     <div>
-      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         Cost
       </div>
       <h1
@@ -55,6 +55,7 @@ export default function Cost() {
           fontWeight: 600,
           color: theme.text,
           marginBottom: 20,
+          fontFamily: theme.fontUI,
         }}
       >
         Cost Tracking
@@ -124,7 +125,7 @@ export default function Cost() {
           style={{
             color: theme.error,
             padding: 16,
-            background: "rgba(248,81,73,0.1)",
+            background: "rgba(248,113,113,0.1)",
             borderRadius: 6,
             fontSize: 13,
             marginBottom: 16,
@@ -180,6 +181,7 @@ export default function Cost() {
                   fontWeight: 600,
                   color: theme.text,
                   marginBottom: 12,
+                  fontFamily: theme.fontUI,
                 }}
               >
                 Daily Cost
@@ -207,7 +209,7 @@ export default function Cost() {
                         borderRadius: 6,
                         color: theme.text,
                         fontSize: 12,
-                        fontFamily: theme.font,
+                        fontFamily: theme.fontMono,
                       }}
                       formatter={(value: number) => [
                         `$${value.toFixed(4)}`,
@@ -241,6 +243,7 @@ export default function Cost() {
                   fontWeight: 600,
                   color: theme.text,
                   marginBottom: 12,
+                  fontFamily: theme.fontUI,
                 }}
               >
                 By Prompt
@@ -250,7 +253,6 @@ export default function Cost() {
                   width: "100%",
                   borderCollapse: "collapse",
                   fontSize: 12,
-                  fontFamily: theme.font,
                 }}
               >
                 <thead>
@@ -275,28 +277,29 @@ export default function Cost() {
                         borderBottom: `1px solid ${theme.border}`,
                       }}
                     >
-                      <td style={{ ...tdStyle, fontWeight: 600 }}>
+                      <td style={{ ...tdStyle, fontWeight: 600, fontFamily: theme.fontUI }}>
                         {b.name}
                       </td>
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                         {b.calls}
                       </td>
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                         {formatTokens(b.tokens_in)}
                       </td>
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                         {formatTokens(b.tokens_out)}
                       </td>
                       <td
                         style={{
                           ...tdStyle,
                           textAlign: "center",
-                          color: theme.accent,
+                          color: theme.success,
+                          fontFamily: theme.fontMono,
                         }}
                       >
                         ${b.cost.toFixed(4)}
                       </td>
-                      <td style={{ ...tdStyle, color: theme.muted }}>
+                      <td style={{ ...tdStyle, color: theme.muted, fontFamily: theme.fontMono }}>
                         {b.models.join(", ")}
                       </td>
                     </tr>
@@ -321,10 +324,10 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
         padding: "12px 16px",
       }}
     >
-      <div style={{ fontSize: 10, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 10, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         {label}
       </div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: theme.text }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: theme.text, fontFamily: theme.fontMono }}>
         {value}
       </div>
     </div>
@@ -346,6 +349,7 @@ function FilterGroup({
           color: theme.muted,
           marginBottom: 4,
           textTransform: "uppercase",
+          fontFamily: theme.fontUI,
         }}
       >
         {label}
@@ -362,23 +366,23 @@ function formatTokens(n: number): string {
 }
 
 const selectStyle: React.CSSProperties = {
-  background: "#161b22",
-  border: "1px solid #21262d",
-  color: "#e6edf3",
+  background: theme.surface,
+  border: `1px solid ${theme.border}`,
+  color: theme.text,
   padding: "8px 12px",
   borderRadius: 6,
   fontSize: 12,
-  fontFamily:
-    "'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+  fontFamily: theme.fontUI,
   minWidth: 160,
 };
 
 const thStyle: React.CSSProperties = {
   padding: "6px 8px",
   fontWeight: 500,
-  color: "#7d8590",
+  color: theme.secondary,
   fontSize: 11,
   textAlign: "left",
+  fontFamily: theme.fontUI,
 };
 
 const tdStyle: React.CSSProperties = {

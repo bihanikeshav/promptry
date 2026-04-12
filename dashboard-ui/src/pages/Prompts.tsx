@@ -19,7 +19,7 @@ export default function Prompts() {
 
   return (
     <div>
-      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         Prompts
       </div>
       <h1
@@ -28,6 +28,7 @@ export default function Prompts() {
           fontWeight: 600,
           color: theme.text,
           marginBottom: 20,
+          fontFamily: theme.fontUI,
         }}
       >
         Prompt Registry
@@ -44,7 +45,7 @@ export default function Prompts() {
           style={{
             color: theme.error,
             padding: 16,
-            background: "rgba(248,81,73,0.1)",
+            background: "rgba(248,113,113,0.1)",
             borderRadius: 6,
             fontSize: 13,
           }}
@@ -72,7 +73,6 @@ export default function Prompts() {
               width: "100%",
               borderCollapse: "collapse",
               fontSize: 13,
-              fontFamily: theme.font,
             }}
           >
             <thead>
@@ -105,10 +105,10 @@ export default function Prompts() {
                     (e.currentTarget.style.background = "transparent")
                   }
                 >
-                  <td style={{ ...tdStyle, fontWeight: 600, color: theme.accent }}>
+                  <td style={{ ...tdStyle, fontWeight: 600, color: theme.text, fontFamily: theme.fontUI }}>
                     {p.name}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: "center" }}>
+                  <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                     v{p.latest_version}
                   </td>
                   <td style={tdStyle}>
@@ -119,10 +119,11 @@ export default function Prompts() {
                             key={t}
                             style={{
                               padding: "2px 8px",
-                              background: "rgba(88,166,255,0.1)",
-                              color: theme.accent,
+                              background: `rgba(255,255,255,0.06)`,
+                              color: theme.secondary,
                               borderRadius: 4,
                               fontSize: 11,
+                              fontFamily: theme.fontUI,
                             }}
                           >
                             {t}
@@ -144,14 +145,15 @@ export default function Prompts() {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: "8px 12px",
+  padding: "6px 10px",
   fontWeight: 500,
-  color: "#7d8590",
+  color: theme.secondary,
   fontSize: 12,
   textAlign: "left",
+  fontFamily: theme.fontUI,
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "10px 12px",
+  padding: "8px 10px",
   whiteSpace: "nowrap",
 };

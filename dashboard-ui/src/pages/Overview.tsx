@@ -33,10 +33,10 @@ export default function Overview() {
         }}
       >
         <div>
-          <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4 }}>
+          <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
             Overview
           </div>
-          <h1 style={{ fontSize: 18, fontWeight: 600, color: theme.text }}>
+          <h1 style={{ fontSize: 18, fontWeight: 600, color: theme.text, fontFamily: theme.fontUI }}>
             Eval Suites
           </h1>
         </div>
@@ -50,7 +50,7 @@ export default function Overview() {
             borderRadius: 6,
             cursor: "pointer",
             fontSize: 12,
-            fontFamily: theme.font,
+            fontFamily: theme.fontUI,
           }}
         >
           Refresh
@@ -68,7 +68,7 @@ export default function Overview() {
           style={{
             color: theme.error,
             padding: 16,
-            background: "rgba(248,81,73,0.1)",
+            background: "rgba(248,113,113,0.1)",
             borderRadius: 6,
             fontSize: 13,
           }}
@@ -96,7 +96,6 @@ export default function Overview() {
               width: "100%",
               borderCollapse: "collapse",
               fontSize: 13,
-              fontFamily: theme.font,
             }}
           >
             <thead>
@@ -143,7 +142,7 @@ export default function Overview() {
                       }}
                     />
                   </td>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>
+                  <td style={{ ...tdStyle, fontWeight: 600, fontFamily: theme.fontUI }}>
                     {s.name}
                     {!s.passed && (
                       <span
@@ -151,20 +150,21 @@ export default function Overview() {
                           marginLeft: 8,
                           padding: "2px 6px",
                           fontSize: 10,
-                          background: "rgba(248,81,73,0.15)",
+                          background: "rgba(248,113,113,0.15)",
                           color: theme.error,
                           borderRadius: 4,
                           fontWeight: 600,
+                          fontFamily: theme.fontUI,
                         }}
                       >
                         REGRESSION
                       </span>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, color: theme.secondary }}>
+                  <td style={{ ...tdStyle, color: theme.secondary, fontFamily: theme.fontMono }}>
                     {s.model_version ?? "--"}
                   </td>
-                  <td style={{ ...tdStyle, color: theme.secondary }}>
+                  <td style={{ ...tdStyle, color: theme.secondary, fontFamily: theme.fontMono }}>
                     {s.prompt_version !== null ? `v${s.prompt_version}` : "--"}
                   </td>
                   <td
@@ -172,6 +172,7 @@ export default function Overview() {
                       ...tdStyle,
                       color: scoreColor(s.latest_score),
                       fontWeight: 600,
+                      fontFamily: theme.fontMono,
                     }}
                   >
                     {s.latest_score !== null
@@ -184,10 +185,11 @@ export default function Overview() {
                         padding: "2px 6px",
                         fontSize: 10,
                         borderRadius: 4,
+                        fontFamily: theme.fontUI,
                         background:
                           s.drift_status === "drifting"
-                            ? "rgba(210,153,34,0.15)"
-                            : "rgba(63,185,80,0.1)",
+                            ? "rgba(251,191,36,0.15)"
+                            : "rgba(74,222,128,0.1)",
                         color:
                           s.drift_status === "drifting"
                             ? theme.warning
@@ -200,7 +202,7 @@ export default function Overview() {
                   <td style={{ ...tdStyle, textAlign: "center" }}>
                     <Sparkline scores={s.sparkline_scores} />
                   </td>
-                  <td style={{ ...tdStyle, color: theme.muted, fontSize: 11 }}>
+                  <td style={{ ...tdStyle, color: theme.muted, fontSize: 11, fontFamily: theme.fontMono }}>
                     {s.timestamp
                       ? new Date(s.timestamp).toLocaleString()
                       : "--"}
@@ -216,15 +218,16 @@ export default function Overview() {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: "8px 12px",
+  padding: "6px 10px",
   fontWeight: 500,
-  color: "#7d8590",
+  color: theme.secondary,
   fontSize: 12,
   textAlign: "center",
   whiteSpace: "nowrap",
+  fontFamily: theme.fontUI,
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "10px 12px",
+  padding: "8px 10px",
   whiteSpace: "nowrap",
 };

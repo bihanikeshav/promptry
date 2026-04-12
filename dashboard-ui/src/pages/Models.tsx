@@ -61,7 +61,7 @@ export default function Models() {
 
   return (
     <div>
-      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         Models
       </div>
       <h1
@@ -70,6 +70,7 @@ export default function Models() {
           fontWeight: 600,
           color: theme.text,
           marginBottom: 20,
+          fontFamily: theme.fontUI,
         }}
       >
         Model Comparison
@@ -146,7 +147,7 @@ export default function Models() {
                 ? "not-allowed"
                 : "pointer",
             fontSize: 12,
-            fontFamily: theme.font,
+            fontFamily: theme.fontUI,
             fontWeight: 600,
             opacity: !selectedSuite || !baseline || !candidate ? 0.5 : 1,
           }}
@@ -160,7 +161,7 @@ export default function Models() {
           style={{
             color: theme.error,
             padding: 16,
-            background: "rgba(248,81,73,0.1)",
+            background: "rgba(248,113,113,0.1)",
             borderRadius: 6,
             fontSize: 13,
             marginBottom: 16,
@@ -189,11 +190,12 @@ export default function Models() {
                 fontWeight: 700,
                 color: verdictColor(report.verdict),
                 marginBottom: 6,
+                fontFamily: theme.fontUI,
               }}
             >
               {verdictLabel(report.verdict)}
             </div>
-            <div style={{ fontSize: 12, color: theme.secondary }}>
+            <div style={{ fontSize: 12, color: theme.secondary, fontFamily: theme.fontUI }}>
               {report.verdict_reason}
             </div>
           </div>
@@ -266,6 +268,7 @@ export default function Models() {
                   fontWeight: 600,
                   color: theme.text,
                   marginBottom: 12,
+                  fontFamily: theme.fontUI,
                 }}
               >
                 Per-Assertion Comparison
@@ -275,7 +278,6 @@ export default function Models() {
                   width: "100%",
                   borderCollapse: "collapse",
                   fontSize: 12,
-                  fontFamily: theme.font,
                 }}
               >
                 <thead>
@@ -299,17 +301,18 @@ export default function Models() {
                         borderBottom: `1px solid ${theme.border}`,
                       }}
                     >
-                      <td style={tdStyle}>{ac.assertion_type}</td>
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ ...tdStyle, fontFamily: theme.fontUI }}>{ac.assertion_type}</td>
+                      <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                         {(ac.baseline_mean * 100).toFixed(1)}%
                       </td>
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                         {(ac.candidate_score * 100).toFixed(1)}%
                       </td>
                       <td
                         style={{
                           ...tdStyle,
                           textAlign: "center",
+                          fontFamily: theme.fontMono,
                           color:
                             ac.delta > 0
                               ? theme.success
@@ -328,12 +331,13 @@ export default function Models() {
                             borderRadius: 4,
                             fontSize: 10,
                             fontWeight: 600,
+                            fontFamily: theme.fontUI,
                             background:
                               ac.verdict === "better"
-                                ? "rgba(63,185,80,0.15)"
+                                ? "rgba(74,222,128,0.15)"
                                 : ac.verdict === "worse"
-                                  ? "rgba(248,81,73,0.15)"
-                                  : "rgba(125,133,144,0.15)",
+                                  ? "rgba(248,113,113,0.15)"
+                                  : "rgba(152,152,160,0.15)",
                             color:
                               ac.verdict === "better"
                                 ? theme.success
@@ -372,6 +376,7 @@ function SelectGroup({
           color: theme.muted,
           marginBottom: 4,
           textTransform: "uppercase",
+          fontFamily: theme.fontUI,
         }}
       >
         {label}
@@ -401,12 +406,12 @@ function CompareCard({
         padding: "12px 16px",
       }}
     >
-      <div style={{ fontSize: 10, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 10, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         {label}
       </div>
-      <div style={{ fontSize: 18, fontWeight: 700, color }}>{value}</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color, fontFamily: theme.fontMono }}>{value}</div>
       {sub && (
-        <div style={{ fontSize: 10, color: theme.muted, marginTop: 2 }}>
+        <div style={{ fontSize: 10, color: theme.muted, marginTop: 2, fontFamily: theme.fontMono }}>
           {sub}
         </div>
       )}
@@ -421,17 +426,17 @@ const selectStyle: React.CSSProperties = {
   padding: "8px 12px",
   borderRadius: 6,
   fontSize: 12,
-  fontFamily:
-    "'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+  fontFamily: theme.fontUI,
   minWidth: 180,
 };
 
 const thStyle: React.CSSProperties = {
   padding: "6px 8px",
   fontWeight: 500,
-  color: "#7d8590",
+  color: theme.secondary,
   fontSize: 11,
   textAlign: "left",
+  fontFamily: theme.fontUI,
 };
 
 const tdStyle: React.CSSProperties = {

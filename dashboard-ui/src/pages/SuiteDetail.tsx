@@ -83,7 +83,7 @@ export default function SuiteDetail() {
   return (
     <div>
       {/* Breadcrumbs */}
-      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         <Link to="/" style={{ color: theme.accent, textDecoration: "none" }}>
           Overview
         </Link>
@@ -99,7 +99,7 @@ export default function SuiteDetail() {
           marginBottom: 20,
         }}
       >
-        <h1 style={{ fontSize: 18, fontWeight: 600, color: theme.text }}>
+        <h1 style={{ fontSize: 18, fontWeight: 600, color: theme.text, fontFamily: theme.fontUI }}>
           {name}
         </h1>
         <button
@@ -112,7 +112,7 @@ export default function SuiteDetail() {
             borderRadius: 6,
             cursor: "pointer",
             fontSize: 12,
-            fontFamily: theme.font,
+            fontFamily: theme.fontUI,
           }}
         >
           Refresh
@@ -130,7 +130,7 @@ export default function SuiteDetail() {
           style={{
             color: theme.error,
             padding: 16,
-            background: "rgba(248,81,73,0.1)",
+            background: "rgba(248,113,113,0.1)",
             borderRadius: 6,
             fontSize: 13,
             marginBottom: 16,
@@ -196,6 +196,7 @@ export default function SuiteDetail() {
                   fontWeight: 600,
                   color: theme.text,
                   marginBottom: 12,
+                  fontFamily: theme.fontUI,
                 }}
               >
                 Score History
@@ -221,6 +222,7 @@ export default function SuiteDetail() {
                   fontWeight: 600,
                   color: theme.text,
                   marginBottom: 12,
+                  fontFamily: theme.fontUI,
                 }}
               >
                 Assertion Breakdown (Latest Run)
@@ -230,7 +232,6 @@ export default function SuiteDetail() {
                   width: "100%",
                   borderCollapse: "collapse",
                   fontSize: 12,
-                  fontFamily: theme.font,
                 }}
               >
                 <thead>
@@ -251,11 +252,11 @@ export default function SuiteDetail() {
                         borderBottom: `1px solid ${theme.border}`,
                       }}
                     >
-                      <td style={tdStyle}>{b.type}</td>
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ ...tdStyle, fontFamily: theme.fontUI }}>{b.type}</td>
+                      <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                         {b.passed}
                       </td>
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                         {b.total}
                       </td>
                       <td
@@ -263,6 +264,7 @@ export default function SuiteDetail() {
                           ...tdStyle,
                           textAlign: "center",
                           color: scoreColor(b.avgScore),
+                          fontFamily: theme.fontMono,
                         }}
                       >
                         {(b.avgScore * 100).toFixed(1)}%
@@ -289,6 +291,7 @@ export default function SuiteDetail() {
                 fontWeight: 600,
                 color: theme.text,
                 marginBottom: 12,
+                fontFamily: theme.fontUI,
               }}
             >
               Recent Runs
@@ -298,7 +301,6 @@ export default function SuiteDetail() {
                 width: "100%",
                 borderCollapse: "collapse",
                 fontSize: 12,
-                fontFamily: theme.font,
               }}
             >
               <thead>
@@ -326,18 +328,19 @@ export default function SuiteDetail() {
                     }}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.background =
-                        "rgba(88,166,255,0.04)")
+                        "rgba(249,115,22,0.04)")
                     }
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.background = "transparent")
                     }
                   >
-                    <td style={tdStyle}>#{r.id}</td>
+                    <td style={{ ...tdStyle, fontFamily: theme.fontMono }}>#{r.id}</td>
                     <td style={tdStyle}>
                       <span
                         style={{
                           color: r.overall_pass ? theme.success : theme.error,
                           fontWeight: 600,
+                          fontFamily: theme.fontUI,
                         }}
                       >
                         {r.overall_pass ? "PASS" : "FAIL"}
@@ -348,21 +351,22 @@ export default function SuiteDetail() {
                         ...tdStyle,
                         color: scoreColor(r.overall_score),
                         fontWeight: 600,
+                        fontFamily: theme.fontMono,
                       }}
                     >
                       {r.overall_score !== null
                         ? (r.overall_score * 100).toFixed(1) + "%"
                         : "--"}
                     </td>
-                    <td style={{ ...tdStyle, color: theme.secondary }}>
+                    <td style={{ ...tdStyle, color: theme.secondary, fontFamily: theme.fontMono }}>
                       {r.model_version ?? "--"}
                     </td>
-                    <td style={{ ...tdStyle, color: theme.secondary }}>
+                    <td style={{ ...tdStyle, color: theme.secondary, fontFamily: theme.fontMono }}>
                       {r.prompt_version !== null
                         ? `v${r.prompt_version}`
                         : "--"}
                     </td>
-                    <td style={{ ...tdStyle, color: theme.muted }}>
+                    <td style={{ ...tdStyle, color: theme.muted, fontFamily: theme.fontMono }}>
                       {new Date(r.timestamp).toLocaleString()}
                     </td>
                   </tr>
@@ -394,10 +398,10 @@ function Card({
         padding: "12px 16px",
       }}
     >
-      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         {label}
       </div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: valueColor }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: valueColor, fontFamily: theme.fontMono }}>
         {value}
       </div>
     </div>
@@ -407,9 +411,10 @@ function Card({
 const thStyle: React.CSSProperties = {
   padding: "6px 8px",
   fontWeight: 500,
-  color: "#7d8590",
+  color: theme.secondary,
   fontSize: 11,
   textAlign: "left",
+  fontFamily: theme.fontUI,
 };
 
 const tdStyle: React.CSSProperties = {

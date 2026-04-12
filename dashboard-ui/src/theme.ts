@@ -1,15 +1,16 @@
 export const theme = {
-  bg: "#0d1117",
-  surface: "#161b22",
-  border: "#21262d",
-  text: "#e6edf3",
-  secondary: "#7d8590",
-  muted: "#484f58",
-  accent: "#58a6ff",
-  success: "#3fb950",
-  warning: "#d29922",
-  error: "#f85149",
-  font: "'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+  bg: "#111113",
+  surface: "#1a1a1e",
+  border: "#2a2a2e",
+  text: "#e8e8ec",
+  secondary: "#9898a0",
+  muted: "#5c5c66",
+  accent: "#fb923c",
+  success: "#4ade80",
+  warning: "#fbbf24",
+  error: "#f87171",
+  fontUI: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+  fontMono: "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace",
 } as const;
 
 export function scoreColor(score: number | null): string {

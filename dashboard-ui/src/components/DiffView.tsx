@@ -39,7 +39,7 @@ export default function DiffView({ lines, additions, deletions }: DiffViewProps)
           style={{
             width: "100%",
             borderCollapse: "collapse",
-            fontFamily: theme.font,
+            fontFamily: theme.fontMono,
           }}
         >
           <tbody>
@@ -49,11 +49,11 @@ export default function DiffView({ lines, additions, deletions }: DiffViewProps)
               let textColor: string = theme.text;
 
               if (line.type === "added") {
-                bg = "rgba(63, 185, 80, 0.1)";
+                bg = "rgba(74, 222, 128, 0.1)";
                 prefix = "+";
                 textColor = theme.success;
               } else if (line.type === "deleted") {
-                bg = "rgba(248, 81, 73, 0.1)";
+                bg = "rgba(248, 113, 113, 0.1)";
                 prefix = "-";
                 textColor = theme.error;
               }

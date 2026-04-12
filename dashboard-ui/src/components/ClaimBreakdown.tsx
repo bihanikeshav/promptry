@@ -15,7 +15,7 @@ export default function ClaimBreakdown({ details }: ClaimBreakdownProps) {
 
   if (!Array.isArray(claims) || claims.length === 0) {
     return (
-      <div style={{ color: theme.muted, fontSize: 12, padding: 8 }}>
+      <div style={{ color: theme.muted, fontSize: 12, padding: 8, fontFamily: theme.fontUI }}>
         No claim data available.
       </div>
     );
@@ -27,7 +27,6 @@ export default function ClaimBreakdown({ details }: ClaimBreakdownProps) {
         width: "100%",
         borderCollapse: "collapse",
         fontSize: 12,
-        fontFamily: theme.font,
       }}
     >
       <thead>
@@ -38,6 +37,7 @@ export default function ClaimBreakdown({ details }: ClaimBreakdownProps) {
               padding: "6px 8px",
               color: theme.secondary,
               fontWeight: 500,
+              fontFamily: theme.fontUI,
             }}
           >
             Status
@@ -48,6 +48,7 @@ export default function ClaimBreakdown({ details }: ClaimBreakdownProps) {
               padding: "6px 8px",
               color: theme.secondary,
               fontWeight: 500,
+              fontFamily: theme.fontUI,
             }}
           >
             Claim
@@ -58,6 +59,7 @@ export default function ClaimBreakdown({ details }: ClaimBreakdownProps) {
               padding: "6px 8px",
               color: theme.secondary,
               fontWeight: 500,
+              fontFamily: theme.fontUI,
             }}
           >
             Source
@@ -77,15 +79,16 @@ export default function ClaimBreakdown({ details }: ClaimBreakdownProps) {
                 style={{
                   color: c.supported ? theme.success : theme.error,
                   fontWeight: 600,
+                  fontFamily: theme.fontUI,
                 }}
               >
                 {c.supported ? "PASS" : "FAIL"}
               </span>
             </td>
-            <td style={{ padding: "6px 8px", color: theme.text }}>
+            <td style={{ padding: "6px 8px", color: theme.text, fontFamily: theme.fontUI }}>
               {c.claim}
             </td>
-            <td style={{ padding: "6px 8px", color: theme.muted }}>
+            <td style={{ padding: "6px 8px", color: theme.muted, fontFamily: theme.fontMono }}>
               {c.source ?? "--"}
             </td>
           </tr>

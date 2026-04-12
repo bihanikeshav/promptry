@@ -38,7 +38,7 @@ export default function ScoreChart({ data }: ScoreChartProps) {
               borderRadius: 6,
               color: theme.text,
               fontSize: 12,
-              fontFamily: theme.font,
+              fontFamily: theme.fontMono,
             }}
           />
           <ReferenceLine y={0.8} stroke={theme.success} strokeDasharray="4 4" />

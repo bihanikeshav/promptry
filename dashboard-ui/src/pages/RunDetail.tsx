@@ -44,7 +44,7 @@ export default function RunDetail() {
   return (
     <div>
       {/* Breadcrumbs */}
-      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         <Link to="/" style={{ color: theme.accent, textDecoration: "none" }}>
           Overview
         </Link>
@@ -59,7 +59,7 @@ export default function RunDetail() {
         <span style={{ color: theme.text }}>Run #{runId}</span>
       </div>
 
-      <h1 style={{ fontSize: 18, fontWeight: 600, color: theme.text, marginBottom: 20 }}>
+      <h1 style={{ fontSize: 18, fontWeight: 600, color: theme.text, marginBottom: 20, fontFamily: theme.fontUI }}>
         Run #{runId}
       </h1>
 
@@ -74,7 +74,7 @@ export default function RunDetail() {
           style={{
             color: theme.error,
             padding: 16,
-            background: "rgba(248,81,73,0.1)",
+            background: "rgba(248,113,113,0.1)",
             borderRadius: 6,
             fontSize: 13,
           }}
@@ -148,6 +148,7 @@ export default function RunDetail() {
                   fontSize: 13,
                   fontWeight: 600,
                   color: theme.text,
+                  fontFamily: theme.fontUI,
                 }}
               >
                 {testName}
@@ -167,7 +168,7 @@ export default function RunDetail() {
                     }}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.background =
-                        "rgba(88,166,255,0.04)")
+                        "rgba(249,115,22,0.04)")
                     }
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.background = "transparent")
@@ -178,11 +179,12 @@ export default function RunDetail() {
                         color: a.passed ? theme.success : theme.error,
                         fontWeight: 700,
                         width: 36,
+                        fontFamily: theme.fontUI,
                       }}
                     >
                       {a.passed ? "PASS" : "FAIL"}
                     </span>
-                    <span style={{ color: theme.secondary, width: 100 }}>
+                    <span style={{ color: theme.secondary, width: 100, fontFamily: theme.fontUI }}>
                       {a.assertion_type}
                     </span>
                     <AssertionBar score={a.score} />
@@ -192,6 +194,7 @@ export default function RunDetail() {
                         fontWeight: 600,
                         width: 50,
                         textAlign: "right",
+                        fontFamily: theme.fontMono,
                       }}
                     >
                       {a.score !== null
@@ -199,7 +202,7 @@ export default function RunDetail() {
                         : "--"}
                     </span>
                     {a.latency_ms !== null && (
-                      <span style={{ color: theme.muted, marginLeft: "auto" }}>
+                      <span style={{ color: theme.muted, marginLeft: "auto", fontFamily: theme.fontMono }}>
                         {a.latency_ms}ms
                       </span>
                     )}
@@ -251,10 +254,10 @@ function MetaCard({
         padding: "10px 14px",
       }}
     >
-      <div style={{ fontSize: 10, color: theme.muted, marginBottom: 2 }}>
+      <div style={{ fontSize: 10, color: theme.muted, marginBottom: 2, fontFamily: theme.fontUI }}>
         {label}
       </div>
-      <div style={{ fontSize: 14, fontWeight: 600, color }}>{value}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color, fontFamily: theme.fontMono }}>{value}</div>
     </div>
   );
 }
@@ -282,6 +285,7 @@ function AssertionDetails({
             color: theme.error,
             fontWeight: 600,
             marginBottom: 6,
+            fontFamily: theme.fontUI,
           }}
         >
           Schema Errors:
@@ -290,7 +294,7 @@ function AssertionDetails({
           {errors.map((e, i) => (
             <li
               key={i}
-              style={{ color: theme.secondary, fontSize: 12, marginBottom: 4 }}
+              style={{ color: theme.secondary, fontSize: 12, marginBottom: 4, fontFamily: theme.fontMono }}
             >
               {e}
             </li>
@@ -309,7 +313,7 @@ function AssertionDetails({
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
         margin: 0,
-        fontFamily: theme.font,
+        fontFamily: theme.fontMono,
       }}
     >
       {JSON.stringify(details, null, 2)}

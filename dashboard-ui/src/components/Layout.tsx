@@ -13,7 +13,7 @@ export default function Layout() {
     new URLSearchParams(window.location.search).get("port") || "8420";
 
   return (
-    <div style={{ minHeight: "100vh", background: theme.bg }}>
+    <div style={{ minHeight: "100vh", background: theme.bg, fontFamily: theme.fontUI }}>
       {/* Top bar */}
       <header
         style={{
@@ -21,7 +21,7 @@ export default function Layout() {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 24px",
-          height: 48,
+          height: 44,
           borderBottom: `1px solid ${theme.border}`,
           background: theme.surface,
         }}
@@ -34,9 +34,11 @@ export default function Layout() {
               textDecoration: "none",
               fontWeight: 700,
               fontSize: 15,
+              fontFamily: theme.fontUI,
             }}
           >
-            promptry
+            <span>prompt</span>
+            <span style={{ color: theme.accent }}>ry</span>
           </NavLink>
           <nav style={{ display: "flex", gap: 16 }}>
             {navItems.map((item) => (
@@ -48,6 +50,7 @@ export default function Layout() {
                   color: isActive ? theme.accent : theme.secondary,
                   textDecoration: "none",
                   fontSize: 13,
+                  fontFamily: theme.fontUI,
                   padding: "4px 0",
                   borderBottom: isActive
                     ? `2px solid ${theme.accent}`
@@ -59,7 +62,7 @@ export default function Layout() {
             ))}
           </nav>
         </div>
-        <span style={{ color: theme.muted, fontSize: 12 }}>
+        <span style={{ color: theme.muted, fontSize: 12, fontFamily: theme.fontMono }}>
           localhost:{port}
         </span>
       </header>
