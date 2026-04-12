@@ -41,6 +41,12 @@ dashboard = [
     "fastapi>=0.100.0",
     "uvicorn>=0.20.0",
 ]
+openai = [
+    "openai>=1.0.0",
+]
+litellm = [
+    "litellm>=1.0.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
