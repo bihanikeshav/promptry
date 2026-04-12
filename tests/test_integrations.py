@@ -81,13 +81,12 @@ class TestPatchOpenAI:
             ],
         )
 
-        # At minimum 2 calls: pre-call (system prompt) + post-call (with metadata)
-        assert mock_track.call_count >= 2
+        # Single post-call tracking with metadata
+        assert mock_track.call_count == 1
 
-        # First call is the pre-call tracking of the system prompt
-        first_call = mock_track.call_args_list[0]
-        assert first_call[0][0] == "You are a pirate"
-        assert first_call[0][1] == "my-bot"
+        call = mock_track.call_args_list[0]
+        assert call[0][0] == "You are a pirate"
+        assert call[0][1] == "my-bot"
 
     @patch("promptry.track")
     def test_metadata_includes_token_usage(self, mock_track):
@@ -160,7 +159,7 @@ class TestPatchOpenAI:
 
         resp = asyncio.run(_run())
         assert isinstance(resp, _FakeResponse)
-        assert mock_track.call_count >= 2
+        assert mock_track.call_count == 1
 
 
 # ---------------------------------------------------------------------------
@@ -215,10 +214,10 @@ class TestPatchLiteLLM:
             ],
         )
 
-        assert mock_track.call_count >= 2
-        first_call = mock_track.call_args_list[0]
-        assert first_call[0][0] == "You are a wizard"
-        assert first_call[0][1] == "lit-bot"
+        assert mock_track.call_count == 1
+        call = mock_track.call_args_list[0]
+        assert call[0][0] == "You are a wizard"
+        assert call[0][1] == "lit-bot"
 
     @patch("promptry.track")
     def test_metadata_includes_token_usage(self, mock_track):
@@ -291,4 +290,4 @@ class TestPatchLiteLLM:
 
         resp = asyncio.run(_run())
         assert isinstance(resp, _FakeResponse)
-        assert mock_track.call_count >= 2
+        assert mock_track.call_count == 1

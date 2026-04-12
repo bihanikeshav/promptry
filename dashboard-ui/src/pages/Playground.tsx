@@ -135,7 +135,7 @@ export default function Playground() {
                 fontFamily: theme.fontUI,
               }}
             >
-              System Prompt
+              System Prompt (reference only)
             </label>
             <textarea
               value={systemPrompt}

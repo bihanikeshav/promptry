@@ -573,10 +573,11 @@ class SQLiteStorage(BaseStorage):
         """List all datasets with name, latest version, and item count."""
         with self._lock:
             cur = self._conn.execute(
-                """SELECT name, MAX(version) as latest_version, items
-                   FROM datasets
-                   GROUP BY name
-                   ORDER BY name"""
+                """SELECT d.name, d.version as latest_version, d.items
+                   FROM datasets d
+                   INNER JOIN (SELECT name, MAX(version) as mv FROM datasets GROUP BY name) m
+                   ON d.name = m.name AND d.version = m.mv
+                   ORDER BY d.name"""
             )
             results = []
             for row in cur.fetchall():

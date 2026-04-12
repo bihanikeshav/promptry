@@ -88,25 +88,14 @@ def patch_litellm(prompt_name: str = "litellm") -> None:
 
     @functools.wraps(original_completion)
     def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-        try:
-            from promptry import track
-
-            system_prompt = _extract_system_prompt(kwargs)
-            if system_prompt is not None:
-                track(system_prompt, prompt_name)
-        except Exception:
-            logger.debug("pre-call tracking failed", exc_info=True)
-
         response = original_completion(*args, **kwargs)
 
         try:
             from promptry import track
 
+            system_prompt = _extract_system_prompt(kwargs) or ""
             meta = _extract_usage_metadata(response)
-            if meta:
-                system_prompt = _extract_system_prompt(kwargs)
-                content = system_prompt or ""
-                track(content, prompt_name, metadata=meta)
+            track(system_prompt, prompt_name, metadata=meta)
         except Exception:
             logger.debug("post-call tracking failed", exc_info=True)
 
@@ -122,25 +111,14 @@ def patch_litellm(prompt_name: str = "litellm") -> None:
 
         @functools.wraps(original_acompletion)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            try:
-                from promptry import track
-
-                system_prompt = _extract_system_prompt(kwargs)
-                if system_prompt is not None:
-                    track(system_prompt, prompt_name)
-            except Exception:
-                logger.debug("pre-call tracking failed", exc_info=True)
-
             response = await original_acompletion(*args, **kwargs)
 
             try:
                 from promptry import track
 
+                system_prompt = _extract_system_prompt(kwargs) or ""
                 meta = _extract_usage_metadata(response)
-                if meta:
-                    system_prompt = _extract_system_prompt(kwargs)
-                    content = system_prompt or ""
-                    track(content, prompt_name, metadata=meta)
+                track(system_prompt, prompt_name, metadata=meta)
             except Exception:
                 logger.debug("post-call tracking failed", exc_info=True)
 

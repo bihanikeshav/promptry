@@ -66,27 +66,14 @@ def patch_openai(client: Any, prompt_name: str = "openai") -> None:
     if inspect.iscoroutinefunction(original_create):
         @functools.wraps(original_create)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            # --- pre-call tracking ---
-            try:
-                from promptry import track
-
-                system_prompt = _extract_system_prompt(kwargs)
-                if system_prompt is not None:
-                    track(system_prompt, prompt_name)
-            except Exception:
-                logger.debug("pre-call tracking failed", exc_info=True)
-
             response = await original_create(*args, **kwargs)
 
-            # --- post-call tracking ---
             try:
                 from promptry import track
 
+                system_prompt = _extract_system_prompt(kwargs) or ""
                 meta = _extract_usage_metadata(response)
-                if meta:
-                    system_prompt = _extract_system_prompt(kwargs)
-                    content = system_prompt or ""
-                    track(content, prompt_name, metadata=meta)
+                track(system_prompt, prompt_name, metadata=meta)
             except Exception:
                 logger.debug("post-call tracking failed", exc_info=True)
 
@@ -96,27 +83,14 @@ def patch_openai(client: Any, prompt_name: str = "openai") -> None:
     else:
         @functools.wraps(original_create)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            # --- pre-call tracking ---
-            try:
-                from promptry import track
-
-                system_prompt = _extract_system_prompt(kwargs)
-                if system_prompt is not None:
-                    track(system_prompt, prompt_name)
-            except Exception:
-                logger.debug("pre-call tracking failed", exc_info=True)
-
             response = original_create(*args, **kwargs)
 
-            # --- post-call tracking ---
             try:
                 from promptry import track
 
+                system_prompt = _extract_system_prompt(kwargs) or ""
                 meta = _extract_usage_metadata(response)
-                if meta:
-                    system_prompt = _extract_system_prompt(kwargs)
-                    content = system_prompt or ""
-                    track(content, prompt_name, metadata=meta)
+                track(system_prompt, prompt_name, metadata=meta)
             except Exception:
                 logger.debug("post-call tracking failed", exc_info=True)
 
