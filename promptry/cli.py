@@ -263,6 +263,72 @@ def dataset_show(
 # ---- eval commands ----
 
 
+def _suite_result_to_dict(result) -> dict:
+    """Convert a SuiteResult to a plain dict for report rendering."""
+    tests = []
+    for t in result.tests:
+        assertions = []
+        for a in t.assertions:
+            assertions.append({
+                "assertion_type": a.assertion_type,
+                "passed": a.passed,
+                "score": a.score,
+                "details": getattr(a, "details", None),
+            })
+        tests.append({
+            "test_name": t.test_name,
+            "passed": t.passed,
+            "latency_ms": t.latency_ms,
+            "error": t.error,
+            "assertions": assertions,
+        })
+    return {
+        "suite_name": result.suite_name,
+        "overall_pass": result.overall_pass,
+        "overall_score": result.overall_score,
+        "tests": tests,
+    }
+
+
+def _compare_report_to_dict(report) -> dict:
+    """Convert a ModelCompareReport to a plain dict for report rendering."""
+    def _model_stats_dict(s):
+        return {
+            "model_version": s.model_version,
+            "run_count": s.run_count,
+            "overall_mean": s.overall_mean,
+            "overall_std": s.overall_std,
+            "overall_min": s.overall_min,
+            "overall_max": s.overall_max,
+            "avg_cost_per_call": s.avg_cost_per_call,
+        }
+
+    assertion_comparisons = []
+    for ac in report.assertion_comparisons:
+        assertion_comparisons.append({
+            "assertion_type": ac.assertion_type,
+            "baseline_mean": ac.baseline_mean,
+            "baseline_std": ac.baseline_std,
+            "candidate_score": ac.candidate_score,
+            "delta": ac.delta,
+            "verdict": ac.verdict,
+        })
+
+    return {
+        "suite_name": report.suite_name,
+        "baseline": _model_stats_dict(report.baseline),
+        "candidate": _model_stats_dict(report.candidate),
+        "overall_delta": report.overall_delta,
+        "percentile": report.percentile,
+        "assertion_comparisons": assertion_comparisons,
+        "cost_ratio": report.cost_ratio,
+        "score_per_dollar_baseline": report.score_per_dollar_baseline,
+        "score_per_dollar_candidate": report.score_per_dollar_candidate,
+        "verdict": report.verdict,
+        "verdict_reason": report.verdict_reason,
+    }
+
+
 def _import_module(module_path: str):
     """Import a module by dotted path to trigger @suite registration."""
     try:
