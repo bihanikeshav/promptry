@@ -404,12 +404,41 @@ $ promptry drift rag-regression --module my_evals
 
 ```
   Suite: rag-regression
-  Window: 12/30 runs
-  Latest score: 0.840
-  Mean score: 0.890
+  Window: 22/30 runs
+  Latest score: 0.820
+  Mean +/- stddev: 0.876 +/- 0.041
+  Latest z-score: -1.37
   Slope: -0.0072
-  Status: DRIFTING (threshold: -0.05)
+  Significance (recent vs older half): p=0.018
+  Confidence: high
+  Status: DRIFTING (slope < -0.005)
 ```
+
+### What it computes
+
+Three signals over the window (default 30 runs):
+
+1. **OLS linear slope** — steep negative slope means sustained downward trend.
+2. **Z-score of the latest run** vs the window's mean and stddev — tells you how unusual the most recent score is.
+3. **Mann-Whitney U p-value** comparing the recent half of the window against the older half. Non-parametric rank-sum test; doesn't assume normality.
+
+The `confidence` field combines all three into one label:
+
+| Confidence | Meaning |
+|------------|---------|
+| `insufficient` | Fewer than 10 runs in the window |
+| `low` | Scores stable |
+| `medium` | Slope trending down, or recent half significantly lower, but not both |
+| `high` | Slope trending down AND p < 0.05 |
+
+The binary `is_drifting` / exit code 1 is based on slope alone (backward-compatible). Look at `confidence` for a richer signal.
+
+### What it doesn't do
+
+- **Not a change-point detector.** We split the window in half and compare. If drift began at run 3 of 30, the split at run 15 dilutes the signal. For change-point detection use CUSUM or Bayesian online CPD.
+- **No multiple-comparison correction across suites.** If you run drift on 50 suites and use `p < 0.05`, you'll get ~2.5 false positives by chance. Apply Bonferroni (`p < 0.05 / num_suites`) manually if that matters.
+- **Ties in scores aren't corrected** in the U statistic. With continuous LLM scores this rarely matters.
+- **Small samples are flagged.** With fewer than 16 runs the p-value is `None` because the normal approximation needs ~8 per group.
 
 ## Background monitoring
 

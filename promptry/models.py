@@ -92,6 +92,27 @@ class RootCauseHint:
 
 @dataclass
 class DriftReport:
+    """Drift detection report for a suite's score history.
+
+    Fields:
+        suite_name: the suite being analyzed
+        window: max runs requested (config.monitor.window)
+        scores: the actual score values analyzed, oldest-first
+        slope: OLS linear regression slope. Negative = scores trending down.
+        mean_score: mean of the window
+        stddev_score: sample standard deviation of the window
+        latest_score: most recent score
+        latest_z: z-score of latest vs window (None if stddev is zero)
+        p_value: Mann-Whitney U p-value comparing recent half vs older half of
+            the window. None if fewer than 16 runs (too small for the normal
+            approximation). Lower p = more evidence the recent half differs.
+        is_drifting: True iff slope is steeper than -threshold. Preserved for
+            backward compat; see `confidence` for a richer signal.
+        threshold: slope threshold used for is_drifting
+        confidence: one of "high" | "medium" | "low" | "insufficient".
+            Combines slope and statistical significance. See drift.py docs.
+        message: human-readable summary
+    """
     suite_name: str
     window: int
     scores: list[float]
@@ -101,3 +122,7 @@ class DriftReport:
     is_drifting: bool
     threshold: float
     message: str
+    stddev_score: float = 0.0
+    latest_z: float | None = None
+    p_value: float | None = None
+    confidence: str = "low"

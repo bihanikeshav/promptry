@@ -27,8 +27,7 @@
     <div class="hero">
         <h1>Sentry for <span>prompts</span></h1>
         <p class="tagline">
-            Track prompt versions, run evals, detect drift,
-            catch regressions before your users do.
+            Sentry catches when your code breaks. promptry catches when your prompts break — versions them, runs eval suites in CI, alerts on regressions and drift.
         </p>
         <div class="install-row">
             <button class="install-box" onclick="copyInstall(this)" aria-label="Copy pip install promptry to clipboard">
@@ -66,7 +65,7 @@
             <div class="feature-item"><strong>Eval suites</strong> — semantic, schema, LLM-as-judge, JSON, regex, grounding</div>
             <div class="feature-item"><strong>Regression detection</strong> — baseline comparison with root cause hints</div>
             <div class="feature-item"><strong>Drift detection</strong> — catches slow degradation over time</div>
-            <div class="feature-item"><strong>Safety templates</strong> — 25+ built-in attack prompts</div>
+            <div class="feature-item"><strong>Safety templates</strong> — 25 starter attack prompts, add your own</div>
             <div class="feature-item"><strong>Cost tracking</strong> — tokens and cost per prompt, aggregated reports</div>
             <div class="feature-item"><strong>CI + GitHub Action</strong> — one-line CI integration with alerts</div>
             <div class="feature-item"><strong>MCP server</strong> — expose everything to LLM agents</div>
@@ -75,7 +74,7 @@
 
     <section id="compare">
         <h2>How it compares</h2>
-        <p>promptry is built for developers who want prompt regression testing without platform lock-in.</p>
+        <p>promptry is built for developers who want prompt regression testing without platform lock-in. Each tool has trade-offs — Promptfoo has more assertion types, RAGAS has gold-standard RAG metrics, LangSmith has better multi-user dashboards. promptry's niche is the combo of local SQLite + automatic versioning + CI-native + MCP server in one Python-first package.</p>
         <div class="compare-table-wrap">
             <table class="compare-table">
                 <thead>
@@ -84,6 +83,7 @@
                         <th class="col-highlight"><span class="brand-cell">prompt<span>ry</span></span></th>
                         <th>Promptfoo</th>
                         <th>DeepEval</th>
+                        <th>RAGAS</th>
                         <th>LangSmith</th>
                     </tr>
                 </thead>
@@ -93,6 +93,7 @@
                         <td class="col-highlight">Python + JS</td>
                         <td>TypeScript</td>
                         <td>Python</td>
+                        <td>Python</td>
                         <td>Python + JS</td>
                     </tr>
                     <tr>
@@ -100,21 +101,24 @@
                         <td class="col-highlight"><span class="check yes">SQLite</span></td>
                         <td><span class="check yes">Yes</span></td>
                         <td><span class="check partial">Cloud push</span></td>
+                        <td><span class="check yes">Yes</span></td>
                         <td><span class="check no">SaaS only</span></td>
                     </tr>
                     <tr>
                         <td class="row-label">Prompt versioning</td>
                         <td class="col-highlight"><span class="check yes">Automatic</span></td>
+                        <td><span class="check partial">Git + YAML</span></td>
                         <td><span class="check no">No</span></td>
                         <td><span class="check no">No</span></td>
-                        <td><span class="check yes">Hub</span></td>
+                        <td><span class="check yes">Prompt Hub</span></td>
                     </tr>
                     <tr>
-                        <td class="row-label">Drift detection</td>
-                        <td class="col-highlight"><span class="check yes">Yes</span></td>
+                        <td class="row-label">Drift over time</td>
+                        <td class="col-highlight"><span class="check yes">Regression window</span></td>
                         <td><span class="check no">No</span></td>
                         <td><span class="check no">No</span></td>
                         <td><span class="check no">No</span></td>
+                        <td><span class="check yes">Dashboards</span></td>
                     </tr>
                     <tr>
                         <td class="row-label">Root cause hints</td>
@@ -122,26 +126,30 @@
                         <td><span class="check no">No</span></td>
                         <td><span class="check no">No</span></td>
                         <td><span class="check no">No</span></td>
+                        <td><span class="check no">No</span></td>
                     </tr>
                     <tr>
-                        <td class="row-label">Safety templates</td>
-                        <td class="col-highlight"><span class="check yes">25+ built-in</span></td>
-                        <td><span class="check yes">Built-in</span></td>
+                        <td class="row-label">Safety / red-team</td>
+                        <td class="col-highlight"><span class="check yes">25 starters</span></td>
                         <td><span class="check yes">Yes</span></td>
+                        <td><span class="check yes">Yes</span></td>
+                        <td><span class="check no">No</span></td>
                         <td><span class="check no">No</span></td>
                     </tr>
                     <tr>
                         <td class="row-label">MCP server</td>
-                        <td class="col-highlight"><span class="check yes">Yes</span></td>
-                        <td><span class="check no">No</span></td>
+                        <td class="col-highlight"><span class="check yes">Native</span></td>
+                        <td><span class="check partial">Plugin</span></td>
+                        <td><span class="check partial">Partial</span></td>
                         <td><span class="check no">No</span></td>
                         <td><span class="check no">No</span></td>
                     </tr>
                     <tr>
-                        <td class="row-label">Vendor-neutral</td>
-                        <td class="col-highlight"><span class="check yes">Yes</span></td>
+                        <td class="row-label">Vendor</td>
+                        <td class="col-highlight"><span class="check yes">Independent</span></td>
                         <td><span class="check partial">OpenAI-owned</span></td>
-                        <td><span class="check yes">Yes</span></td>
+                        <td><span class="check yes">Independent</span></td>
+                        <td><span class="check yes">Independent</span></td>
                         <td><span class="check no">LangChain</span></td>
                     </tr>
                     <tr>
@@ -149,6 +157,7 @@
                         <td class="col-highlight"><span class="check yes">Free</span></td>
                         <td><span class="check yes">Free</span></td>
                         <td><span class="check partial">Freemium</span></td>
+                        <td><span class="check yes">Free</span></td>
                         <td><span class="check partial">Freemium</span></td>
                     </tr>
                 </tbody>
@@ -158,11 +167,13 @@
 
     <section id="quickstart">
         <h2>How it works</h2>
-        <pre><code><span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> track, suite, assert_semantic
+        <pre><code><span class="cmt"># track() content-hashes the prompt and stores a version if it changed</span>
+<span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> track, suite, assert_semantic
 
 prompt = track(<span class="str">"You are a helpful assistant..."</span>, <span class="str">"rag-qa"</span>)
 response = llm.chat(system=prompt, ...)
 
+<span class="cmt"># @suite is a regular Python function — run it via CLI or in CI</span>
 <span class="kw">@suite</span>(<span class="str">"rag-regression"</span>)
 <span class="kw">def</span> <span class="fn">test_quality</span>():
     response = my_pipeline(<span class="str">"What is photosynthesis?"</span>)
@@ -176,10 +187,10 @@ response = llm.chat(system=prompt, ...)
   Overall: <span class="pass">PASS</span>  score: 0.891
 
   Comparing against <b>prod</b> baseline:
-  Overall score: 0.910 -> 0.946  ok
+  Overall score: 0.867 -> 0.891  ok
         </div>
         <p style="color: var(--text-dim); font-size: 13px; margin-top: 8px;">
-            Local SQLite. No Docker. No SaaS. No API keys.
+            Local SQLite. No Docker. No SaaS account. (Assertions that call an LLM like <code>assert_llm</code> still need your provider key.)
             <a href="docs.html">Full docs</a> &middot; <a href="https://github.com/bihanikeshav/promptry/tree/main/examples">Examples</a>
         </p>
     </section>

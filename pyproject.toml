@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "promptry"
-version = "0.6.0"
+version = "0.6.1"
 description = "Regression protection for LLM pipelines"
 readme = "README.md"
 license = "MIT"
