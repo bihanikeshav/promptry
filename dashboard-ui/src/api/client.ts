@@ -2,6 +2,7 @@ import type {
   SuiteSummary,
   EvalRun,
   RunDetailResponse,
+  RunDiff,
   PromptSummary,
   PromptVersion,
   DiffResponse,
@@ -60,6 +61,13 @@ export function getRunDetail(
   return fetchJson(
     `/api/suite/${encodeURIComponent(name)}/run/${runId}`
   );
+}
+
+export function getRunDiff(
+  currentId: number,
+  baselineId: number
+): Promise<RunDiff> {
+  return fetchJson(`/api/runs/${currentId}/diff/${baselineId}`);
 }
 
 // ---- Prompts ----

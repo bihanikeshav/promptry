@@ -311,66 +311,95 @@ export default function SuiteDetail() {
                   <th style={thStyle}>Model</th>
                   <th style={thStyle}>Prompt</th>
                   <th style={thStyle}>Time</th>
+                  <th style={thStyle}></th>
                 </tr>
               </thead>
               <tbody>
-                {runs.slice(0, 20).map((r) => (
-                  <tr
-                    key={r.id}
-                    onClick={() =>
-                      navigate(
-                        `/suite/${encodeURIComponent(name!)}/run/${r.id}`
-                      )
-                    }
-                    style={{
-                      borderBottom: `1px solid ${theme.border}`,
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "rgba(249,115,22,0.04)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
-                  >
-                    <td style={{ ...tdStyle, fontFamily: theme.fontMono }}>#{r.id}</td>
-                    <td style={tdStyle}>
-                      <span
+                {runs.slice(0, 20).map((r, idx) => {
+                  const prev = runs[idx + 1];
+                  return (
+                    <tr
+                      key={r.id}
+                      onClick={() =>
+                        navigate(
+                          `/suite/${encodeURIComponent(name!)}/run/${r.id}`
+                        )
+                      }
+                      style={{
+                        borderBottom: `1px solid ${theme.border}`,
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background =
+                          "rgba(249,115,22,0.04)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
+                    >
+                      <td style={{ ...tdStyle, fontFamily: theme.fontMono }}>#{r.id}</td>
+                      <td style={tdStyle}>
+                        <span
+                          style={{
+                            color: r.overall_pass ? theme.success : theme.error,
+                            fontWeight: 600,
+                            fontFamily: theme.fontUI,
+                          }}
+                        >
+                          {r.overall_pass ? "PASS" : "FAIL"}
+                        </span>
+                      </td>
+                      <td
                         style={{
-                          color: r.overall_pass ? theme.success : theme.error,
+                          ...tdStyle,
+                          color: scoreColor(r.overall_score),
                           fontWeight: 600,
-                          fontFamily: theme.fontUI,
+                          fontFamily: theme.fontMono,
                         }}
                       >
-                        {r.overall_pass ? "PASS" : "FAIL"}
-                      </span>
-                    </td>
-                    <td
-                      style={{
-                        ...tdStyle,
-                        color: scoreColor(r.overall_score),
-                        fontWeight: 600,
-                        fontFamily: theme.fontMono,
-                      }}
-                    >
-                      {r.overall_score !== null
-                        ? (r.overall_score * 100).toFixed(1) + "%"
-                        : "--"}
-                    </td>
-                    <td style={{ ...tdStyle, color: theme.secondary, fontFamily: theme.fontMono }}>
-                      {r.model_version ?? "--"}
-                    </td>
-                    <td style={{ ...tdStyle, color: theme.secondary, fontFamily: theme.fontMono }}>
-                      {r.prompt_version !== null
-                        ? `v${r.prompt_version}`
-                        : "--"}
-                    </td>
-                    <td style={{ ...tdStyle, color: theme.muted, fontFamily: theme.fontMono }}>
-                      {new Date(r.timestamp).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
+                        {r.overall_score !== null
+                          ? (r.overall_score * 100).toFixed(1) + "%"
+                          : "--"}
+                      </td>
+                      <td style={{ ...tdStyle, color: theme.secondary, fontFamily: theme.fontMono }}>
+                        {r.model_version ?? "--"}
+                      </td>
+                      <td style={{ ...tdStyle, color: theme.secondary, fontFamily: theme.fontMono }}>
+                        {r.prompt_version !== null
+                          ? `v${r.prompt_version}`
+                          : "--"}
+                      </td>
+                      <td style={{ ...tdStyle, color: theme.muted, fontFamily: theme.fontMono }}>
+                        {new Date(r.timestamp).toLocaleString()}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: "right" }}>
+                        {prev && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(
+                                `/suite/${encodeURIComponent(name!)}/diff?current=${r.id}&baseline=${prev.id}`
+                              );
+                            }}
+                            style={{
+                              background: "transparent",
+                              border: `1px solid ${theme.border}`,
+                              color: theme.accent,
+                              padding: "3px 10px",
+                              borderRadius: 4,
+                              cursor: "pointer",
+                              fontSize: 11,
+                              fontFamily: theme.fontUI,
+                            }}
+                            title={`Compare #${r.id} with #${prev.id}`}
+                          >
+                            Compare
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

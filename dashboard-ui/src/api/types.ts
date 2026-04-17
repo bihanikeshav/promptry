@@ -123,6 +123,51 @@ export interface PlaygroundEvalResponse {
   results: PlaygroundAssertionResult[];
 }
 
+export interface RunDiffSide {
+  passed: boolean;
+  score: number | null;
+  details: Record<string, unknown> | null;
+  latency_ms: number | null;
+}
+
+export interface RunDiffAssertion {
+  type: string;
+  baseline: RunDiffSide | null;
+  current: RunDiffSide | null;
+  score_delta: number | null;
+  status_change: "none" | "regressed" | "improved" | "passed";
+}
+
+export interface RunDiffTest {
+  name: string;
+  status: "passed" | "failed" | "regressed" | "improved" | "unchanged";
+  assertions: RunDiffAssertion[];
+}
+
+export interface RunDiffRunMeta {
+  id: number;
+  suite_name: string;
+  score: number | null;
+  overall_pass: boolean;
+  model_version: string | null;
+  prompt_name: string | null;
+  prompt_version: number | null;
+  timestamp: string;
+}
+
+export interface RunDiff {
+  current: RunDiffRunMeta;
+  baseline: RunDiffRunMeta;
+  score_delta: number | null;
+  summary: {
+    regressed: number;
+    improved: number;
+    unchanged: number;
+    total: number;
+  };
+  tests: RunDiffTest[];
+}
+
 export interface CostResponse {
   summary: {
     total_cost: number;

@@ -122,6 +122,180 @@ def run_detail(name: str, run_id: int):
     }
 
 
+# ---- Run Diff ----
+
+@app.get("/api/runs/{run_id}/diff/{baseline_run_id}")
+def run_diff(run_id: int, baseline_run_id: int):
+    """Compare two runs of the same suite test-by-test, assertion-by-assertion."""
+    storage = get_storage()
+    current = storage.get_eval_run_by_id(run_id)
+    baseline = storage.get_eval_run_by_id(baseline_run_id)
+    if current is None:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+    if baseline is None:
+        raise HTTPException(status_code=404, detail=f"Run {baseline_run_id} not found")
+
+    current_results = storage.get_eval_results(run_id)
+    baseline_results = storage.get_eval_results(baseline_run_id)
+
+    # Index by (test_name, assertion_type)
+    def _key(r):
+        return (r.test_name or "(unnamed)", r.assertion_type)
+
+    current_by_key = {_key(r): r for r in current_results}
+    baseline_by_key = {_key(r): r for r in baseline_results}
+
+    # Collect all unique test names, preserving current-run order first
+    test_names_ordered: list[str] = []
+    seen: set[str] = set()
+    for r in current_results:
+        tn = r.test_name or "(unnamed)"
+        if tn not in seen:
+            seen.add(tn)
+            test_names_ordered.append(tn)
+    for r in baseline_results:
+        tn = r.test_name or "(unnamed)"
+        if tn not in seen:
+            seen.add(tn)
+            test_names_ordered.append(tn)
+
+    THRESHOLD = 0.05
+
+    def _status_change(base, curr) -> str:
+        if base is None:
+            return "passed"  # new assertion
+        if curr is None:
+            return "regressed"  # removed assertion
+        if base.passed and not curr.passed:
+            return "regressed"
+        if not base.passed and curr.passed:
+            return "improved"
+        b_score = base.score if base.score is not None else 0.0
+        c_score = curr.score if curr.score is not None else 0.0
+        delta = c_score - b_score
+        if delta > THRESHOLD:
+            return "improved"
+        if delta < -THRESHOLD:
+            return "regressed"
+        return "none"
+
+    def _serialize_side(r):
+        if r is None:
+            return None
+        return {
+            "passed": r.passed,
+            "score": r.score,
+            "details": r.details,
+            "latency_ms": r.latency_ms,
+        }
+
+    tests_out = []
+    summary_regressed = 0
+    summary_improved = 0
+    summary_unchanged = 0
+
+    for tn in test_names_ordered:
+        # Gather assertion types for this test across both runs
+        a_types_ordered: list[str] = []
+        seen_types: set[str] = set()
+        for r in current_results:
+            if (r.test_name or "(unnamed)") == tn and r.assertion_type not in seen_types:
+                seen_types.add(r.assertion_type)
+                a_types_ordered.append(r.assertion_type)
+        for r in baseline_results:
+            if (r.test_name or "(unnamed)") == tn and r.assertion_type not in seen_types:
+                seen_types.add(r.assertion_type)
+                a_types_ordered.append(r.assertion_type)
+
+        assertion_diffs = []
+        has_regression = False
+        has_improvement = False
+        only_in_current = True
+        only_in_baseline = True
+        for atype in a_types_ordered:
+            base = baseline_by_key.get((tn, atype))
+            curr = current_by_key.get((tn, atype))
+            if base is not None:
+                only_in_current = False
+            if curr is not None:
+                only_in_baseline = False
+            change = _status_change(base, curr)
+            if change == "regressed":
+                has_regression = True
+            elif change == "improved":
+                has_improvement = True
+            b_score = base.score if base is not None and base.score is not None else None
+            c_score = curr.score if curr is not None and curr.score is not None else None
+            score_delta = None
+            if b_score is not None and c_score is not None:
+                score_delta = c_score - b_score
+            assertion_diffs.append({
+                "type": atype,
+                "baseline": _serialize_side(base),
+                "current": _serialize_side(curr),
+                "score_delta": score_delta,
+                "status_change": change,
+            })
+
+        # Determine test-level status
+        if only_in_current:
+            test_status = "passed"  # new test
+        elif only_in_baseline:
+            test_status = "regressed"  # removed test
+        elif has_regression:
+            test_status = "regressed"
+        elif has_improvement:
+            test_status = "improved"
+        else:
+            test_status = "unchanged"
+
+        if test_status == "regressed":
+            summary_regressed += 1
+        elif test_status == "improved":
+            summary_improved += 1
+        else:
+            summary_unchanged += 1
+
+        tests_out.append({
+            "name": tn,
+            "status": test_status,
+            "assertions": assertion_diffs,
+        })
+
+    # Order: regressed first, then improved, then unchanged/passed
+    status_order = {"regressed": 0, "improved": 1, "passed": 2, "unchanged": 3}
+    tests_out.sort(key=lambda t: status_order.get(t["status"], 4))
+
+    def _run_summary(r):
+        return {
+            "id": r.id,
+            "suite_name": r.suite_name,
+            "score": r.overall_score,
+            "overall_pass": r.overall_pass,
+            "model_version": r.model_version,
+            "prompt_name": r.prompt_name,
+            "prompt_version": r.prompt_version,
+            "timestamp": r.timestamp,
+        }
+
+    score_delta = None
+    if current.overall_score is not None and baseline.overall_score is not None:
+        score_delta = current.overall_score - baseline.overall_score
+
+    return {
+        "current": _run_summary(current),
+        "baseline": _run_summary(baseline),
+        "score_delta": score_delta,
+        "summary": {
+            "regressed": summary_regressed,
+            "improved": summary_improved,
+            "unchanged": summary_unchanged,
+            "total": len(tests_out),
+        },
+        "tests": tests_out,
+    }
+
+
 # ---- Prompts ----
 
 @app.get("/api/prompts")
