@@ -165,7 +165,7 @@ The [full guide](docs/guide.md) covers all assertions, cost tracking, model comp
 
 ## Honest caveats
 
-- **Early-stage.** v0.6, solo-maintained, small user base. API is stable but bus-factor is one. [Issues welcome.](https://github.com/bihanikeshav/promptry/issues)
+- **Early-stage.** v0.7, solo-maintained, small user base. API is stable but bus-factor is one. [Issues welcome.](https://github.com/bihanikeshav/promptry/issues)
 - **"No API keys" applies to the framework only.** SQLite storage and the CLI need nothing. `assert_llm`, `assert_grounded`, and cost tracking all need your own LLM provider key.
 - **Drift detection is a rolling-window regression on scores.** Works for steady degradation over a configurable window (default 30 runs). It is not a formal hypothesis test — see [drift detection docs](docs/guide.md#detect-drift) for exactly what it does and does not do.
 - **Safety templates are starters, not comprehensive coverage.** 25 curated prompts across 6 categories. For serious red-teaming look at [garak](https://github.com/leondz/garak) or [PyRIT](https://github.com/Azure/PyRIT). Bring your own templates via `templates.toml`.
