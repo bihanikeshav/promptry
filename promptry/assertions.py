@@ -12,11 +12,14 @@ import json
 import re
 import threading
 import time
-from typing import Any, Callable, Type
+from typing import Any, Callable, TYPE_CHECKING, Type
 
 from pydantic import BaseModel, ValidationError
 
 from promptry.evaluator import AssertionResult, append_result
+
+if TYPE_CHECKING:
+    from promptry.conversation import Conversation
 
 # lazy-loaded embedding model -- only pay the cost if you actually
 # use assert_semantic. first call downloads ~80MB, subsequent calls instant.
