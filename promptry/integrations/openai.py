@@ -27,7 +27,11 @@ def _extract_system_prompt(kwargs: dict[str, Any]) -> str | None:
 
 
 def _extract_usage_metadata(response: Any) -> dict[str, Any]:
-    """Build a metadata dict from the response's token usage."""
+    """Build a metadata dict from the response's token usage.
+
+    Includes prompt-cache fields when the provider reports them
+    (OpenAI exposes them via ``usage.prompt_tokens_details.cached_tokens``).
+    """
     meta: dict[str, Any] = {}
     usage = getattr(response, "usage", None)
     if usage is None:
@@ -36,9 +40,27 @@ def _extract_usage_metadata(response: Any) -> dict[str, Any]:
         val = getattr(usage, attr, None)
         if val is not None:
             meta[attr] = val
+
+    # Unified token fields
+    if "prompt_tokens" in meta:
+        meta["tokens_in"] = meta["prompt_tokens"]
+    if "completion_tokens" in meta:
+        meta["tokens_out"] = meta["completion_tokens"]
+
+    # Cached tokens live under usage.prompt_tokens_details.cached_tokens
+    cached = 0
+    details = getattr(usage, "prompt_tokens_details", None)
+    if details is not None:
+        cached = getattr(details, "cached_tokens", 0) or 0
+        if not cached and isinstance(details, dict):
+            cached = details.get("cached_tokens", 0) or 0
+    meta["cached_tokens"] = int(cached)
+    meta["cache_write_tokens"] = 0  # OpenAI does not bill a separate cache-write
+
     model = getattr(response, "model", None)
     if model is not None:
         meta["model"] = model
+    meta["provider"] = "openai"
     return meta
 
 

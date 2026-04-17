@@ -121,6 +121,36 @@ def track(content: str, name: str, tag=None, metadata=None) -> str:
     h = PromptRegistry.content_hash(content)
     cache_key = f"{name}:{h}"
 
+    # auto-compute cost when caller provided tokens + model but no explicit cost
+    if metadata is not None and isinstance(metadata, dict):
+        if "cost" not in metadata and metadata.get("model"):
+            try:
+                from promptry.pricing import calculate_cost
+
+                tokens_in = int(
+                    metadata.get("tokens_in", metadata.get("prompt_tokens", 0)) or 0
+                )
+                tokens_out = int(
+                    metadata.get("tokens_out", metadata.get("completion_tokens", 0)) or 0
+                )
+                cached_tokens = int(metadata.get("cached_tokens", 0) or 0)
+                cache_write_tokens = int(metadata.get("cache_write_tokens", 0) or 0)
+                if tokens_in or tokens_out:
+                    auto_cost = calculate_cost(
+                        metadata["model"],
+                        tokens_in=tokens_in,
+                        tokens_out=tokens_out,
+                        cached_tokens=cached_tokens,
+                        cache_write_tokens=cache_write_tokens,
+                    )
+                    if auto_cost is not None:
+                        metadata = {**metadata, "cost": auto_cost}
+            except Exception:
+                import logging
+                logging.getLogger("promptry").debug(
+                    "auto cost computation failed", exc_info=True
+                )
+
     with _track_lock:
         if cache_key in _track_cache and tag is None:
             return content

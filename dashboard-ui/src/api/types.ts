@@ -174,6 +174,11 @@ export interface CostResponse {
     total_calls: number;
     total_tokens_in: number;
     total_tokens_out: number;
+    total_cached_tokens?: number;
+    total_cache_write_tokens?: number;
+    cache_hit_rate?: number;
+    cache_savings?: number;
+    uncached_cost?: number;
     avg_cost: number;
   };
   by_name: {
@@ -181,6 +186,10 @@ export interface CostResponse {
     calls: number;
     tokens_in: number;
     tokens_out: number;
+    cached_tokens?: number;
+    cache_write_tokens?: number;
+    cache_hit_rate?: number;
+    cache_savings?: number;
     cost: number;
     models: string[];
   }[];
@@ -189,6 +198,7 @@ export interface CostResponse {
     calls: number;
     tokens_in: number;
     tokens_out: number;
+    cached_tokens?: number;
     cost: number;
   }[];
 }

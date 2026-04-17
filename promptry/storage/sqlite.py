@@ -428,14 +428,19 @@ class SQLiteStorage(BaseStorage):
             )
             rows = cur.fetchall()
 
+        from promptry.pricing import cache_savings as _cache_savings
+
         total_cost = 0.0
         total_calls = 0
         total_tokens_in = 0
         total_tokens_out = 0
+        total_cached_tokens = 0
+        total_cache_write_tokens = 0
+        total_savings = 0.0
 
-        # by_name aggregation: name -> {calls, tokens_in, tokens_out, cost, models: set}
+        # by_name aggregation
         by_name_map: dict[str, dict] = {}
-        # by_date aggregation: date_str -> {calls, tokens_in, tokens_out, cost}
+        # by_date aggregation
         by_date_map: dict[str, dict] = {}
 
         for row in rows:
@@ -450,38 +455,71 @@ class SQLiteStorage(BaseStorage):
 
             tokens_in = int(meta.get("tokens_in", meta.get("input_tokens", 0)) or 0)
             tokens_out = int(meta.get("tokens_out", meta.get("output_tokens", 0)) or 0)
+            cached_tokens = int(meta.get("cached_tokens", 0) or 0)
+            cache_write_tokens = int(meta.get("cache_write_tokens", 0) or 0)
             cost = float(meta.get("cost", 0) or 0)
             row_name = row["name"]
             # extract date portion from created_at (format: "YYYY-MM-DD HH:MM:SS")
             date_str = row["created_at"][:10] if row["created_at"] else ""
 
+            savings = 0.0
+            if row_model and cached_tokens:
+                s = _cache_savings(row_model, cached_tokens)
+                if s is not None:
+                    savings = s
+
             total_calls += 1
             total_cost += cost
             total_tokens_in += tokens_in
             total_tokens_out += tokens_out
+            total_cached_tokens += cached_tokens
+            total_cache_write_tokens += cache_write_tokens
+            total_savings += savings
 
             # by_name
             if row_name not in by_name_map:
-                by_name_map[row_name] = {"calls": 0, "tokens_in": 0, "tokens_out": 0, "cost": 0.0, "models": set()}
+                by_name_map[row_name] = {
+                    "calls": 0,
+                    "tokens_in": 0,
+                    "tokens_out": 0,
+                    "cached_tokens": 0,
+                    "cache_write_tokens": 0,
+                    "cost": 0.0,
+                    "cache_savings": 0.0,
+                    "models": set(),
+                }
             entry = by_name_map[row_name]
             entry["calls"] += 1
             entry["tokens_in"] += tokens_in
             entry["tokens_out"] += tokens_out
+            entry["cached_tokens"] += cached_tokens
+            entry["cache_write_tokens"] += cache_write_tokens
             entry["cost"] += cost
+            entry["cache_savings"] += savings
             if row_model:
                 entry["models"].add(row_model)
 
             # by_date
             if date_str:
                 if date_str not in by_date_map:
-                    by_date_map[date_str] = {"calls": 0, "tokens_in": 0, "tokens_out": 0, "cost": 0.0}
+                    by_date_map[date_str] = {
+                        "calls": 0,
+                        "tokens_in": 0,
+                        "tokens_out": 0,
+                        "cached_tokens": 0,
+                        "cost": 0.0,
+                    }
                 d_entry = by_date_map[date_str]
                 d_entry["calls"] += 1
                 d_entry["tokens_in"] += tokens_in
                 d_entry["tokens_out"] += tokens_out
+                d_entry["cached_tokens"] += cached_tokens
                 d_entry["cost"] += cost
 
         avg_cost = (total_cost / total_calls) if total_calls > 0 else 0.0
+        overall_hit_rate = (
+            total_cached_tokens / total_tokens_in if total_tokens_in > 0 else 0.0
+        )
 
         by_name = sorted(
             [
@@ -490,7 +528,15 @@ class SQLiteStorage(BaseStorage):
                     "calls": v["calls"],
                     "tokens_in": v["tokens_in"],
                     "tokens_out": v["tokens_out"],
+                    "cached_tokens": v["cached_tokens"],
+                    "cache_write_tokens": v["cache_write_tokens"],
                     "cost": v["cost"],
+                    "cache_savings": round(v["cache_savings"], 6),
+                    "cache_hit_rate": (
+                        v["cached_tokens"] / v["tokens_in"]
+                        if v["tokens_in"] > 0
+                        else 0.0
+                    ),
                     "models": sorted(v["models"]),
                 }
                 for n, v in by_name_map.items()
@@ -505,6 +551,7 @@ class SQLiteStorage(BaseStorage):
                 "calls": v["calls"],
                 "tokens_in": v["tokens_in"],
                 "tokens_out": v["tokens_out"],
+                "cached_tokens": v["cached_tokens"],
                 "cost": v["cost"],
             }
             for d, v in sorted(by_date_map.items())
@@ -516,6 +563,11 @@ class SQLiteStorage(BaseStorage):
                 "total_calls": total_calls,
                 "total_tokens_in": total_tokens_in,
                 "total_tokens_out": total_tokens_out,
+                "total_cached_tokens": total_cached_tokens,
+                "total_cache_write_tokens": total_cache_write_tokens,
+                "cache_hit_rate": overall_hit_rate,
+                "cache_savings": round(total_savings, 6),
+                "uncached_cost": round(total_cost + total_savings, 6),
                 "avg_cost": avg_cost,
             },
             "by_name": by_name,

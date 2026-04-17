@@ -1174,35 +1174,55 @@ def cost_report_cmd(
     name_table.add_column("Prompt")
     name_table.add_column("Calls", justify="right")
     name_table.add_column("Tokens In", justify="right")
-    name_table.add_column("Tokens Out", justify="right")
+    name_table.add_column("Cached", justify="right")
     name_table.add_column("Cost", justify="right")
-    name_table.add_column("Models")
+    name_table.add_column("Hit rate", justify="right")
+    name_table.add_column("Savings", justify="right")
 
     for entry in by_name_list:
-        models_str = ", ".join(entry["models"]) if entry["models"] else "-"
         cost_str = f"${entry['cost']:.4f}" if entry["cost"] > 0 else "-"
+        cached = entry.get("cached_tokens", 0)
+        hit_rate = entry.get("cache_hit_rate", 0.0) * 100
+        savings = entry.get("cache_savings", 0.0)
+        hit_str = f"{hit_rate:.1f}%" if entry["tokens_in"] > 0 else "-"
+        savings_str = f"${savings:.4f}" if savings > 0 else "-"
         name_table.add_row(
             entry["name"],
             f"{entry['calls']:,}",
             f"{entry['tokens_in']:,}",
-            f"{entry['tokens_out']:,}",
+            f"{cached:,}" if cached else "-",
             cost_str,
-            models_str,
+            hit_str,
+            savings_str,
         )
 
     # totals row
     name_table.add_section()
     total_cost_str = f"${summary['total_cost']:.4f}" if summary["total_cost"] > 0 else "-"
+    total_cached = summary.get("total_cached_tokens", 0)
+    total_hit = summary.get("cache_hit_rate", 0.0) * 100
+    total_save = summary.get("cache_savings", 0.0)
     name_table.add_row(
         "[bold]Total[/bold]",
         f"[bold]{summary['total_calls']:,}[/bold]",
         f"[bold]{summary['total_tokens_in']:,}[/bold]",
-        f"[bold]{summary['total_tokens_out']:,}[/bold]",
+        f"[bold]{total_cached:,}[/bold]" if total_cached else "-",
         f"[bold]{total_cost_str}[/bold]",
-        "",
+        f"[bold]{total_hit:.1f}%[/bold]" if summary["total_tokens_in"] > 0 else "-",
+        f"[bold]${total_save:.4f}[/bold]" if total_save > 0 else "-",
     )
 
     console.print(name_table)
+
+    # --- cache insights ---
+    if total_cached or total_save:
+        uncached = summary.get("uncached_cost", summary["total_cost"] + total_save)
+        console.print()
+        console.print("[bold]Cache insights:[/bold]")
+        console.print(f"  Overall hit rate:  {total_hit:.1f}%")
+        console.print(f"  Total saved:       ${total_save:.4f}")
+        console.print(f"  Uncached cost:     ${uncached:.4f} (cost without caching)")
+        console.print(f"  Actual cost:       ${summary['total_cost']:.4f}")
 
     # --- by date ---
     if len(by_date_list) > 1:

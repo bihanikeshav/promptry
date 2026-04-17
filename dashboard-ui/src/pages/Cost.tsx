@@ -162,6 +162,16 @@ export default function Cost() {
               label="Avg $/Call"
               value={`$${data.summary.avg_cost.toFixed(6)}`}
             />
+            <SummaryCard
+              label="Cache Hit Rate"
+              value={`${((data.summary.cache_hit_rate ?? 0) * 100).toFixed(1)}%`}
+              tooltip="Portion of input tokens served from provider cache. OpenAI & xAI: automatic for long prompts. Anthropic: opt-in via cache_control. Gemini: explicit via cachedContents API."
+            />
+            <SummaryCard
+              label="Savings from Caching"
+              value={`$${(data.summary.cache_savings ?? 0).toFixed(4)}`}
+              tooltip="Estimated dollars saved vs paying the uncached input rate on the same tokens."
+            />
           </div>
 
           {/* Daily cost chart */}
@@ -227,6 +237,20 @@ export default function Cost() {
             </div>
           )}
 
+          {/* Cache legend */}
+          <div
+            style={{
+              fontSize: 11,
+              color: theme.muted,
+              marginBottom: 12,
+              fontFamily: theme.fontUI,
+            }}
+          >
+            Cache support by provider: <b>OpenAI</b> (auto, prompts &gt;1024 tok, ~50% off),{" "}
+            <b>Anthropic</b> (opt-in via cache_control, ~90% off reads, 125% writes),{" "}
+            <b>Gemini</b> (cachedContents API, ~75% off), <b>xAI Grok</b> (auto, ~75% off).
+          </div>
+
           {/* By-prompt table */}
           {data.by_name.length > 0 && (
             <div
@@ -265,6 +289,7 @@ export default function Cost() {
                     <th style={thStyle}>Calls</th>
                     <th style={thStyle}>Tokens In</th>
                     <th style={thStyle}>Tokens Out</th>
+                    <th style={thStyle}>Hit Rate</th>
                     <th style={thStyle}>Cost</th>
                     <th style={thStyle}>Models</th>
                   </tr>
@@ -288,6 +313,11 @@ export default function Cost() {
                       </td>
                       <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
                         {formatTokens(b.tokens_out)}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: "center", fontFamily: theme.fontMono }}>
+                        {b.tokens_in > 0
+                          ? `${((b.cache_hit_rate ?? 0) * 100).toFixed(1)}%`
+                          : "-"}
                       </td>
                       <td
                         style={{
@@ -314,18 +344,31 @@ export default function Cost() {
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
+function SummaryCard({
+  label,
+  value,
+  tooltip,
+}: {
+  label: string;
+  value: string;
+  tooltip?: string;
+}) {
   return (
     <div
+      title={tooltip}
       style={{
         background: theme.surface,
         border: `1px solid ${theme.border}`,
         borderRadius: 6,
         padding: "12px 16px",
+        cursor: tooltip ? "help" : "default",
       }}
     >
       <div style={{ fontSize: 10, color: theme.muted, marginBottom: 4, fontFamily: theme.fontUI }}>
         {label}
+        {tooltip ? (
+          <span style={{ marginLeft: 4, opacity: 0.7 }}>(?)</span>
+        ) : null}
       </div>
       <div style={{ fontSize: 16, fontWeight: 700, color: theme.text, fontFamily: theme.fontMono }}>
         {value}
