@@ -17,9 +17,15 @@ from promptry.assertions import (
     assert_tool_called,
     assert_tool_sequence,
     assert_no_tool_called,
+    assert_conversation_length,
+    assert_all_assistant_turns,
+    assert_any_assistant_turn,
+    assert_conversation_coherent,
+    assert_no_repetition,
     clean_json,
     set_judge,
 )
+from promptry.conversation import Conversation, Turn
 from promptry.runner import run_suite
 from promptry.drift import DriftMonitor
 from promptry.templates import get_templates, run_safety_audit
@@ -45,6 +51,13 @@ __all__ = [
     "assert_tool_called",
     "assert_tool_sequence",
     "assert_no_tool_called",
+    "assert_conversation_length",
+    "assert_all_assistant_turns",
+    "assert_any_assistant_turn",
+    "assert_conversation_coherent",
+    "assert_no_repetition",
+    "Conversation",
+    "Turn",
     "clean_json",
     "set_judge",
     "run_suite",

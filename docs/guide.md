@@ -14,6 +14,7 @@ Full documentation for promptry. For a quick overview, see the [README](../READM
   - [Regex matching](#check-output-format-with-regex)
   - [Factual grounding](#check-factual-grounding)
   - [Chain with check_all](#chain-assertions-with-check_all)
+- [Multi-turn conversation evals](#multi-turn-conversation-evals)
 - [Cost tracking](#track-token-usage-and-cost)
 - [Model comparison](#compare-models-with-historical-data)
 - [Baseline comparison](#compare-against-a-baseline)
@@ -335,6 +336,124 @@ AssertionError: 2/4 assertion(s) failed:
 ```
 
 All assertions still record their results — the runner sees every check, not just the first failure.
+
+## Multi-turn conversation evals
+
+Single-turn assertions work on a single string response. For chatbots, agents, and copilots that engage in back-and-forth, promptry offers a first-class `Conversation` data model and a set of conversation-level assertions.
+
+Use conversation evals when:
+
+- Your product is a chatbot, copilot, or agent that holds context across turns
+- You want to verify behaviour across a whole session, not a single reply
+- You need to catch loops, topic drift, or regressions that only appear mid-conversation
+
+Use the single-turn assertions when you're evaluating one request/response pair (RAG answers, classification, extraction, etc.).
+
+### Build a Conversation
+
+```python
+from promptry import Conversation
+
+conv = Conversation()
+conv.add("user", "Hi, what's the weather?")
+conv.add("assistant", my_chatbot(conv))
+conv.add("user", "And tomorrow?")
+conv.add("assistant", my_chatbot(conv))
+```
+
+`.add()` returns the conversation, so calls chain fluently. Each turn has `role`, `content`, optional `tools` (for assistant tool calls), and free-form `metadata`. Helpers: `conv.last(role=...)`, `conv.assistant_turns()`, `conv.user_turns()`.
+
+### Convert from OpenAI or Anthropic messages
+
+If you already have a messages list from the SDK you use, drop it in directly:
+
+```python
+# OpenAI chat.completions
+resp = client.chat.completions.create(model="gpt-4o", messages=messages)
+messages.append(resp.choices[0].message.model_dump())
+conv = Conversation.from_openai(messages)
+
+# Anthropic messages
+resp = client.messages.create(model="claude-sonnet-4-5", messages=messages)
+messages.append({"role": "assistant", "content": resp.content})
+conv = Conversation.from_anthropic(messages)
+```
+
+Tool calls (OpenAI `tool_calls`, Anthropic `tool_use` blocks) land on `Turn.tools`. Multimodal content parts are flattened into the text content.
+
+### Assertions
+
+**`assert_conversation_length(conv, min_turns=..., max_turns=...)`** — guard against runaway agents and premature exits.
+
+```python
+assert_conversation_length(conv, min_turns=2, max_turns=20)
+```
+
+**`assert_all_assistant_turns(conv, predicate)`** — check a predicate holds for every assistant turn. The predicate is any callable that raises `AssertionError` on failure — existing single-turn assertions work directly:
+
+```python
+from promptry import assert_contains, assert_all_assistant_turns
+
+assert_all_assistant_turns(
+    conv,
+    lambda t: assert_contains(t, ["weather"]),
+)
+```
+
+**`assert_any_assistant_turn(conv, predicate)`** — check that at least one assistant turn satisfies the predicate. Useful when you expect the agent to eventually arrive at an answer but don't care on which turn:
+
+```python
+from promptry import assert_matches, assert_any_assistant_turn
+
+assert_any_assistant_turn(
+    conv,
+    lambda t: assert_matches(t, r".*booking confirmed.*", fullmatch=False),
+)
+```
+
+**`assert_conversation_coherent(conv, threshold=0.5)`** — check consecutive assistant turns stay on topic. Computes cosine similarity between every pair of consecutive assistant replies and fails if any pair drops below the threshold. A low default (0.5) is usually right; you're asking "same conversation?", not "same reply?". Requires `promptry[semantic]`.
+
+```python
+from promptry import assert_conversation_coherent
+
+assert_conversation_coherent(conv, threshold=0.4)
+```
+
+**`assert_no_repetition(conv, similarity_threshold=0.95)`** — catch loops and stuck agents. Computes pairwise similarity across all assistant turns and fails if any pair is near-identical. Requires `promptry[semantic]`.
+
+```python
+from promptry import assert_no_repetition
+
+assert_no_repetition(conv, similarity_threshold=0.92)
+```
+
+### Full example
+
+```python
+from promptry import (
+    suite, Conversation,
+    assert_all_assistant_turns, assert_no_repetition,
+    assert_conversation_length, assert_contains,
+)
+
+@suite("chatbot-flow")
+def test_conversation():
+    conv = Conversation()
+    conv.add("user", "Hi, what's the weather?")
+    conv.add("assistant", my_chatbot(conv))
+
+    conv.add("user", "And tomorrow?")
+    conv.add("assistant", my_chatbot(conv))
+
+    assert_conversation_length(conv, min_turns=2, max_turns=10)
+    assert_all_assistant_turns(
+        conv,
+        lambda t: assert_contains(t, ["weather", "temperature"]),
+    )
+    assert_no_repetition(conv)
+```
+
+Run it the same way as any other suite: `promptry eval-run chatbot-flow`.
 
 ## Track token usage and cost
 
