@@ -248,6 +248,64 @@ details["grounded_count"] = 1
 
 Requires a judge — same `set_judge()` you use for `assert_llm`.
 
+### Evaluate agent tool use
+
+When the thing you're testing is an agent, you often care less about the final
+text and more about *how* it got there: which tools it called, in what order,
+and with what arguments. Three assertions work on a **trace** — a list of tool
+calls:
+
+```python
+from promptry import assert_tool_called, assert_tool_sequence, assert_no_tool_called
+
+trace = [
+    {"name": "search",    "args": ["python tutorials"], "kwargs": {"limit": 10}},
+    {"name": "summarize", "args": ["..."],              "kwargs": {}},
+    {"name": "rank",      "args": [],                   "kwargs": {"top_k": 3}},
+]
+```
+
+The trace format is permissive — you can pass raw OpenAI `tool_calls` or
+Anthropic `tool_use` blocks and they'll be normalized automatically:
+
+```python
+# openai-style
+[{"function": {"name": "search", "arguments": '{"q": "hi"}'}}]
+
+# anthropic-style
+[{"type": "tool_use", "name": "search", "input": {"q": "hi"}}]
+```
+
+**`assert_tool_called(trace, name, args=None, kwargs=None)`** — checks a tool
+was called at least once. Pass `args` or `kwargs` to also verify what was
+passed (kwargs use partial match, so extra keys in the real call are fine):
+
+```python
+assert_tool_called(trace, "search")
+assert_tool_called(trace, "search", kwargs={"limit": 10})
+assert_tool_called(trace, "delete_all")  # AssertionError
+```
+
+**`assert_tool_sequence(trace, expected_sequence)`** — checks tools appear in
+the given order. It's subsequence matching, not strict adjacency: other calls
+may be interleaved between the expected ones.
+
+```python
+assert_tool_sequence(trace, ["search", "summarize"])        # ok
+assert_tool_sequence(trace, ["search", "rank"])             # ok (summarize between is fine)
+assert_tool_sequence(trace, ["summarize", "search"])        # AssertionError -- wrong order
+assert_tool_sequence(trace, ["search", "validate", "rank"]) # AssertionError -- "validate" missing
+```
+
+**`assert_no_tool_called(trace, name)`** — safety check. Fails if the tool
+was ever called. Useful for invariants like "don't call `delete_database`
+in the read-only flow":
+
+```python
+assert_no_tool_called(trace, "delete_database")
+assert_no_tool_called(trace, "send_email")
+```
+
 ### Chain assertions with check_all
 
 By default, assertions stop at the first failure. Use `check_all()` to run every check and get a complete report:
