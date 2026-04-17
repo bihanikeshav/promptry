@@ -636,6 +636,175 @@ def templates_run(
         raise typer.Exit(1)
 
 
+# ---- watch ----
+
+
+def _resolve_module_paths(module: str) -> list[Path]:
+    """Resolve a dotted module path to a list of files to watch.
+
+    Returns the module file plus every .py sibling in its directory so
+    users can edit helper modules and still trigger a re-run.
+    """
+    import importlib.util
+
+    paths: list[Path] = []
+
+    spec = importlib.util.find_spec(module)
+    mod_file: Optional[Path] = None
+    if spec and spec.origin and spec.origin != "built-in":
+        mod_file = Path(spec.origin).resolve()
+    else:
+        # Fallback: look for <module>.py or <module>/__init__.py in cwd
+        candidate = Path.cwd() / f"{module}.py"
+        if candidate.is_file():
+            mod_file = candidate.resolve()
+        else:
+            pkg_init = Path.cwd() / module / "__init__.py"
+            if pkg_init.is_file():
+                mod_file = pkg_init.resolve()
+
+    if mod_file and mod_file.is_file():
+        paths.append(mod_file)
+        # Sibling .py files in the same directory
+        for sibling in mod_file.parent.glob("*.py"):
+            sibling = sibling.resolve()
+            if sibling != mod_file:
+                paths.append(sibling)
+
+    # Watch promptry.toml if present in cwd
+    config_file = Path.cwd() / "promptry.toml"
+    if config_file.is_file():
+        paths.append(config_file.resolve())
+
+    return paths
+
+
+def _run_suite_reload(suite_name: Optional[str], module: str, compare: Optional[str]) -> None:
+    """Reload the user's module and run the given suite (or all suites)."""
+    import importlib
+
+    try:
+        # Clear suite registry so re-imported decorators repopulate it fresh
+        from promptry.evaluator import clear_suites, list_suites
+        clear_suites()
+
+        # Drop the user's module (and any submodules) from sys.modules so
+        # importlib.import_module picks up the latest source on disk.
+        prefix = module + "."
+        stale = [name for name in list(sys.modules) if name == module or name.startswith(prefix)]
+        for name in stale:
+            sys.modules.pop(name, None)
+
+        # Fresh import -- triggers @suite registrations against the cleared registry.
+        try:
+            importlib.import_module(module)
+        except Exception as e:
+            console.print(f"[red]Import error:[/red] {e}")
+            return
+
+        suites = list_suites()
+        if not suites:
+            console.print(f"[yellow]No suites registered in '{module}'.[/yellow]")
+            return
+
+        from promptry.runner import run_suite as _run_suite
+        from promptry.comparison import compare_with_baseline, format_comparison
+
+        if suite_name:
+            targets = [s for s in suites if s.name == suite_name]
+            if not targets:
+                available = ", ".join(s.name for s in suites) or "(none)"
+                console.print(f"[red]Suite '{suite_name}' not found.[/red] Available: {available}")
+                return
+        else:
+            targets = suites
+
+        for suite_def in targets:
+            try:
+                result = _run_suite(suite_def.name)
+            except Exception as e:
+                console.print(f"[red]Error running {suite_def.name}:[/red] {e}")
+                continue
+
+            status_tag = "[green]PASS[/green]" if result.overall_pass else "[red]FAIL[/red]"
+            console.print(f"{status_tag} [bold]{suite_def.name}[/bold]  score: {result.overall_score:.3f}")
+            for test in result.tests:
+                t_status = "[green]PASS[/green]" if test.passed else "[red]FAIL[/red]"
+                console.print(f"  {t_status} {test.test_name} ({test.latency_ms:.0f}ms)")
+                if test.error:
+                    console.print(f"    {test.error}")
+                for a in test.assertions:
+                    score_str = f" ({a.score:.3f})" if a.score is not None else ""
+                    a_status = "ok" if a.passed else "FAIL"
+                    console.print(f"    {a.assertion_type}{score_str} {a_status}")
+
+            if compare:
+                try:
+                    comparisons, hints = compare_with_baseline(result, baseline_tag=compare)
+                except Exception as e:
+                    console.print(f"  [yellow]Compare error:[/yellow] {e}")
+                    continue
+                if not comparisons:
+                    console.print(f"  [dim]No '{compare}' baseline yet to compare against.[/dim]")
+                else:
+                    console.print(format_comparison(comparisons, hints))
+    except Exception as e:
+        # Never crash the watch loop on unexpected errors.
+        console.print(f"[red]Watch run failed:[/red] {e}")
+
+
+@app.command("watch")
+def watch_cmd(
+    suite_name: Optional[str] = typer.Argument(None, help="Suite to run (default: all suites in module)."),
+    module: str = typer.Option("evals", "--module", "-m", help="Module containing suites."),
+    compare: Optional[str] = typer.Option(None, "--compare", "-c", help="Baseline tag to compare against each run."),
+    debounce: int = typer.Option(500, "--debounce", help="Debounce delay in ms for rapid saves."),
+):
+    """Watch files and re-run suites on save.
+
+    Like pytest --watch for prompts. Clears the screen and re-runs the
+    given suite (or every suite in the module) every time a watched
+    file changes. Ctrl+C to stop.
+    """
+    try:
+        from watchfiles import watch
+    except ImportError:
+        console.print("[red]Error:[/red] watchfiles not installed.")
+        console.print("  Install with: pip install watchfiles")
+        raise typer.Exit(1)
+
+    paths = _resolve_module_paths(module)
+    if not paths:
+        console.print(f"[red]Error:[/red] Could not resolve any files to watch for module '{module}'.")
+        console.print("  Tip: run from the directory containing your evals module, or pass --module.")
+        raise typer.Exit(1)
+
+    display = [str(p.relative_to(Path.cwd())) if str(p).startswith(str(Path.cwd())) else str(p) for p in paths]
+
+    console.print("[bold]promptry watch[/bold]")
+    console.print(f"  Module:  {module}")
+    console.print(f"  Suite:   {suite_name or 'all'}")
+    if compare:
+        console.print(f"  Compare: {compare}")
+    console.print(f"  Watching {len(paths)} file(s): {', '.join(display)}")
+    console.print("  Press Ctrl+C to stop\n")
+
+    # Initial run
+    _run_suite_reload(suite_name, module, compare)
+
+    try:
+        for changes in watch(*[str(p) for p in paths], debounce=debounce):
+            try:
+                console.clear()
+            except Exception:
+                pass
+            changed = ", ".join(path for _, path in changes)
+            console.print(f"[dim]Changed: {changed}[/dim]\n")
+            _run_suite_reload(suite_name, module, compare)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stopped[/dim]")
+
+
 # ---- init ----
 
 _EXAMPLE_EVAL = '''"""Example eval suite for promptry."""

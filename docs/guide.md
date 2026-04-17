@@ -711,6 +711,44 @@ trackContext(chunks, "rag-qa")  track_context(chunks, "rag-qa")
 
 See the [JS client README](../promptry-js/README.md) for full API docs.
 
+## Watch mode
+
+Rapidly iterate on prompts and eval suites. `promptry watch` watches your
+eval module (and every `.py` sibling in its directory, plus `promptry.toml`)
+and re-runs your suites every time a file changes -- like `pytest --watch`
+for prompts.
+
+```bash
+# watch the default module (evals.py) and re-run every suite on save
+promptry watch
+
+# watch a single suite
+promptry watch rag-regression
+
+# watch a different module
+promptry watch --module my_evals
+
+# compare against a baseline on every run
+promptry watch --compare prod
+
+# tweak the debounce window (ms) if your editor fires many save events
+promptry watch --debounce 300
+```
+
+What it does:
+
+- Imports your module and runs the suite (or every suite if none is named).
+- On each file change, clears the screen, reloads the module fresh
+  (clearing the suite registry so stale definitions don't linger), and runs
+  again.
+- Never crashes on broken code -- import errors and suite exceptions are
+  printed inline so you can fix and save to retry.
+- Ctrl+C to stop.
+
+Tip: pair it with a split-screen terminal or `tmux` pane so you can edit
+your prompt in one pane and watch eval results stream in the other. It
+turns prompt iteration into a fast feedback loop.
+
 ## CLI reference
 
 Every command supports `--help` for full usage details:
@@ -736,6 +774,7 @@ promptry prompt tag rag-qa 3 canary
 promptry run <suite> --module <mod> [--compare prod]
 promptry suites --module <mod>
 promptry drift <suite> --module <mod>
+promptry watch [suite] [--module <mod>] [--compare prod] [--debounce 500]
 
 # cost tracking
 promptry cost-report [--days 7] [--name <prompt>] [--model <model>]
