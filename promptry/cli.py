@@ -347,6 +347,7 @@ def run_cmd(
     prompt_version: Optional[int] = typer.Option(None, "--prompt-version"),
     model_version: Optional[str] = typer.Option(None, "--model-version"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Write HTML report to file."),
+    markdown: Optional[Path] = typer.Option(None, "--markdown", help="Write Markdown summary to file (for PR comments)."),
 ):
     """Run an eval suite. Exit code 1 on regression."""
     _import_module(module)
@@ -395,16 +396,86 @@ def run_cmd(
             if any(not c.passed for c in comparisons):
                 raise typer.Exit(1)
 
+    # Build results dict once for any report output.
+    results_dict = _suite_result_to_dict(result) if (output or markdown) else None
+
     if output:
         from promptry.report import render_run_report
 
-        results_dict = _suite_result_to_dict(result)
         html_content = render_run_report(results_dict)
         output.write_text(html_content, encoding="utf-8")
         console.print(f"\n[green]Report written to[/green] {output}")
 
+    if markdown:
+        from promptry.report import render_markdown_summary
+
+        baseline_dict = _load_baseline_dict(result, compare)
+        md_content = render_markdown_summary(results_dict, baseline_dict)
+        markdown.write_text(md_content, encoding="utf-8")
+        console.print(f"[green]Markdown summary written to[/green] {markdown}")
+
     if not result.overall_pass:
         raise typer.Exit(1)
+
+
+def _load_baseline_dict(current, baseline_tag: Optional[str]) -> Optional[dict]:
+    """Fetch the most recent baseline run from storage and build a dict
+    matching the ``_suite_result_to_dict`` shape, for Markdown rendering.
+
+    Returns ``None`` when no prior run exists.
+    """
+    try:
+        from promptry.storage import get_storage
+        storage = get_storage()
+    except Exception:
+        return None
+
+    # Prefer the tagged prompt's run if --compare was used, otherwise fall
+    # back to the most recent previous run of this suite.
+    baseline_run = None
+    if baseline_tag and current.prompt_name:
+        tagged = storage.get_prompt_by_tag(current.prompt_name, baseline_tag)
+        if tagged:
+            for run in storage.get_eval_runs(current.suite_name, limit=100):
+                if run.prompt_version == tagged.version and run.id != current.run_id:
+                    baseline_run = run
+                    break
+
+    if baseline_run is None:
+        for run in storage.get_eval_runs(current.suite_name, limit=10):
+            if run.id != current.run_id:
+                baseline_run = run
+                break
+
+    if baseline_run is None:
+        return None
+
+    results = storage.get_eval_results(baseline_run.id)
+    # Group assertions by test_name.
+    tests_by_name: dict[str, dict] = {}
+    for r in results:
+        t = tests_by_name.setdefault(r.test_name, {
+            "test_name": r.test_name,
+            "passed": True,
+            "latency_ms": r.latency_ms or 0.0,
+            "error": None,
+            "assertions": [],
+        })
+        t["assertions"].append({
+            "assertion_type": r.assertion_type,
+            "passed": r.passed,
+            "score": r.score,
+            "details": r.details,
+        })
+        if not r.passed:
+            t["passed"] = False
+
+    return {
+        "suite_name": baseline_run.suite_name,
+        "overall_pass": baseline_run.overall_pass,
+        "overall_score": baseline_run.overall_score or 0.0,
+        "tests": list(tests_by_name.values()),
+    }
 
 
 @app.command("suites")

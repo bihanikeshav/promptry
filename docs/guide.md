@@ -671,6 +671,37 @@ jobs:
       - run: promptry run rag-regression --module evals --compare prod
 ```
 
+### PR comment bot
+
+The published composite action at the repo root (`action.yml`) adds a PR comment on every pull request, showing the eval diff against the previous run. The comment is edited in place on subsequent pushes so PRs don't get spammed.
+
+```yaml
+# .github/workflows/eval.yml
+on: [push, pull_request]
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bihanikeshav/promptry@v0.6.0
+        with:
+          suite: rag-regression
+          module: evals
+          compare: prod
+          pr-comment: "true"   # default
+```
+
+Under the hood the action runs `promptry run ... --markdown <file>` to produce the summary. You can invoke the same flag locally to preview what the bot will post:
+
+```bash
+$ promptry run rag-regression --module evals --markdown summary.md
+```
+
+Regressions are surfaced when an assertion score drops by more than 0.05 against the previous run, or when a previously-passing test starts failing.
+
 ## Safety templates
 
 25+ built-in attack prompts to test how your pipeline handles adversarial inputs: prompt injection, jailbreaks, PII fishing, hallucination triggers, encoding tricks.
@@ -1102,6 +1133,50 @@ class PostgresStorage(BaseStorage):
         ...
     # implement the rest
 ```
+
+## Prompt caching across providers
+
+LLM providers each expose prompt caching differently. promptry reads the cache
+usage fields that each provider reports, calculates the right cost, and shows
+the hit rate in `promptry cost-report` and the dashboard.
+
+### OpenAI (GPT-4o, GPT-4.1, etc.)
+
+- Automatic caching for prompts > 1024 tokens
+- ~50% discount on cached reads
+- 5-minute TTL, extends on use
+- Reported as `usage.prompt_tokens_details.cached_tokens`
+
+### Anthropic (Claude Opus/Sonnet/Haiku)
+
+- Explicit opt-in: add `cache_control: {"type": "ephemeral"}` to content blocks
+- Cached reads: 10% of base rate (90% off)
+- Cache writes: 125% of base rate (5-min TTL) or 200% (1-hour TTL)
+- Reported as `usage.cache_read_input_tokens` and `usage.cache_creation_input_tokens`
+- **Optimization tip**: Put static content (system prompt, long docs) at the
+  BEGINNING of the prompt and mark `cache_control` on the last cacheable
+  block. Prefix matching means earlier content can be reused across queries.
+
+### Google Gemini
+
+- Explicit via `cachedContents` API (create a cache, reference it)
+- Requires larger contexts (typically 32k+ tokens)
+- Rate: ~25% of base rate for cached reads
+- Separate storage cost (pay for cache duration)
+- Best for: long documents you query repeatedly
+
+### xAI Grok
+
+- Similar to OpenAI: automatic for long prompts, reports `cached_tokens`
+- ~25% discount on cached reads
+
+### Optimization checklist
+
+- Put static content first in your prompts (all providers benefit from prefix matching)
+- Anthropic: explicitly mark `cache_control` on long system prompts and tool definitions
+- OpenAI/Grok: prompts > 1024 tokens are candidates; rephrase short ones that repeat
+- Gemini: use `cachedContents` when the same long document is queried repeatedly
+- Monitor cache hit rate via `promptry cost-report` — if < 30% for a frequently called prompt, there's optimization opportunity
 
 ## Examples
 

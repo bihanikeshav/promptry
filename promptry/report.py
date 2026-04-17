@@ -398,3 +398,203 @@ def render_compare_report(data: dict) -> str:
         "promptry - {} comparison".format(suite_name),
         "\n".join(parts),
     )
+
+
+# ---------------------------------------------------------------------------
+# Markdown PR comment summary
+# ---------------------------------------------------------------------------
+
+def _count_passed(tests: list) -> int:
+    return sum(1 for t in tests if t.get("passed"))
+
+
+def _tests_by_name(tests: list) -> dict:
+    return {t.get("test_name", ""): t for t in tests}
+
+
+def _assertion_score(test: dict, atype: str):
+    """Return the first assertion score of the given type, or None."""
+    for a in test.get("assertions", []):
+        if a.get("assertion_type") == atype:
+            return a.get("score")
+    return None
+
+
+def _detect_regressions(
+    current_tests: list,
+    baseline_tests: list,
+    score_tolerance: float = 0.05,
+) -> list[str]:
+    """Return markdown bullet lines for each regressed test.
+
+    A regression is either:
+      - a test that passed in baseline but now fails, or
+      - an assertion score that dropped by more than ``score_tolerance``.
+    """
+    lines: list[str] = []
+    baseline_by_name = _tests_by_name(baseline_tests)
+
+    for t in current_tests:
+        name = t.get("test_name", "?")
+        b = baseline_by_name.get(name)
+        if b is None:
+            continue
+
+        c_passed = t.get("passed", False)
+        b_passed = b.get("passed", False)
+
+        # Hard regression: was passing, now failing
+        if b_passed and not c_passed:
+            lines.append(f"- `{name}`: passed -> **failed**")
+            continue
+
+        # Soft regression: assertion score drop
+        for a in t.get("assertions", []):
+            atype = a.get("assertion_type", "?")
+            c_score = a.get("score")
+            b_score = _assertion_score(b, atype)
+            if c_score is None or b_score is None:
+                continue
+            delta = c_score - b_score
+            if delta <= -score_tolerance:
+                lines.append(
+                    f"- `{name}`: {atype} {b_score:.2f} -> {c_score:.2f} ({delta:+.2f})"
+                )
+
+    return lines
+
+
+def render_markdown_summary(results: dict, baseline: dict | None = None) -> str:
+    """Render a concise Markdown PR comment summary of eval results.
+
+    Args:
+        results: Current run dict with shape matching ``render_run_report``
+            (``suite_name``, ``overall_pass``, ``overall_score``, ``tests``).
+        baseline: Optional previous run dict with the same shape. When
+            provided, the summary includes a baseline column and a
+            Regressions section listing any tests that got worse.
+
+    Returns:
+        A Markdown string suitable for posting as a PR comment.
+    """
+    suite_name = results.get("suite_name", "unknown")
+    overall_pass = bool(results.get("overall_pass", False))
+    overall_score = float(results.get("overall_score", 0.0) or 0.0)
+    tests = results.get("tests", []) or []
+    n_passed = _count_passed(tests)
+    n_total = len(tests)
+
+    lines: list[str] = []
+    lines.append(f"## promptry eval: {suite_name}")
+    lines.append("")
+
+    if baseline is not None:
+        b_pass = bool(baseline.get("overall_pass", False))
+        b_score = float(baseline.get("overall_score", 0.0) or 0.0)
+        b_tests = baseline.get("tests", []) or []
+        b_n_passed = _count_passed(b_tests)
+        b_n_total = len(b_tests)
+
+        delta = overall_score - b_score
+        passed_delta = n_passed - b_n_passed
+
+        # Determine status label: regressed if current failed while baseline
+        # passed, or if score dropped meaningfully.
+        if overall_pass and b_pass and delta >= 0:
+            cur_status = "PASS"
+            cur_icon = "ok"
+        elif overall_pass and not b_pass:
+            cur_status = "RECOVERED"
+            cur_icon = "ok"
+        elif not overall_pass and b_pass:
+            cur_status = "REGRESSED"
+            cur_icon = "warn"
+        elif not overall_pass and not b_pass:
+            cur_status = "FAIL"
+            cur_icon = "fail"
+        else:
+            # both pass but score dropped
+            cur_status = "PASS"
+            cur_icon = "ok"
+
+        cur_badge = {
+            "ok": "PASS",
+            "warn": "WARN REGRESSED",
+            "fail": "FAIL",
+        }[cur_icon]
+        # Override specific label
+        if cur_status == "REGRESSED":
+            cur_badge = "REGRESSED"
+        elif cur_status == "RECOVERED":
+            cur_badge = "RECOVERED"
+        elif cur_status == "FAIL":
+            cur_badge = "FAIL"
+        else:
+            cur_badge = "PASS"
+
+        base_badge = "PASS" if b_pass else "FAIL"
+
+        lines.append("| | Current | Baseline | Delta |")
+        lines.append("|---|---|---|---|")
+        lines.append(
+            f"| Overall score | {overall_score:.3f} | {b_score:.3f} | {delta:+.3f} |"
+        )
+        lines.append(
+            f"| Passed | {n_passed}/{n_total} | {b_n_passed}/{b_n_total} | {passed_delta:+d} |"
+        )
+        lines.append(f"| Status | {cur_badge} | {base_badge} | |")
+        lines.append("")
+
+        regressions = _detect_regressions(tests, b_tests)
+        if regressions:
+            lines.append("**Regressions:**")
+            lines.extend(regressions)
+            lines.append("")
+    else:
+        status_label = "PASS" if overall_pass else "FAIL"
+        lines.append("| | Current |")
+        lines.append("|---|---|")
+        lines.append(f"| Overall score | {overall_score:.3f} |")
+        lines.append(f"| Passed | {n_passed}/{n_total} |")
+        lines.append(f"| Status | {status_label} |")
+        lines.append("")
+
+        # With no baseline, still surface any currently failing tests so the
+        # PR reviewer sees what went wrong.
+        failing = [t for t in tests if not t.get("passed", False)]
+        if failing:
+            lines.append("**Failing tests:**")
+            for t in failing:
+                name = t.get("test_name", "?")
+                err = t.get("error")
+                if err:
+                    lines.append(f"- `{name}`: {err}")
+                else:
+                    lines.append(f"- `{name}`")
+            lines.append("")
+
+    # Compact per-test table inside a details block
+    if tests:
+        lines.append("<details><summary>Test details</summary>")
+        lines.append("")
+        lines.append("| Test | Status | Score |")
+        lines.append("|---|---|---|")
+        for t in tests:
+            name = t.get("test_name", "?")
+            status = "pass" if t.get("passed") else "fail"
+            # Pick the first numeric assertion score for a compact view
+            score_val = None
+            for a in t.get("assertions", []):
+                if a.get("score") is not None:
+                    score_val = a.get("score")
+                    break
+            score_str = f"{score_val:.3f}" if score_val is not None else "-"
+            lines.append(f"| `{name}` | {status} | {score_str} |")
+        lines.append("")
+        lines.append("</details>")
+        lines.append("")
+
+    lines.append(
+        "_Generated by [promptry](https://github.com/bihanikeshav/promptry)_"
+    )
+    return "\n".join(lines)
