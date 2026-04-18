@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>promptry — Documentation</title>
+<title>promptry · Documentation</title>
 <meta name="description" content="Documentation for promptry. Track prompts, write eval suites, chain assertions, detect drift, ship the GitHub Action, and connect the MCP server." />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -27,7 +27,7 @@
 <nav class="nav">
   <div class="shell nav-inner">
     <a class="brand" href="index.html">
-      <span class="brand-mark"><img src="favicon.svg" alt="promptry" /></span>
+      <span class="brand-mark"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1a1a1e"/><text x="0" y="27" class="logo-p">p</text><text x="15" y="27" class="logo-r">r</text></svg></span>
       <span class="brand-name"><b>prompt<span class="ry">ry</span></b></span>
       <span class="ver">v0.7.0</span>
     </a>
@@ -66,7 +66,13 @@
     </div>
     <div id="docs-search-results" class="docs-search-results" hidden></div>
 
-    <div class="docs-nav-groups">
+    <button class="docs-nav-toggle" id="docs-nav-toggle" aria-expanded="false" aria-controls="docs-nav-groups">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
+      <span>Browse sections</span>
+      <svg class="docs-nav-toggle-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+
+    <div class="docs-nav-groups" id="docs-nav-groups">
     <h5>Getting started</h5>
     <ul>
       <li><a href="#install">Installation</a></li>
@@ -127,14 +133,14 @@
     <h1 id="install">Installation</h1>
     <p>Promptry ships as a Python package (the core library, CLI, dashboard server, and MCP server) and a matching JavaScript client. Both read and write the same <code>.promptry/store.db</code>, so you can mix languages in a single repo without a second source of truth.</p>
 
-<pre><code># Python — core + CLI
+<pre><code># Python: core + CLI
 $ pip install promptry
 
 # Optional extras
 $ pip install 'promptry[semantic]'     # local embeddings (all-MiniLM-L6-v2)
 $ pip install 'promptry[dashboard]'    # FastAPI + uvicorn for the web UI
 
-# JavaScript / TypeScript — remote tracking only
+# JavaScript / TypeScript: remote tracking only
 $ npm install promptry-js</code></pre>
 
     <p>The Python install has no runtime dependencies beyond the standard library and SQLite. Extras are opt-in so a CI runner that only needs <code>promptry run</code> stays under 10 MB.</p>
@@ -411,7 +417,7 @@ Cost report (last 30 days)
 
                      gpt-4o              claude-sonnet-4
 Overall score        0.887 +/- 0.031     0.921
-                     [0.821 — 0.943]     +0.034 (89th pctl)
+                     [0.821, 0.943]     +0.034 (89th pctl)
 
 By assertion type:
   json_valid         0.980 +/- 0.020    1.000  <span style="color: var(--ok)">[+] better</span>
@@ -731,13 +737,17 @@ promptry run doc-classify --module examples.assertion_pipeline</code></pre>
 
 </div>
 
+<button class="docs-top-btn" id="docs-top-btn" aria-label="Back to search" hidden>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+</button>
+
 <!-- ==================== FOOTER ==================== -->
 <footer class="foot">
   <div class="shell">
     <div class="foot-grid">
       <div>
         <div class="brand">
-          <span class="brand-mark"><img src="favicon.svg" alt="promptry" /></span>
+          <span class="brand-mark"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1a1a1e"/><text x="0" y="27" class="logo-p">p</text><text x="15" y="27" class="logo-r">r</text></svg></span>
           <span class="brand-name"><b>prompt<span class="ry">ry</span></b></span>
         </div>
         <p class="foot-tag">Local-first regression testing for LLM pipelines. MIT-licensed. Built by Keshav.</p>
@@ -809,6 +819,42 @@ promptry run doc-classify --module examples.assertion_pipeline</code></pre>
         }
       });
     }
+
+    // Docs mobile sidebar toggle: the 6 section lists are bulky on small
+    // screens, so hide them behind a "Browse sections" button by default.
+    const docsNavToggle = document.getElementById('docs-nav-toggle');
+    const docsNavGroups = document.getElementById('docs-nav-groups');
+    if (docsNavToggle && docsNavGroups) {
+      docsNavToggle.addEventListener('click', function () {
+        const open = docsNavGroups.classList.toggle('open');
+        docsNavToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        docsNavToggle.classList.toggle('open', open);
+      });
+      docsNavGroups.addEventListener('click', function (e) {
+        if (e.target.tagName === 'A' && window.matchMedia('(max-width: 860px)').matches) {
+          docsNavGroups.classList.remove('open');
+          docsNavToggle.classList.remove('open');
+          docsNavToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    // Back-to-top floating button: lets mobile readers jump back to the
+    // search bar without us stealing vertical space with a sticky header.
+    const topBtn = document.getElementById('docs-top-btn');
+    if (topBtn) {
+      const toggleTopBtn = () => {
+        if (window.scrollY > 400) topBtn.removeAttribute('hidden');
+        else topBtn.setAttribute('hidden', '');
+      };
+      window.addEventListener('scroll', toggleTopBtn, { passive: true });
+      toggleTopBtn();
+      topBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const input = document.getElementById('docs-search');
+        if (input) setTimeout(() => input.focus(), 400);
+      });
+    }
   })();
 
   // Highlight active sidebar link on scroll
@@ -830,7 +876,7 @@ promptry run doc-classify --module examples.assertion_pipeline</code></pre>
     onScroll();
   })();
 
-  // Docs search — client-side, indexes h1/h2/h3 + surrounding text.
+  // Docs search: client-side, indexes h1/h2/h3 + surrounding text.
   (function () {
     const input = document.getElementById('docs-search');
     const results = document.getElementById('docs-search-results');

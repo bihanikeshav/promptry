@@ -27,3 +27,10 @@ dashboard-ui/node_modules/
 /docs/superpowers/
 /.playwright-mcp/
 seed_mock_data.py
+
+# D2 architecture diagram generator — regenerate SVG locally, don't ship source
+/node_modules/
+/package.json
+/package-lock.json
+/diagram.d2
+/render_d2.mjs

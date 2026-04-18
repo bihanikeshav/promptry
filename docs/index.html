@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>promptry — Sentry for prompts</title>
+<title>promptry · Sentry for prompts</title>
 <meta name="description" content="Local-first regression testing for LLM pipelines. Versions prompts, runs eval suites in CI, detects drift and regressions. SQLite. MIT. Zero SaaS." />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -32,7 +32,7 @@
 <nav class="nav">
   <div class="shell nav-inner">
     <a class="brand" href="index.html">
-      <span class="brand-mark"><img src="favicon.svg" alt="promptry" /></span>
+      <span class="brand-mark"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1a1a1e"/><text x="0" y="27" class="logo-p">p</text><text x="15" y="27" class="logo-r">r</text></svg></span>
       <span class="brand-name"><b>prompt<span class="ry">ry</span></b></span>
       <span class="ver">v0.7.0</span>
     </a>
@@ -66,7 +66,7 @@
       <span class="dateline">~/promptry<span class="sep">·</span>released April 2026<span class="sep">·</span><a href="https://github.com/bihanikeshav/promptry/releases/tag/v0.7.0">v0.7.0</a></span>
       <h1 class="h1">Catch prompt regressions <em>before</em> your users do.</h1>
       <p class="hero-sub">
-        Promptry versions every prompt, runs eval suites on every change, and surfaces drift, regressions, and cost creep — all from a single SQLite file on your machine.
+        Promptry versions every prompt, runs eval suites on every change, and surfaces drift, regressions, and cost creep. All from a single SQLite file on your machine.
       </p>
 
       <div class="install-stack">
@@ -97,7 +97,7 @@
         <span class="sep">/</span>
         <span><b>SQLite</b> storage</span>
         <span class="sep">/</span>
-        <span><b>464</b> tests</span>
+        <span><b>Zero</b> telemetry</span>
       </div>
     </div>
 
@@ -177,7 +177,7 @@
       <div class="diff-hunk" role="listitem">
         <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Eval suites</h3></div>
         <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">Ad-hoc asserts scattered across notebooks and PR comments.</span></div>
-        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">Eight assertion types — semantic, schema, judge, tool-use — in one <code>@suite</code>.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">Eight assertion types: semantic, schema, judge, tool-use, all in one <code>@suite</code>.</span></div>
       </div>
       <div class="diff-hunk" role="listitem">
         <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Regression detection</h3></div>
@@ -191,7 +191,7 @@
       </div>
       <div class="diff-hunk" role="listitem">
         <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Safety templates</h3></div>
-        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">"We should probably red-team this" — Slack, last quarter.</span></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">"We should probably red-team this." Said in Slack, last quarter.</span></div>
         <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">25 starter attacks: jailbreak, injection, PII fishing, hallucination.</span></div>
       </div>
       <div class="diff-hunk" role="listitem">
@@ -356,11 +356,11 @@
         <tbody>
           <tr><td class="col-feat">Language</td><td class="us yes">Python + JS</td><td class="mid">TypeScript</td><td class="mid">Python</td><td class="mid">Python</td><td class="mid">Python + JS</td></tr>
           <tr><td class="col-feat">Local-first</td><td class="us yes">SQLite</td><td class="yes">Yes</td><td class="mid">Cloud push</td><td class="yes">Yes</td><td class="no">SaaS only</td></tr>
-          <tr><td class="col-feat">Prompt versioning</td><td class="us yes">Automatic</td><td class="mid">Git + YAML</td><td class="no">—</td><td class="no">—</td><td class="yes">Prompt Hub</td></tr>
-          <tr><td class="col-feat">Drift over time</td><td class="us yes">Regression window</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">Dashboards</td></tr>
-          <tr><td class="col-feat">Root cause hints</td><td class="us yes">Yes</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
-          <tr><td class="col-feat">Safety / red-team</td><td class="us yes">25 starters</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">—</td><td class="no">—</td></tr>
-          <tr><td class="col-feat">MCP server</td><td class="us yes">Native</td><td class="mid">Plugin</td><td class="mid">Partial</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="col-feat">Prompt versioning</td><td class="us yes">Automatic</td><td class="mid">Git + YAML</td><td class="no">·</td><td class="no">·</td><td class="yes">Prompt Hub</td></tr>
+          <tr><td class="col-feat">Drift over time</td><td class="us yes">Regression window</td><td class="no">·</td><td class="no">·</td><td class="no">·</td><td class="yes">Dashboards</td></tr>
+          <tr><td class="col-feat">Root cause hints</td><td class="us yes">Yes</td><td class="no">·</td><td class="no">·</td><td class="no">·</td><td class="no">·</td></tr>
+          <tr><td class="col-feat">Safety / red-team</td><td class="us yes">25 starters</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">·</td><td class="no">·</td></tr>
+          <tr><td class="col-feat">MCP server</td><td class="us yes">Native</td><td class="mid">Plugin</td><td class="mid">Partial</td><td class="no">·</td><td class="no">·</td></tr>
           <tr><td class="col-feat">Vendor</td><td class="us yes">Independent</td><td class="mid">OpenAI-owned</td><td class="yes">Independent</td><td class="yes">Independent</td><td class="no">LangChain</td></tr>
           <tr><td class="col-feat">Cost</td><td class="us yes">Free · MIT</td><td class="yes">Free</td><td class="mid">Freemium</td><td class="yes">Free</td><td class="mid">Freemium</td></tr>
         </tbody>
@@ -413,7 +413,7 @@
     <div class="foot-grid">
       <div>
         <div class="brand">
-          <span class="brand-mark"><img src="favicon.svg" alt="promptry" /></span>
+          <span class="brand-mark"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1a1a1e"/><text x="0" y="27" class="logo-p">p</text><text x="15" y="27" class="logo-r">r</text></svg></span>
           <span class="brand-name"><b>prompt<span class="ry">ry</span></b></span>
         </div>
         <p class="foot-tag">Local-first regression testing for LLM pipelines. MIT-licensed. Built by Keshav.</p>

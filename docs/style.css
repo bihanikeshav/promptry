@@ -46,9 +46,9 @@
   --ink-2:     #44464b;
   --ink-3:     #73767d;
   --ink-4:     #a3a6ad;
-  /* Brand accents stay identical across themes so the favicon, the "ry"
-     of the logo, italic headlines, and check marks all render the same
-     amber regardless of dark/light mode. */
+  /* Darker amber for light mode — the bright dark-mode amber washes out
+     against cream. Same hue, lower lightness, higher chroma. */
+  --accent:    oklch(0.62 0.16 72);
 }
 
 * { box-sizing: border-box; }
@@ -77,7 +77,8 @@ button { font-family: inherit; cursor: pointer; }
   margin: 0 auto;
   padding: 0 32px;
 }
-@media (max-width: 720px) { .shell { padding: 0 20px; } }
+@media (max-width: 720px) { .shell { padding: 0 16px; } }
+@media (max-width: 480px) { .shell { padding: 0 12px; } }
 
 /* ----------- nav ----------- */
 .nav {
@@ -108,12 +109,19 @@ button { font-family: inherit; cursor: pointer; }
   height: 22px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line-2);
   border-radius: var(--r-sm);
-  background: var(--bg-2);
   overflow: hidden;
 }
-.brand-mark img { width: 22px; height: 22px; display: block; }
+.brand-mark svg { width: 22px; height: 22px; display: block; }
+.brand-mark svg text {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+}
+.brand-mark .logo-p { fill: #e8e8ec; }
+/* Logo "r" stays the bright dark-mode amber in both themes — the
+   mark sits in a dark pill, so it shouldn't follow the page accent. */
+.brand-mark .logo-r { fill: oklch(0.78 0.14 82); }
 .brand-name { color: var(--ink); }
 .brand-name b {
   /* Match the favicon's font so the logo reads as one piece */
@@ -123,12 +131,15 @@ button { font-family: inherit; cursor: pointer; }
 }
 .brand-name b .ry { color: var(--accent); }
 
-/* Inline logo for use in body text (e.g. the comparison table) */
+/* Inline logo for use in body text (e.g. the comparison table) —
+   matches the nav wordmark: lowercase, system-sans, tight tracking. */
 .brand-logo {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-weight: 700;
+  font-size: 14px;
   letter-spacing: -0.015em;
   color: var(--ink);
+  text-transform: none;
 }
 .brand-logo .ry { color: var(--accent); }
 .brand .ver { font-size: 11px; margin-left: 4px; color: var(--ink-3); }
@@ -323,11 +334,13 @@ button { font-family: inherit; cursor: pointer; }
 }
 .term-dots { display: flex; gap: 6px; }
 .term-dot {
-  width: 10px; height: 10px;
+  width: 11px; height: 11px;
   border-radius: 999px;
-  background: var(--bg-3);
-  border: 1px solid var(--line-2);
+  border: none;
 }
+.term-dot:nth-child(1) { background: #ff5f56; }
+.term-dot:nth-child(2) { background: #ffbd2e; }
+.term-dot:nth-child(3) { background: #27c93f; }
 .term-title { flex: 1; text-align: center; font-family: var(--f-mono); }
 
 /* Tabstrip row — tabs pop up, active merges into body.
@@ -381,9 +394,16 @@ button { font-family: inherit; cursor: pointer; }
   line-height: 1.75;
   color: var(--ink);
   min-height: 280px;
+  /* Stack all panes in the same grid cell so the box always sizes to
+     the tallest pane — no height shift when switching tabs. */
+  display: grid;
+  grid-template-areas: "pane";
 }
-.term-pane { display: none; }
-.term-pane.on { display: block; }
+.term-pane {
+  grid-area: pane;
+  visibility: hidden;
+}
+.term-pane.on { visibility: visible; }
 .term-body .t-prompt { color: var(--ink-3); user-select: none; }
 .term-body .t-dim    { color: var(--ink-3); }
 .term-body .t-accent { color: var(--accent); }
@@ -903,16 +923,28 @@ hr.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
 .diagram-wrap {
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  background: var(--bg-1);
-  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--accent) 6%, transparent) 0%, transparent 60%),
+    var(--bg-1);
+  padding: 32px 24px;
   overflow-x: auto;
 }
 .diagram { width: 100%; height: auto; display: block; min-width: 880px; }
-.d-zone { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em; fill: var(--ink-4); }
-.d-label { font-family: var(--f-sans); font-size: 14px; font-weight: 500; fill: var(--ink); letter-spacing: -0.01em; }
-.d-sub   { font-family: var(--f-mono); font-size: 11px; fill: var(--ink-3); }
-.d-arrow        { stroke: var(--ink-3); stroke-width: 1; fill: none; }
-.d-arrow-accent { stroke: var(--accent); stroke-width: 1.25; fill: none; }
+
+/* D2-rendered architecture diagram (static SVG) */
+.arch-diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 1100px;
+  margin: 0 auto;
+  min-width: 720px;
+}
+.d-zone { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em; fill: var(--ink-4); text-transform: uppercase; }
+.d-label { font-family: var(--f-sans); font-size: 14px; font-weight: 600; fill: var(--ink); letter-spacing: -0.01em; }
+.d-sub   { font-family: var(--f-mono); font-size: 11px; fill: var(--ink-3); letter-spacing: 0.01em; }
+.d-arrow        { stroke: var(--ink-3); stroke-width: 1.25; fill: none; stroke-linecap: round; }
+.d-arrow-accent { stroke: var(--accent); stroke-width: 1.5; fill: none; stroke-linecap: round; filter: drop-shadow(0 0 4px color-mix(in oklab, var(--accent) 40%, transparent)); }
 
 .schema-grid {
   display: grid;
@@ -963,7 +995,17 @@ hr.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
   align-items: start;
 }
 @media (max-width: 1100px) { .docs-layout { grid-template-columns: 220px minmax(0, 1fr); } .docs-toc { display: none; } }
-@media (max-width: 860px) { .docs-layout { grid-template-columns: 1fr; } .docs-side, .docs-toc { position: static; } }
+@media (max-width: 860px) {
+  .docs-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0 16px 64px; /* docs-layout overrides .shell padding, so re-apply here */
+  }
+  .docs-side, .docs-toc { position: static; }
+}
+@media (max-width: 480px) {
+  .docs-layout { padding: 0 12px 64px; }
+}
 .docs-side {
   position: sticky;
   top: 56px;           /* flush with sticky nav so scroll sticks immediately */
@@ -974,6 +1016,31 @@ hr.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
   /* thin, self-scrolling, hide on idle */
   scrollbar-width: thin;
   scrollbar-color: var(--line-2) transparent;
+}
+
+/* Mobile-only "Browse sections" button — hidden on desktop */
+.docs-nav-toggle {
+  display: none;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-family: var(--f-sans);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+.docs-nav-toggle span { flex: 1; }
+.docs-nav-toggle svg { color: var(--accent); flex-shrink: 0; }
+.docs-nav-toggle-caret {
+  transition: transform .2s ease;
+}
+.docs-nav-toggle.open .docs-nav-toggle-caret {
+  transform: rotate(180deg);
 }
 .docs-side::-webkit-scrollbar { width: 6px; }
 .docs-side::-webkit-scrollbar-track { background: transparent; }
@@ -1184,6 +1251,36 @@ hr.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
 .tl-title { font-size: 15px; font-weight: 500; color: var(--ink); margin: 8px 0 6px; }
 .tl-body { color: var(--ink-2); font-size: 13px; line-height: 1.5; }
 
+/* Floating back-to-top button for docs (mobile only). Shown after the
+   reader scrolls past the fold; tapping returns to the top and focuses
+   the search input, so search is always one tap away without us making
+   it sticky. */
+.docs-top-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--ink);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px color-mix(in oklab, #000 25%, transparent);
+  z-index: 50;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease;
+}
+.docs-top-btn[hidden] { display: none; }
+.docs-top-btn svg { color: var(--accent); }
+.docs-top-btn:hover { background: var(--bg-2); transform: translateY(-1px); }
+.docs-top-btn:active { transform: translateY(0); }
+@media (max-width: 860px) {
+  .docs-top-btn:not([hidden]) { display: flex; }
+}
+
 /* ==================== MOBILE ==================== */
 @media (max-width: 720px) {
   /* --- Nav: hamburger dropdown --- */
@@ -1254,17 +1351,24 @@ hr.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
   .foot-grid { grid-template-columns: 1fr; }
   .foot-bottom { flex-wrap: wrap; gap: 8px; }
 
-  /* --- Docs sidebar: no nested scroll trap on mobile --- */
+  /* --- Docs sidebar: on mobile, drop Browse Sections entirely — the
+     back-to-top button + search is enough. Sidebar is static (not
+     sticky). --- */
   .docs-side {
+    position: static !important;
     max-height: none;
     overflow: visible;
-    padding: 24px 0;
+    padding: 16px 0 0;
   }
-  .docs-side a { padding: 10px 10px; }
+  .docs-search { margin-bottom: 0; }
   .docs-search input { padding: 12px 46px 12px 32px; font-size: 15px; }
-  .docs-body { padding-top: 24px; }
-  .docs-body h1 { font-size: 32px; }
+  .docs-nav-toggle,
+  .docs-nav-groups { display: none !important; }
+  .docs-body { padding-top: 20px; }
+  .docs-body h1 { font-size: 32px; margin-top: 0; }
   .docs-body h2 { font-size: 22px; }
+  .docs-body pre { padding: 12px 14px; margin: 12px 0 18px; font-size: 12px; }
+  .docs-body code { font-size: 12.5px; padding: 1px 4px; }
 }
 
 @media (max-width: 560px) {
