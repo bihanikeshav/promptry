@@ -66,7 +66,7 @@
       <span class="dateline">~/promptry<span class="sep">·</span>released April 2026<span class="sep">·</span><a href="https://github.com/bihanikeshav/promptry/releases/tag/v0.7.0">v0.7.0</a></span>
       <h1 class="h1">Catch prompt regressions <em>before</em> your users do.</h1>
       <p class="hero-sub">
-        Promptry versions every prompt, runs eval suites on every change, and surfaces drift, regressions, and cost creep. All from a single SQLite file on your machine.
+        Python-native eval suites, automatic prompt versioning, statistical drift detection. One SQLite file on your machine — no YAML, no account, no cloud, no per-run judge tax.
       </p>
 
       <div class="install-stack">
@@ -192,7 +192,7 @@
       <div class="diff-hunk" role="listitem">
         <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Safety templates</h3></div>
         <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">"We should probably red-team this." Said in Slack, last quarter.</span></div>
-        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">25 starter attacks: jailbreak, injection, PII fishing, hallucination.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">25 curated attacks across 6 categories. Extensible via <code>templates.toml</code>.</span></div>
       </div>
       <div class="diff-hunk" role="listitem">
         <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Cost tracking</h3></div>
@@ -338,31 +338,30 @@
   <div class="shell">
     <div class="sec-head">
       <div class="sec-kicker">~/landscape</div>
-      <h2 class="sec-title">How promptry <em>compares</em>.</h2>
-      <p class="sec-lede">Built for developers who want prompt regression testing without platform lock-in, cloud uploads, or a vendor relationship.</p>
+      <h2 class="sec-title">Three things you won't get <em>anywhere else</em>.</h2>
+      <p class="sec-lede">Code instead of YAML. Local instead of cloud. Deterministic assertions instead of a metered LLM-judge tax. Together, in one tool.</p>
     </div>
     <div class="table-wrap">
       <table class="cmp">
         <thead>
           <tr>
-            <th class="col-feat">Feature</th>
+            <th class="col-feat">Dimension</th>
             <th class="us"><span class="brand-logo">prompt<span class="ry">ry</span></span></th>
             <th>Promptfoo</th>
-            <th>DeepEval</th>
             <th>RAGAS</th>
             <th>LangSmith</th>
+            <th>DeepEval</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td class="col-feat">Language</td><td class="us yes">Python + JS</td><td class="mid">TypeScript</td><td class="mid">Python</td><td class="mid">Python</td><td class="mid">Python + JS</td></tr>
-          <tr><td class="col-feat">Local-first</td><td class="us yes">SQLite</td><td class="yes">Yes</td><td class="mid">Cloud push</td><td class="yes">Yes</td><td class="no">SaaS only</td></tr>
-          <tr><td class="col-feat">Prompt versioning</td><td class="us yes">Automatic</td><td class="mid">Git + YAML</td><td class="no">·</td><td class="no">·</td><td class="yes">Prompt Hub</td></tr>
-          <tr><td class="col-feat">Drift over time</td><td class="us yes">Regression window</td><td class="no">·</td><td class="no">·</td><td class="no">·</td><td class="yes">Dashboards</td></tr>
-          <tr><td class="col-feat">Root cause hints</td><td class="us yes">Yes</td><td class="no">·</td><td class="no">·</td><td class="no">·</td><td class="no">·</td></tr>
-          <tr><td class="col-feat">Safety / red-team</td><td class="us yes">25 starters</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">·</td><td class="no">·</td></tr>
-          <tr><td class="col-feat">MCP server</td><td class="us yes">Native</td><td class="mid">Plugin</td><td class="mid">Partial</td><td class="no">·</td><td class="no">·</td></tr>
-          <tr><td class="col-feat">Vendor</td><td class="us yes">Independent</td><td class="mid">OpenAI-owned</td><td class="yes">Independent</td><td class="yes">Independent</td><td class="no">LangChain</td></tr>
-          <tr><td class="col-feat">Cost</td><td class="us yes">Free · MIT</td><td class="yes">Free</td><td class="mid">Freemium</td><td class="yes">Free</td><td class="mid">Freemium</td></tr>
+          <tr><td class="col-feat">Authoring surface</td><td class="us yes">Python decorators</td><td class="mid">YAML</td><td class="mid">Python metrics</td><td class="mid">SaaS UI</td><td class="mid">Python</td></tr>
+          <tr><td class="col-feat">Data location</td><td class="us yes">Local SQLite</td><td class="yes">Local</td><td class="yes">Local</td><td class="no">Their cloud</td><td class="mid">Local + push</td></tr>
+          <tr><td class="col-feat">Account required</td><td class="us yes">No, ever</td><td class="yes">No</td><td class="yes">No</td><td class="no">Yes</td><td class="yes">No (OSS)</td></tr>
+          <tr><td class="col-feat">CI cost per run</td><td class="us yes">$0 deterministic</td><td class="mid">Mixed</td><td class="no">Per-judge-call</td><td class="mid">Trace volume</td><td class="no">Per-judge-call</td></tr>
+          <tr><td class="col-feat">Prompt versioning</td><td class="us yes">Automatic content-hash</td><td class="mid">Manual + git</td><td class="no">·</td><td class="yes">Prompt Hub</td><td class="no">·</td></tr>
+          <tr><td class="col-feat">Drift detection</td><td class="us yes">Mann-Whitney U + p-values</td><td class="no">·</td><td class="no">·</td><td class="mid">Dashboards only</td><td class="no">·</td></tr>
+          <tr><td class="col-feat">MCP server</td><td class="us yes">Native</td><td class="mid">Plugin</td><td class="no">·</td><td class="no">·</td><td class="mid">Partial</td></tr>
+          <tr><td class="col-feat">Commercial tier</td><td class="us yes">None planned</td><td class="mid">Enterprise</td><td class="yes">None</td><td class="no">SaaS</td><td class="mid">Confident AI</td></tr>
         </tbody>
       </table>
     </div>
@@ -374,8 +373,8 @@
   <div class="shell cta-grid">
     <div>
       <div class="sec-kicker">~/start</div>
-      <h2 class="sec-title" style="margin-top: 0">Local SQLite. No Docker. No SaaS. <em>No API keys.</em></h2>
-      <p class="sec-lede" style="margin-top: 16px">Install, wrap one prompt, write one assertion. Promptry takes it from there. Assertions that call an LLM (<code>assert_llm</code>, <code>assert_grounded</code>) still need your provider key.</p>
+      <h2 class="sec-title" style="margin-top: 0">Local SQLite. No Docker. No SaaS. <em>No account.</em></h2>
+      <p class="sec-lede" style="margin-top: 16px">Install, wrap one prompt, write one assertion. Promptry takes it from there. Deterministic assertions by default — LLM-as-judge is opt-in, for when you actually want to spend the tokens.</p>
       <div class="cta-row" style="margin-top: 28px">
         <a class="btn primary" href="docs.html">Read the docs
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>

@@ -6,7 +6,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**Sentry for prompts.** Sentry catches when your code breaks. promptry catches when your prompts break — versions them, runs eval suites in CI, and flags regressions or drift against a baseline. Local-first. No SaaS.
+**LLM regression testing that lives in your repo.** Version your prompts, write eval suites in Python, run them in CI. One `pip install`, one SQLite file, zero services — your prompts never leave your laptop.
 
 ```python
 from promptry import track, suite, assert_semantic
@@ -58,16 +58,18 @@ Overall: PASS  score: 0.891
 
 | Feature | What it does |
 |---------|--------------|
-| **Prompt versioning** | Content-hashed, automatic dedup |
-| **Eval suites** | Semantic, schema, LLM-as-judge, JSON, regex, grounding assertions |
-| **Regression detection** | Compare against baselines, get root cause hints |
-| **Drift detection** | Catch slow quality degradation over time |
-| **Model comparison** | Statistical comparison against historical baseline (not just snapshots) |
-| **Cost tracking** | Token usage and cost per prompt, aggregated reports |
-| **Safety templates** | 25 starter jailbreak / injection / PII tests — add your own |
-| **MCP server** | Expose everything as tools for Claude, Cursor, VS Code, etc. |
-| **Dashboard** | Web UI for eval history, prompt diffs, model comparison, cost |
-| **JS/TS client** | Ship prompt events from frontend/Node apps |
+| **Prompt versioning** | Content-hashed, automatic dedup. No manual bumps, no YAML, no git dance. |
+| **Python-native suites** | `@suite` decorators, not YAML. Loops, fixtures, and your IDE's debugger all work. |
+| **Deterministic assertions** | Semantic, schema, JSON, regex, grounding, tool-use. Zero API calls at CI time. |
+| **LLM-as-judge** | Opt-in, not default. You decide when to spend tokens on evaluation. |
+| **Drift detection** | Mann-Whitney U on a rolling window with real p-values, not vibes. |
+| **Regression diff** | Tells you *what* changed — prompt version, model, or data — not just that it broke. |
+| **Model comparison** | Statistical comparison against the historical baseline, not snapshot-to-snapshot. |
+| **Cost tracking** | Per-token cost per prompt across OpenAI, Anthropic, Gemini, Grok — with cache awareness. |
+| **Safety suite** | 25 jailbreak / injection / PII / encoding templates across 6 categories. Extensible via `templates.toml`. |
+| **MCP server** | First-class: your LLM agent drives the whole test runner. Native, not a plugin. |
+| **Dashboard** | Local web UI for eval history, prompt diffs, model comparison, cost. No account, no cloud. |
+| **JS/TS client** | Ship prompt events from frontend/Node apps to the same SQLite store. |
 
 ## Dashboard
 
@@ -82,21 +84,24 @@ promptry dashboard
 ![Models](docs/screenshots/dashboard-models.png)
 ![Cost](docs/screenshots/dashboard-cost.png)
 
-## How it differs
+## Why promptry
 
-| | Promptfoo | DeepEval | RAGAS | LangSmith | **promptry** |
+Three things you won't get elsewhere — together, in one tool:
+
+1. **Code, not YAML.** Suites are pytest-style decorators. Loops, fixtures, debugger breakpoints, IDE autocomplete. Promptfoo makes you generate YAML from Python scripts once your suite grows past a few dozen tests. Just skip the round trip.
+2. **Local by design.** One SQLite file. No account, no API key for the framework, no cloud to trust. LangSmith and DeepEval's flagship features push your prompts and outputs to their servers — disqualifying for regulated industries, IP-sensitive work, or anyone who reads their procurement policy.
+3. **No per-run judge tax.** Most assertions are deterministic: semantic similarity, schema, JSON, regex, grounding, tool-use. CI runs cost $0. RAGAS's headline metrics (faithfulness, answer relevancy, context precision) all need judge-model calls — every run costs tokens, adds latency, and drifts when the judge model updates. We treat LLM-as-judge as an opt-in, not a default.
+
+| | Promptfoo | RAGAS | LangSmith | DeepEval | **promptry** |
 |---|---|---|---|---|---|
-| **Language** | TypeScript | Python | Python | Python + JS | Python + JS |
-| **Local-first** | Yes | Cloud push | Yes | SaaS only | SQLite |
-| **Prompt versioning** | Via git + YAML | No | No | Prompt Hub | Automatic |
-| **Drift over time** | No | No | No | Dashboards | Regression window |
-| **Root cause hints** | No | No | No | No | Yes |
-| **Safety / red-team** | Yes | Yes | No | No | 25 starters |
-| **MCP server** | Plugin | Partial | No | No | Native |
-| **Vendor** | OpenAI-owned | Independent | Independent | LangChain | Independent |
-| **Cost** | Free | Freemium | Free | Freemium | Free |
-
-Honest caveats: Promptfoo has more assertion types and a larger red-team corpus. RAGAS has the gold-standard RAG metrics (faithfulness, context precision, answer relevancy). LangSmith has better multi-user dashboards and deeper LangChain integration. promptry's niche is the combo of **local SQLite + automatic versioning + CI-native + MCP server** in one Python-first package.
+| **Config** | YAML | Python metrics | SaaS UI | Python | **Python decorators** |
+| **Data location** | Local | Local | **Their cloud** | Local + push | **Local SQLite** |
+| **Account required** | No | No | **Yes** | No (for OSS) | **No, ever** |
+| **CI cost per run** | Mixed | **Per-judge-call** | Trace volume | **Per-judge-call** | **$0 (deterministic)** |
+| **Prompt versioning** | Manual + git | None | Prompt Hub | None | **Automatic content-hash** |
+| **Drift detection** | None | None | Dashboards only | None | **Mann-Whitney U + p-values** |
+| **MCP server** | Plugin | None | None | Partial | **Native** |
+| **Commercial tier** | Promptfoo Enterprise | None | LangSmith (SaaS) | Confident AI | **None planned** |
 
 ## GitHub Action
 
@@ -163,15 +168,11 @@ Works with Claude Desktop, Cursor, Windsurf, VS Code. See [full setup](docs/guid
 
 The [full guide](docs/guide.md) covers all assertions, cost tracking, model comparison, safety templates, notifications, storage modes, JS client, CLI reference, MCP setup, and config options.
 
-## Honest caveats
+## Scope
 
-- **Early-stage.** v0.7, solo-maintained, small user base. API is stable but bus-factor is one. [Issues welcome.](https://github.com/bihanikeshav/promptry/issues)
-- **"No API keys" applies to the framework only.** SQLite storage and the CLI need nothing. `assert_llm`, `assert_grounded`, and cost tracking all need your own LLM provider key.
-- **Drift detection is a rolling-window regression on scores.** Works for steady degradation over a configurable window (default 30 runs). It is not a formal hypothesis test — see [drift detection docs](docs/guide.md#detect-drift) for exactly what it does and does not do.
-- **Safety templates are starters, not comprehensive coverage.** 25 curated prompts across 6 categories. For serious red-teaming look at [garak](https://github.com/leondz/garak) or [PyRIT](https://github.com/Azure/PyRIT). Bring your own templates via `templates.toml`.
-- **Cost tracking uses hardcoded rate tables.** Fine for rough estimates; won't reflect batching discounts, prompt caching, or provider price changes. Reconcile against invoices for finance.
-- **Auto-instrumentation is opt-in.** `promptry.integrations.openai` and `.litellm` wrap clients automatically; otherwise you add `track()` manually. Explicit by default.
-- **No hosted multi-user UI.** For that, look at LangSmith or Arize.
+Promptry is a test runner, not a tracing product. If you need an always-on observability dashboard for production traffic with team seats and SSO, use LangSmith or Arize — different product category. Promptry is the thing you wire into CI so a bad prompt change never reaches production in the first place.
+
+On the roadmap: agent trajectory analysis, production capture/replay, LLM-powered root cause. Shipped: everything in the feature table above, across Python + JS + CLI + dashboard + MCP + GitHub Action.
 
 ## License
 
