@@ -42,7 +42,9 @@ def _write_module(dir_path: Path, name: str, body: str) -> Path:
 
 def test_watch_command_registered_with_expected_options():
     """The command is discoverable and exposes the documented flags."""
-    result = runner.invoke(app, ["watch", "--help"])
+    # Force a wide terminal so Rich doesn't truncate option names
+    # (CI runners default to ~80 cols, which collapses "--compare" to "--compa…").
+    result = runner.invoke(app, ["watch", "--help"], env={"COLUMNS": "200"})
     assert result.exit_code == 0
     out = result.output
     assert "Watch files and re-run suites" in out

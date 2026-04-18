@@ -172,9 +172,17 @@ button { font-family: inherit; cursor: pointer; }
   display: grid; place-items: center;
 }
 .theme-toggle:hover { color: var(--ink); background: var(--bg-2); }
-@media (max-width: 720px) {
-  .nav-links a:not(.keep) { display: none; }
+
+.nav-toggle {
+  display: none;
+  width: 36px; height: 36px;
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  place-items: center;
 }
+.nav-toggle:hover { color: var(--ink); background: var(--bg-2); }
 
 /* ----------- hero ----------- */
 .hero {
@@ -466,70 +474,106 @@ button { font-family: inherit; cursor: pointer; }
   line-height: 1.5;
 }
 
-/* ----------- capabilities (compact two-column list) -----------
-   2 columns × 4 rows. Each row: italic serif numeral + title + one-line
-   description. Fits the whole section in one viewport. */
-.caps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* ----------- capabilities (before/after diff) -----------
+   Each capability = a tiny git diff hunk with @@ label @@ header,
+   red (-) pain-point line, green (+) what-promptry-does line.
+   Two columns of hunks on wide screens. */
+.caps-diff {
+  --diff-del-bg: color-mix(in oklab, oklch(0.55 0.18 25) 10%, transparent);
+  --diff-del-mark: oklch(0.72 0.17 25);
+  --diff-del-ink: color-mix(in oklab, var(--ink) 72%, oklch(0.55 0.18 25));
+  --diff-add-bg: color-mix(in oklab, oklch(0.62 0.15 148) 10%, transparent);
+  --diff-add-mark: oklch(0.75 0.15 148);
+  --diff-add-ink: var(--ink);
+  --diff-head: color-mix(in oklab, var(--accent) 72%, var(--ink));
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.55;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  column-gap: 56px;
-  row-gap: 0;
-  border-top: 1px solid var(--line);
+  column-gap: 40px;
+  row-gap: 28px;
+  margin-top: 8px;
 }
-.cap {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 20px;
-  align-items: baseline;
-  padding: 20px 4px;
-  border-bottom: 1px solid var(--line);
-  position: relative;
-}
-.cap::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: color-mix(in oklab, var(--accent) 4%, transparent);
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-.cap:hover::after { opacity: 1; }
-
-.cap-n {
-  font-family: var(--f-serif);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 34px;
-  line-height: 1;
-  color: var(--accent);
-  font-variation-settings: "opsz" 144, "SOFT" 50;
+[data-theme="light"] .caps-diff {
+  --diff-del-bg: color-mix(in oklab, oklch(0.55 0.18 25) 7%, transparent);
+  --diff-del-mark: oklch(0.5 0.18 25);
+  --diff-del-ink: color-mix(in oklab, var(--ink) 70%, oklch(0.48 0.18 25));
+  --diff-add-bg: color-mix(in oklab, oklch(0.48 0.15 148) 7%, transparent);
+  --diff-add-mark: oklch(0.48 0.15 148);
 }
 
-.cap-body { min-width: 0; }
-.cap-title {
-  font-size: 17px;
-  font-weight: 500;
-  color: var(--ink);
+.diff-hunk { min-width: 0; }
+.diff-head { margin-bottom: 10px; }
+
+.hs-title {
+  margin: 0;
+  font-family: var(--f-sans);
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: -0.015em;
-  margin: 0 0 4px;
+  color: var(--ink);
   line-height: 1.2;
 }
-.cap-desc {
-  font-size: 13.5px;
-  color: var(--ink-2);
-  line-height: 1.5;
-  margin: 0;
+
+.hs-hash {
+  font-family: var(--f-mono);
+  color: var(--accent);
+  margin-right: 8px;
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+.diff-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  padding: 3px 10px 3px 4px;
+  border-left: 2px solid transparent;
+}
+.diff-mark {
+  font-weight: 600;
+  user-select: none;
+  text-align: center;
+}
+.diff-text {
+  color: var(--ink);
   text-wrap: pretty;
 }
-.cap-desc code { font-size: 12.5px; }
-.cap-meta { display: none; }
+.diff-text code {
+  font-family: var(--f-mono);
+  font-size: 12.5px;
+  padding: 0 3px;
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+  border-radius: 3px;
+  color: var(--accent);
+}
 
-@media (max-width: 760px) {
-  .caps { grid-template-columns: 1fr; column-gap: 0; }
+.diff-del {
+  background: var(--diff-del-bg);
+  border-left-color: var(--diff-del-mark);
+}
+.diff-del .diff-mark { color: var(--diff-del-mark); }
+.diff-del .diff-text {
+  color: var(--diff-del-ink);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--diff-del-mark) 50%, transparent);
+  text-decoration-thickness: 1px;
+}
+
+.diff-add {
+  background: var(--diff-add-bg);
+  border-left-color: var(--diff-add-mark);
+}
+.diff-add .diff-mark { color: var(--diff-add-mark); }
+.diff-add .diff-text { color: var(--diff-add-ink); }
+
+@media (max-width: 860px) {
+  .caps-diff {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+    row-gap: 22px;
+  }
 }
 
 /* ----------- walkthrough ----------- */
@@ -1139,3 +1183,98 @@ hr.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
 .tl-num { font-family: var(--f-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; }
 .tl-title { font-size: 15px; font-weight: 500; color: var(--ink); margin: 8px 0 6px; }
 .tl-body { color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+
+/* ==================== MOBILE ==================== */
+@media (max-width: 720px) {
+  /* --- Nav: hamburger dropdown --- */
+  .nav-toggle { display: grid; }
+  .nav-cta { display: none; }
+  .nav-links {
+    position: absolute;
+    top: 56px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 8px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 8px 24px color-mix(in oklab, #000 18%, transparent);
+    transform: translateY(-6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+  }
+  .nav-links.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .nav-links a {
+    padding: 14px 16px;
+    font-size: 15px;
+    border-radius: var(--r-sm);
+  }
+
+  /* --- Hero --- */
+  .hero { padding: 48px 0 32px; }
+  .hero-sub { font-size: 15.5px; }
+  .install-stack { max-width: 100%; }
+  .install-cmd { overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .install-cmd::-webkit-scrollbar { display: none; }
+  .copy-btn { padding: 8px 10px; font-size: 11px; }
+
+  /* --- Terminal card --- */
+  .term-tabstrip { overflow-x: auto; scrollbar-width: none; }
+  .term-tabstrip::-webkit-scrollbar { display: none; }
+  .term-tab { flex: 0 0 auto; width: auto; min-width: 72px; padding: 0 14px; }
+  .term-title { display: none; }
+  .term-body {
+    padding: 14px 14px;
+    min-height: 0;
+    font-size: 12px;
+    overflow-x: auto;
+  }
+
+  /* --- Touch targets --- */
+  .theme-toggle { width: 36px; height: 36px; }
+
+  /* --- Caps diff: allow long inline code to wrap --- */
+  .diff-text { overflow-wrap: anywhere; }
+
+  /* --- Walkthrough step meta wraps below --- */
+  .step-meta { display: none; }
+
+  /* --- Compare table: horizontal scroll --- */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cmp { min-width: 640px; }
+
+  /* --- Footer --- */
+  .foot-grid { grid-template-columns: 1fr; }
+  .foot-bottom { flex-wrap: wrap; gap: 8px; }
+
+  /* --- Docs sidebar: no nested scroll trap on mobile --- */
+  .docs-side {
+    max-height: none;
+    overflow: visible;
+    padding: 24px 0;
+  }
+  .docs-side a { padding: 10px 10px; }
+  .docs-search input { padding: 12px 46px 12px 32px; font-size: 15px; }
+  .docs-body { padding-top: 24px; }
+  .docs-body h1 { font-size: 32px; }
+  .docs-body h2 { font-size: 22px; }
+}
+
+@media (max-width: 560px) {
+  /* Dashboard mock: hide sidebar, stack KPIs */
+  .mock-side { display: none; }
+  .mock-body { grid-template-columns: 1fr; min-height: 0; }
+  .mock-kpis { grid-template-columns: repeat(2, 1fr) !important; }
+  .mock-insights { grid-template-columns: 1fr !important; }
+
+  /* Hero h1 a touch smaller on very narrow */
+  .h1 { font-size: clamp(34px, 9vw, 44px); }
+  .sec-title { font-size: clamp(28px, 8vw, 36px); }
+}

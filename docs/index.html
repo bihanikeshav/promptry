@@ -36,7 +36,7 @@
       <span class="brand-name"><b>prompt<span class="ry">ry</span></b></span>
       <span class="ver">v0.7.0</span>
     </a>
-    <div class="nav-links">
+    <div class="nav-links" id="nav-links">
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
       <a href="#compare">Compare</a>
@@ -44,6 +44,9 @@
       <a href="architecture.html">Architecture</a>
     </div>
     <div class="nav-meta">
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path class="nt-bar1" d="M4 7h16"/><path class="nt-bar2" d="M4 12h16"/><path class="nt-bar3" d="M4 17h16"/></svg>
+      </button>
       <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
         <svg class="sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
         <svg class="moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
@@ -165,72 +168,48 @@
       <h2 class="sec-title">Everything you need to keep a prompt <em>honest</em>.</h2>
       <p class="sec-lede">Eight primitives that cover the lifecycle, from the moment a prompt lands in source control to the moment it misbehaves in production.</p>
     </div>
-    <ol class="caps">
-      <li class="cap">
-        <span class="cap-n">1</span>
-        <div class="cap-body">
-          <h3 class="cap-title">Prompt versioning</h3>
-          <p class="cap-desc">Every <code>track()</code> call content-hashes the prompt. Automatic dedup, full history, and diffs between any two versions.</p>
-        </div>
-        <div class="cap-meta">content-hashed · automatic</div>
-      </li>
-      <li class="cap">
-        <span class="cap-n">2</span>
-        <div class="cap-body">
-          <h3 class="cap-title">Eval suites</h3>
-          <p class="cap-desc">Semantic, schema, LLM-as-judge, JSON, regex, grounding, tool-use, conversation. Compose freely inside a <code>@suite</code>.</p>
-        </div>
-        <div class="cap-meta">eight assertion types</div>
-      </li>
-      <li class="cap">
-        <span class="cap-n">3</span>
-        <div class="cap-body">
-          <h3 class="cap-title">Regression detection</h3>
-          <p class="cap-desc">Compare any run against a saved baseline. Root-cause hints pinpoint which prompt or model version broke what.</p>
-        </div>
-        <div class="cap-meta">with root-cause hints</div>
-      </li>
-      <li class="cap">
-        <span class="cap-n">4</span>
-        <div class="cap-body">
-          <h3 class="cap-title">Drift detection</h3>
-          <p class="cap-desc">Rolling-window regression, z-scores, and a Mann-Whitney U test. Flags slow degradation before a hard regression shows up.</p>
-        </div>
-        <div class="cap-meta">statistical, not a threshold</div>
-      </li>
-      <li class="cap">
-        <span class="cap-n">5</span>
-        <div class="cap-body">
-          <h3 class="cap-title">Safety templates</h3>
-          <p class="cap-desc">25 starter attack prompts — jailbreak, prompt injection, PII fishing, hallucination triggers. Add your own.</p>
-        </div>
-        <div class="cap-meta">starters, not a corpus</div>
-      </li>
-      <li class="cap">
-        <span class="cap-n">6</span>
-        <div class="cap-body">
-          <h3 class="cap-title">Cost tracking</h3>
-          <p class="cap-desc">Token and dollar accounting per prompt, per model, per suite. Cache-aware across OpenAI, Anthropic, Gemini, and Grok.</p>
-        </div>
-        <div class="cap-meta">per-provider cache rates</div>
-      </li>
-      <li class="cap">
-        <span class="cap-n">7</span>
-        <div class="cap-body">
-          <h3 class="cap-title">CI + GitHub Action</h3>
-          <p class="cap-desc">One-line integration. Fails the build on regression and posts a PR comment with the score delta and root cause.</p>
-        </div>
-        <div class="cap-meta">posts to pull requests</div>
-      </li>
-      <li class="cap">
-        <span class="cap-n">8</span>
-        <div class="cap-body">
-          <h3 class="cap-title">MCP server</h3>
-          <p class="cap-desc">Expose suites, diffs, and scores to any MCP-compatible agent — so your LLM can debug its own prompts.</p>
-        </div>
-        <div class="cap-meta">stdio transport</div>
-      </li>
-    </ol>
+    <div class="caps-diff" role="list">
+      <div class="diff-hunk" role="listitem">
+        <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Prompt versioning</h3></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">Tweak the prompt, ship it, forget which version is live.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">Every <code>track()</code> call is content-hashed. Diff any two versions.</span></div>
+      </div>
+      <div class="diff-hunk" role="listitem">
+        <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Eval suites</h3></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">Ad-hoc asserts scattered across notebooks and PR comments.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">Eight assertion types — semantic, schema, judge, tool-use — in one <code>@suite</code>.</span></div>
+      </div>
+      <div class="diff-hunk" role="listitem">
+        <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Regression detection</h3></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">Prompt works. Six weeks later, nobody knows what broke it.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">Compare any run to a baseline. Root-cause hints flag the exact delta.</span></div>
+      </div>
+      <div class="diff-hunk" role="listitem">
+        <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Drift detection</h3></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">Scores slowly crawl down. You notice in Q3.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">Rolling-window regression + Mann-Whitney U catches slow degradation.</span></div>
+      </div>
+      <div class="diff-hunk" role="listitem">
+        <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Safety templates</h3></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">"We should probably red-team this" — Slack, last quarter.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">25 starter attacks: jailbreak, injection, PII fishing, hallucination.</span></div>
+      </div>
+      <div class="diff-hunk" role="listitem">
+        <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>Cost tracking</h3></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">Bill spikes. Which prompt? Which model? Nobody knows.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">Per-prompt, per-model, per-suite accounting. Cache-aware everywhere.</span></div>
+      </div>
+      <div class="diff-hunk" role="listitem">
+        <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>CI + GitHub Action</h3></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">Reviewer eyeballs a prompt diff and hopes for the best.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">One-line GitHub Action fails the build and posts the score delta.</span></div>
+      </div>
+      <div class="diff-hunk" role="listitem">
+        <div class="diff-head"><h3 class="hs-title"><span class="hs-hash">#</span>MCP server</h3></div>
+        <div class="diff-row diff-del"><span class="diff-mark">-</span><span class="diff-text">Agent has no idea if its own prompt is any good.</span></div>
+        <div class="diff-row diff-add"><span class="diff-mark">+</span><span class="diff-text">MCP endpoint exposes suites, diffs, and scores. Agent debugs itself.</span></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -491,6 +470,22 @@
       localStorage.setItem('promptry-theme', next);
       syncIcons();
     });
+
+    // Mobile nav toggle
+    const navToggle = document.getElementById('nav-toggle');
+    const navLinks = document.getElementById('nav-links');
+    if (navToggle && navLinks) {
+      navToggle.addEventListener('click', function () {
+        const open = navLinks.classList.toggle('open');
+        navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      navLinks.addEventListener('click', function (e) {
+        if (e.target.tagName === 'A') {
+          navLinks.classList.remove('open');
+          navToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
   })();
 
   // Terminal tabs
