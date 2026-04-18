@@ -1,257 +1,538 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>promptry - Sentry for prompts</title>
-    <meta name="description" content="Local-first regression testing for LLM pipelines. Track prompt versions, run eval suites, detect drift, catch regressions before your users do.">
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>promptry — Sentry for prompts</title>
+<meta name="description" content="Local-first regression testing for LLM pipelines. Versions prompts, runs eval suites in CI, detects drift and regressions. SQLite. MIT. Zero SaaS." />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<script>
+  // Wait for webfonts to finish loading before revealing the page,
+  // so Bricolage / Fraunces don't swap in after a visible first paint.
+  (function () {
+    var html = document.documentElement;
+    function reveal() { html.classList.add('fonts-ready'); }
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(reveal);
+      // safety: never hide the page longer than 1s
+      setTimeout(reveal, 1000);
+    } else {
+      reveal();
+    }
+  })();
+</script>
 </head>
 <body>
 
-<nav class="topnav">
-    <div class="topnav-inner">
-        <a href="index.html" class="logo">prompt<span>ry</span></a>
-        <div class="topnav-links">
-            <a href="index.html" class="active">Home</a>
-            <a href="docs.html">Docs</a>
-            <a href="architecture.html">Architecture</a>
-            <a href="https://github.com/bihanikeshav/promptry">GitHub</a>
-        </div>
+<!-- ==================== NAV ==================== -->
+<nav class="nav">
+  <div class="shell nav-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark"><img src="favicon.svg" alt="promptry" /></span>
+      <span class="brand-name"><b>prompt<span class="ry">ry</span></b></span>
+      <span class="ver">v0.7.0</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#compare">Compare</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html">Architecture</a>
     </div>
+    <div class="nav-meta">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <svg class="sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>
+        <svg class="moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+      </button>
+      <a class="nav-cta" href="https://github.com/bihanikeshav/promptry">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12c0 5.08 3.29 9.39 7.86 10.92.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.38-3.88-1.38-.52-1.32-1.28-1.67-1.28-1.67-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.3-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.3-.52-1.46.1-3.04 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.18-1.49 3.15-1.18 3.15-1.18.62 1.58.23 2.74.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.44-2.7 5.4-5.27 5.68.42.36.78 1.07.78 2.16v3.2c0 .32.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z" /></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
 </nav>
 
-<div class="content-wrap">
+<!-- ==================== HERO ==================== -->
+<section class="hero">
+  <div class="shell hero-grid">
+    <div>
+      <span class="dateline">~/promptry<span class="sep">·</span>released April 2026<span class="sep">·</span><a href="https://github.com/bihanikeshav/promptry/releases/tag/v0.7.0">v0.7.0</a></span>
+      <h1 class="h1">Catch prompt regressions <em>before</em> your users do.</h1>
+      <p class="hero-sub">
+        Promptry versions every prompt, runs eval suites on every change, and surfaces drift, regressions, and cost creep — all from a single SQLite file on your machine.
+      </p>
 
-    <div class="hero">
-        <h1>Sentry for <span>prompts</span></h1>
-        <p class="tagline">
-            Sentry catches when your code breaks. promptry catches when your prompts break — versions them, runs eval suites in CI, alerts on regressions and drift.
-        </p>
-        <div class="install-row">
-            <button class="install-box" onclick="copyInstall(this)" aria-label="Copy pip install promptry to clipboard">
-                <span class="dollar">$ </span>pip install promptry
-                <span class="copy-hint">Click to copy</span>
-            </button>
-            <button class="install-box install-alt" onclick="copyNpm(this)" aria-label="Copy npm install promptry-js to clipboard">
-                <span class="dollar">$ </span>npm install promptry-js
-                <span class="copy-hint">Click to copy</span>
-            </button>
+      <div class="install-stack">
+        <div class="install">
+          <span class="install-tag">py</span>
+          <span class="install-cmd"><span class="t-dim">$</span> pip install promptry</span>
+          <button class="copy-btn" data-copy="pip install promptry">COPY</button>
         </div>
+        <div class="install">
+          <span class="install-tag">js</span>
+          <span class="install-cmd"><span class="t-dim">$</span> npm install promptry-js</span>
+          <button class="copy-btn" data-copy="npm install promptry-js">COPY</button>
+        </div>
+      </div>
 
-        <div class="showcase">
-            <div class="showcase-nav">
-                <button class="showcase-pick active" data-idx="0">Overview <span>suites, scores, drift</span></button>
-                <button class="showcase-pick" data-idx="1">Suite Detail <span>history, root cause</span></button>
-                <button class="showcase-pick" data-idx="2">Prompts <span>versions, diffs</span></button>
-                <button class="showcase-pick" data-idx="3">Models <span>compare, cost/score</span></button>
-                <button class="showcase-pick" data-idx="4">Cost <span>tokens, spend</span></button>
+      <div class="cta-row">
+        <a class="btn primary" href="docs.html">Read the docs
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>
+        <a class="btn" href="https://github.com/bihanikeshav/promptry">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12c0 5.08 3.29 9.39 7.86 10.92.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.38-3.88-1.38-.52-1.32-1.28-1.67-1.28-1.67-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.3-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.3-.52-1.46.1-3.04 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.18-1.49 3.15-1.18 3.15-1.18.62 1.58.23 2.74.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.44-2.7 5.4-5.27 5.68.42.36.78 1.07.78 2.16v3.2c0 .32.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z" /></svg>
+          View on GitHub
+        </a>
+      </div>
+
+      <div class="hero-meta" style="margin-top: 32px">
+        <span><b>MIT</b> license</span>
+        <span class="sep">/</span>
+        <span><b>SQLite</b> storage</span>
+        <span class="sep">/</span>
+        <span><b>464</b> tests</span>
+      </div>
+    </div>
+
+    <!-- Terminal showcase -->
+    <div class="term">
+      <div class="term-head">
+        <div class="term-dots"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span></div>
+        <span class="term-title">~/rag-service · promptry</span>
+      </div>
+      <div class="term-tabstrip">
+        <button class="term-tab" data-tab="track">track</button>
+        <button class="term-tab on" data-tab="run">run</button>
+        <button class="term-tab" data-tab="compare">compare</button>
+      </div>
+      <div class="term-body">
+        <div class="term-pane" data-pane="track">
+          <div><span class="t-kw">from</span> promptry <span class="t-kw">import</span> track, suite, assert_semantic</div>
+          <div>&nbsp;</div>
+          <div>prompt = <span class="t-fn">track</span>(<span class="t-str">"You are a helpful assistant..."</span>, <span class="t-str">"rag-qa"</span>)</div>
+          <div>response = llm.chat(system=prompt, ...)</div>
+          <div>&nbsp;</div>
+          <div><span class="t-dim"># regression suite</span></div>
+          <div><span class="t-accent">@suite</span>(<span class="t-str">"rag-regression"</span>)</div>
+          <div><span class="t-kw">def</span> <span class="t-fn">test_quality</span>():</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;response = my_pipeline(<span class="t-str">"What is photosynthesis?"</span>)</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-fn">assert_semantic</span>(response, <span class="t-str">"Converts light into chemical energy"</span>)<span class="t-cur"></span></div>
+        </div>
+        <div class="term-pane on" data-pane="run">
+          <div><span class="t-prompt">$</span> promptry run rag-regression <span class="t-dim">--compare prod</span></div>
+          <div>&nbsp;</div>
+          <div><span class="t-ok">PASS</span> <span>test_quality</span> <span class="t-dim">(142ms)</span></div>
+          <div>&nbsp;&nbsp;<span class="t-dim">└</span> semantic(<span class="t-accent">0.891</span>) <span class="t-ok">ok</span></div>
+          <div><span class="t-ok">PASS</span> <span>test_grounding</span> <span class="t-dim">(98ms)</span></div>
+          <div>&nbsp;&nbsp;<span class="t-dim">└</span> grounding(<span class="t-accent">0.942</span>) <span class="t-ok">ok</span></div>
+          <div><span class="t-warn">WARN</span> <span>test_safety</span> <span class="t-dim">(218ms)</span></div>
+          <div>&nbsp;&nbsp;<span class="t-dim">└</span> refusal drifted <span class="t-accent">-0.04</span> vs baseline</div>
+          <div>&nbsp;</div>
+          <div><span class="t-dim">────────────────────────────────</span></div>
+          <div>Overall: <span class="t-ok">PASS</span> &nbsp;score: <span class="t-accent">0.913</span> &nbsp;<span class="t-dim">prod: 0.921 (-0.008)</span></div>
+          <div>&nbsp;</div>
+          <div><span class="t-dim">→ open dashboard</span> http://localhost:8420<span class="t-cur"></span></div>
+        </div>
+        <div class="term-pane" data-pane="compare">
+          <div><span class="t-prompt">$</span> promptry prompt diff rag-qa <span class="t-dim">12 13</span></div>
+          <div>&nbsp;</div>
+          <div><span class="t-dim">rag-qa</span>  <span class="t-dim">v12 → v13</span></div>
+          <div><span class="t-err">-</span> You are a helpful assistant. Answer concisely.</div>
+          <div><span class="t-ok">+</span> You are a helpful assistant. Answer in 2-3 sentences,</div>
+          <div><span class="t-ok">+</span>   citing sources with [n] markers where relevant.</div>
+          <div>&nbsp;</div>
+          <div><span class="t-dim">impact across last 500 runs:</span></div>
+          <div>&nbsp;&nbsp;groundedness <span class="t-ok">↑ 0.847 → 0.921</span></div>
+          <div>&nbsp;&nbsp;avg tokens &nbsp;&nbsp;<span class="t-warn">↑ 142 → 188</span></div>
+          <div>&nbsp;&nbsp;cost / 1k &nbsp;&nbsp;&nbsp;<span class="t-warn">↑ $0.21 → $0.28</span></div>
+          <div>&nbsp;&nbsp;refusal rate <span class="t-ok">↓ 2.1% → 1.4%</span><span class="t-cur"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ==================== FEATURES ==================== -->
+<section class="section" id="features">
+  <div class="shell">
+    <div class="sec-head">
+      <div class="sec-kicker">~/capabilities</div>
+      <h2 class="sec-title">Everything you need to keep a prompt <em>honest</em>.</h2>
+      <p class="sec-lede">Eight primitives that cover the lifecycle, from the moment a prompt lands in source control to the moment it misbehaves in production.</p>
+    </div>
+    <ol class="caps">
+      <li class="cap">
+        <span class="cap-n">1</span>
+        <div class="cap-body">
+          <h3 class="cap-title">Prompt versioning</h3>
+          <p class="cap-desc">Every <code>track()</code> call content-hashes the prompt. Automatic dedup, full history, and diffs between any two versions.</p>
+        </div>
+        <div class="cap-meta">content-hashed · automatic</div>
+      </li>
+      <li class="cap">
+        <span class="cap-n">2</span>
+        <div class="cap-body">
+          <h3 class="cap-title">Eval suites</h3>
+          <p class="cap-desc">Semantic, schema, LLM-as-judge, JSON, regex, grounding, tool-use, conversation. Compose freely inside a <code>@suite</code>.</p>
+        </div>
+        <div class="cap-meta">eight assertion types</div>
+      </li>
+      <li class="cap">
+        <span class="cap-n">3</span>
+        <div class="cap-body">
+          <h3 class="cap-title">Regression detection</h3>
+          <p class="cap-desc">Compare any run against a saved baseline. Root-cause hints pinpoint which prompt or model version broke what.</p>
+        </div>
+        <div class="cap-meta">with root-cause hints</div>
+      </li>
+      <li class="cap">
+        <span class="cap-n">4</span>
+        <div class="cap-body">
+          <h3 class="cap-title">Drift detection</h3>
+          <p class="cap-desc">Rolling-window regression, z-scores, and a Mann-Whitney U test. Flags slow degradation before a hard regression shows up.</p>
+        </div>
+        <div class="cap-meta">statistical, not a threshold</div>
+      </li>
+      <li class="cap">
+        <span class="cap-n">5</span>
+        <div class="cap-body">
+          <h3 class="cap-title">Safety templates</h3>
+          <p class="cap-desc">25 starter attack prompts — jailbreak, prompt injection, PII fishing, hallucination triggers. Add your own.</p>
+        </div>
+        <div class="cap-meta">starters, not a corpus</div>
+      </li>
+      <li class="cap">
+        <span class="cap-n">6</span>
+        <div class="cap-body">
+          <h3 class="cap-title">Cost tracking</h3>
+          <p class="cap-desc">Token and dollar accounting per prompt, per model, per suite. Cache-aware across OpenAI, Anthropic, Gemini, and Grok.</p>
+        </div>
+        <div class="cap-meta">per-provider cache rates</div>
+      </li>
+      <li class="cap">
+        <span class="cap-n">7</span>
+        <div class="cap-body">
+          <h3 class="cap-title">CI + GitHub Action</h3>
+          <p class="cap-desc">One-line integration. Fails the build on regression and posts a PR comment with the score delta and root cause.</p>
+        </div>
+        <div class="cap-meta">posts to pull requests</div>
+      </li>
+      <li class="cap">
+        <span class="cap-n">8</span>
+        <div class="cap-body">
+          <h3 class="cap-title">MCP server</h3>
+          <p class="cap-desc">Expose suites, diffs, and scores to any MCP-compatible agent — so your LLM can debug its own prompts.</p>
+        </div>
+        <div class="cap-meta">stdio transport</div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ==================== WALKTHROUGH ==================== -->
+<section class="section" id="how">
+  <div class="shell">
+    <div class="sec-head">
+      <div class="sec-kicker">~/flow</div>
+      <h2 class="sec-title">Four steps from plain-text prompt to a regression-proof pipeline.</h2>
+      <p class="sec-lede">No server to run. No account to create. No vendor telemetry to audit.</p>
+    </div>
+    <div class="walk">
+      <div class="steps">
+        <button class="step on" data-step="0">
+          <div class="step-num">1.</div>
+          <div>
+            <div class="step-title">Wrap your prompts with <code>track()</code></div>
+            <div class="step-body">One function call. Promptry stores the content-hashed version, keeps the history, and returns the string unchanged so your pipeline is untouched.</div>
+          </div>
+          <div class="step-meta">30s</div>
+        </button>
+        <button class="step" data-step="1">
+          <div class="step-num">2.</div>
+          <div>
+            <div class="step-title">Declare a suite, write assertions</div>
+            <div class="step-body">Mix semantic, schema, LLM-judge, regex, grounding, JSON, tool-use, and multi-turn checks in a single <code>@suite</code>. The assertion API reads like pytest.</div>
+          </div>
+          <div class="step-meta">Python + JS</div>
+        </button>
+        <button class="step" data-step="2">
+          <div class="step-num">3.</div>
+          <div>
+            <div class="step-title">Run locally or in CI</div>
+            <div class="step-body"><code>promptry run</code> blocks on regression. The GitHub Action posts a PR comment with score deltas and the version that caused them.</div>
+          </div>
+          <div class="step-meta">GitHub Action</div>
+        </button>
+        <button class="step" data-step="3">
+          <div class="step-num">4.</div>
+          <div>
+            <div class="step-title">Open the dashboard when something slips</div>
+            <div class="step-body">Zero-config web UI over the same SQLite file. Drift charts, run history, prompt diffs, cost rollups, playground.</div>
+          </div>
+          <div class="step-meta">localhost:8420</div>
+        </button>
+      </div>
+
+      <!-- Dashboard mock -->
+      <div class="mock">
+        <div class="mock-chrome">
+          <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="mock-url">localhost:8420 · promptry dashboard</div>
+          <div style="font-size: 10px; color: var(--ink-4)">local</div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-side">
+            <div class="mock-side-h">Workspace</div>
+            <div class="mock-side-item" data-side="0">Overview</div>
+            <div class="mock-side-item" data-side="1">Suites</div>
+            <div class="mock-side-item" data-side="2">Runs</div>
+            <div class="mock-side-item" data-side="3">Prompts</div>
+            <div class="mock-side-item">Models</div>
+            <div class="mock-side-item">Cost</div>
+            <div class="mock-side-h" style="margin-top: 14px">Recent</div>
+            <div class="mock-side-item recent">rag-regression</div>
+            <div class="mock-side-item recent">summarizer-v2</div>
+            <div class="mock-side-item recent">safety-suite</div>
+          </div>
+          <div class="mock-main">
+            <div class="mock-toolbar">
+              <div class="mock-title">rag-regression · <span class="dim">last 14 days</span></div>
+              <div class="base">● baseline: prod-2026-04-10</div>
             </div>
-            <div class="showcase-screen">
-                <img class="showcase-img active" data-img="0" src="screenshots/dashboard-overview.png" alt="Overview">
-                <img class="showcase-img" data-img="1" src="screenshots/dashboard-suite-detail.png" alt="Suite Detail">
-                <img class="showcase-img" data-img="2" src="screenshots/dashboard-prompts.png" alt="Prompts">
-                <img class="showcase-img" data-img="3" src="screenshots/dashboard-models.png" alt="Models">
-                <img class="showcase-img" data-img="4" src="screenshots/dashboard-cost.png" alt="Cost">
+            <div class="mock-kpis">
+              <div class="kpi">
+                <div class="kpi-label">Score</div>
+                <div class="kpi-val">0.913<span class="kpi-delta">+0.02</span></div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Runs</div>
+                <div class="kpi-val">1,284</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Pass rate</div>
+                <div class="kpi-val">96.4%<span class="kpi-delta down">-0.8</span></div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Cost / 1k</div>
+                <div class="kpi-val">$0.21</div>
+              </div>
             </div>
+            <div class="mock-chart">
+              <svg viewBox="0 0 400 140" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.35" />
+                    <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d="M0,80 L30,72 L60,78 L90,60 L120,64 L150,52 L180,58 L210,44 L240,52 L270,40 L300,46 L330,36 L360,52 L400,28" fill="none" stroke="var(--accent)" stroke-width="1.5" />
+                <path d="M0,80 L30,72 L60,78 L90,60 L120,64 L150,52 L180,58 L210,44 L240,52 L270,40 L300,46 L330,36 L360,52 L400,28 L400,140 L0,140 Z" fill="url(#g1)" />
+                <path d="M0,90 L30,94 L60,88 L90,82 L120,86 L150,78 L180,84 L210,74 L240,80 L270,72 L300,78 L330,70 L360,76 L400,66" fill="none" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 3" opacity="0.6" />
+                <circle cx="330" cy="36" r="3" fill="var(--accent)" />
+                <circle cx="330" cy="36" r="6" fill="none" stroke="var(--accent)" stroke-opacity="0.4" />
+              </svg>
+            </div>
+            <div class="mock-insights">
+              <div class="mock-insight">
+                <div class="label">Root cause</div>
+                <div class="val">rag-qa v12 → v13 · refusal template shortened</div>
+              </div>
+              <div class="mock-insight">
+                <div class="label">Drift window</div>
+                <div class="val">7 day · safety-refusal <span class="neg">-0.04σ</span></div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <section id="features">
-        <h2>What it does</h2>
-        <div class="feature-list">
-            <div class="feature-item"><strong>Prompt versioning</strong> — content-hashed, automatic dedup</div>
-            <div class="feature-item"><strong>Eval suites</strong> — semantic, schema, LLM-as-judge, JSON, regex, grounding</div>
-            <div class="feature-item"><strong>Regression detection</strong> — baseline comparison with root cause hints</div>
-            <div class="feature-item"><strong>Drift detection</strong> — catches slow degradation over time</div>
-            <div class="feature-item"><strong>Safety templates</strong> — 25 starter attack prompts, add your own</div>
-            <div class="feature-item"><strong>Cost tracking</strong> — tokens and cost per prompt, aggregated reports</div>
-            <div class="feature-item"><strong>CI + GitHub Action</strong> — one-line CI integration with alerts</div>
-            <div class="feature-item"><strong>MCP server</strong> — expose everything to LLM agents</div>
-        </div>
-    </section>
-
-    <section id="compare">
-        <h2>How it compares</h2>
-        <p>promptry is built for developers who want prompt regression testing without platform lock-in. Each tool has trade-offs — Promptfoo has more assertion types, RAGAS has gold-standard RAG metrics, LangSmith has better multi-user dashboards. promptry's niche is the combo of local SQLite + automatic versioning + CI-native + MCP server in one Python-first package.</p>
-        <div class="compare-table-wrap">
-            <table class="compare-table">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th class="col-highlight"><span class="brand-cell">prompt<span>ry</span></span></th>
-                        <th>Promptfoo</th>
-                        <th>DeepEval</th>
-                        <th>RAGAS</th>
-                        <th>LangSmith</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="row-label">Language</td>
-                        <td class="col-highlight">Python + JS</td>
-                        <td>TypeScript</td>
-                        <td>Python</td>
-                        <td>Python</td>
-                        <td>Python + JS</td>
-                    </tr>
-                    <tr>
-                        <td class="row-label">Local-first</td>
-                        <td class="col-highlight"><span class="check yes">SQLite</span></td>
-                        <td><span class="check yes">Yes</span></td>
-                        <td><span class="check partial">Cloud push</span></td>
-                        <td><span class="check yes">Yes</span></td>
-                        <td><span class="check no">SaaS only</span></td>
-                    </tr>
-                    <tr>
-                        <td class="row-label">Prompt versioning</td>
-                        <td class="col-highlight"><span class="check yes">Automatic</span></td>
-                        <td><span class="check partial">Git + YAML</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check yes">Prompt Hub</span></td>
-                    </tr>
-                    <tr>
-                        <td class="row-label">Drift over time</td>
-                        <td class="col-highlight"><span class="check yes">Regression window</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check yes">Dashboards</span></td>
-                    </tr>
-                    <tr>
-                        <td class="row-label">Root cause hints</td>
-                        <td class="col-highlight"><span class="check yes">Yes</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
-                    </tr>
-                    <tr>
-                        <td class="row-label">Safety / red-team</td>
-                        <td class="col-highlight"><span class="check yes">25 starters</span></td>
-                        <td><span class="check yes">Yes</span></td>
-                        <td><span class="check yes">Yes</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
-                    </tr>
-                    <tr>
-                        <td class="row-label">MCP server</td>
-                        <td class="col-highlight"><span class="check yes">Native</span></td>
-                        <td><span class="check partial">Plugin</span></td>
-                        <td><span class="check partial">Partial</span></td>
-                        <td><span class="check no">No</span></td>
-                        <td><span class="check no">No</span></td>
-                    </tr>
-                    <tr>
-                        <td class="row-label">Vendor</td>
-                        <td class="col-highlight"><span class="check yes">Independent</span></td>
-                        <td><span class="check partial">OpenAI-owned</span></td>
-                        <td><span class="check yes">Independent</span></td>
-                        <td><span class="check yes">Independent</span></td>
-                        <td><span class="check no">LangChain</span></td>
-                    </tr>
-                    <tr>
-                        <td class="row-label">Cost</td>
-                        <td class="col-highlight"><span class="check yes">Free</span></td>
-                        <td><span class="check yes">Free</span></td>
-                        <td><span class="check partial">Freemium</span></td>
-                        <td><span class="check yes">Free</span></td>
-                        <td><span class="check partial">Freemium</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <section id="quickstart">
-        <h2>How it works</h2>
-        <pre><code><span class="cmt"># track() content-hashes the prompt and stores a version if it changed</span>
-<span class="kw">from</span> <span class="fn">promptry</span> <span class="kw">import</span> track, suite, assert_semantic
-
-prompt = track(<span class="str">"You are a helpful assistant..."</span>, <span class="str">"rag-qa"</span>)
-response = llm.chat(system=prompt, ...)
-
-<span class="cmt"># @suite is a regular Python function — run it via CLI or in CI</span>
-<span class="kw">@suite</span>(<span class="str">"rag-regression"</span>)
-<span class="kw">def</span> <span class="fn">test_quality</span>():
-    response = my_pipeline(<span class="str">"What is photosynthesis?"</span>)
-    assert_semantic(response, <span class="str">"Converts light into chemical energy"</span>)</code></pre>
-
-        <div class="terminal">
-<span class="dim">$ promptry run rag-regression --module evals --compare prod</span>
-
-  <span class="pass">PASS</span> test_quality (142ms)
-    semantic (0.891) ok
-  Overall: <span class="pass">PASS</span>  score: 0.891
-
-  Comparing against <b>prod</b> baseline:
-  Overall score: 0.867 -> 0.891  ok
-        </div>
-        <p style="color: var(--text-dim); font-size: 13px; margin-top: 8px;">
-            Local SQLite. No Docker. No SaaS account. (Assertions that call an LLM like <code>assert_llm</code> still need your provider key.)
-            <a href="docs.html">Full docs</a> &middot; <a href="https://github.com/bihanikeshav/promptry/tree/main/examples">Examples</a>
-        </p>
-    </section>
-
-
-</div>
-
-<footer>
-    <div class="footer-inner">
-        <div class="footer-col">
-            <div class="footer-brand">prompt<span>ry</span></div>
-            <p>Local-first regression testing for LLM pipelines.</p>
-        </div>
-        <div class="footer-col">
-            <h4>Product</h4>
-            <a href="docs.html">Documentation</a>
-            <a href="architecture.html">Architecture</a>
-            <a href="docs.html#dashboard">Dashboard</a>
-            <a href="docs.html#mcp-server-llm-agent-integration">MCP Server</a>
-        </div>
-        <div class="footer-col">
-            <h4>Resources</h4>
-            <a href="https://github.com/bihanikeshav/promptry/tree/main/examples">Examples</a>
-            <a href="https://pypi.org/project/promptry/">PyPI</a>
-            <a href="https://www.npmjs.com/package/promptry-js">npm</a>
-        </div>
-        <div class="footer-col">
-            <h4>Community</h4>
-            <a href="https://github.com/bihanikeshav/promptry">GitHub</a>
-            <a href="https://github.com/bihanikeshav/promptry/issues">Issues</a>
-        </div>
+<!-- ==================== COMPARE ==================== -->
+<section class="section" id="compare">
+  <div class="shell">
+    <div class="sec-head">
+      <div class="sec-kicker">~/landscape</div>
+      <h2 class="sec-title">How promptry <em>compares</em>.</h2>
+      <p class="sec-lede">Built for developers who want prompt regression testing without platform lock-in, cloud uploads, or a vendor relationship.</p>
     </div>
-    <div class="footer-bottom">
-        MIT License &middot; Built by <a href="https://meownikov.xyz">Keshav</a>
+    <div class="table-wrap">
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th class="col-feat">Feature</th>
+            <th class="us"><span class="brand-logo">prompt<span class="ry">ry</span></span></th>
+            <th>Promptfoo</th>
+            <th>DeepEval</th>
+            <th>RAGAS</th>
+            <th>LangSmith</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="col-feat">Language</td><td class="us yes">Python + JS</td><td class="mid">TypeScript</td><td class="mid">Python</td><td class="mid">Python</td><td class="mid">Python + JS</td></tr>
+          <tr><td class="col-feat">Local-first</td><td class="us yes">SQLite</td><td class="yes">Yes</td><td class="mid">Cloud push</td><td class="yes">Yes</td><td class="no">SaaS only</td></tr>
+          <tr><td class="col-feat">Prompt versioning</td><td class="us yes">Automatic</td><td class="mid">Git + YAML</td><td class="no">—</td><td class="no">—</td><td class="yes">Prompt Hub</td></tr>
+          <tr><td class="col-feat">Drift over time</td><td class="us yes">Regression window</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">Dashboards</td></tr>
+          <tr><td class="col-feat">Root cause hints</td><td class="us yes">Yes</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="col-feat">Safety / red-team</td><td class="us yes">25 starters</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="col-feat">MCP server</td><td class="us yes">Native</td><td class="mid">Plugin</td><td class="mid">Partial</td><td class="no">—</td><td class="no">—</td></tr>
+          <tr><td class="col-feat">Vendor</td><td class="us yes">Independent</td><td class="mid">OpenAI-owned</td><td class="yes">Independent</td><td class="yes">Independent</td><td class="no">LangChain</td></tr>
+          <tr><td class="col-feat">Cost</td><td class="us yes">Free · MIT</td><td class="yes">Free</td><td class="mid">Freemium</td><td class="yes">Free</td><td class="mid">Freemium</td></tr>
+        </tbody>
+      </table>
     </div>
+  </div>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="section" id="start" style="border-bottom: none">
+  <div class="shell cta-grid">
+    <div>
+      <div class="sec-kicker">~/start</div>
+      <h2 class="sec-title" style="margin-top: 0">Local SQLite. No Docker. No SaaS. <em>No API keys.</em></h2>
+      <p class="sec-lede" style="margin-top: 16px">Install, wrap one prompt, write one assertion. Promptry takes it from there. Assertions that call an LLM (<code>assert_llm</code>, <code>assert_grounded</code>) still need your provider key.</p>
+      <div class="cta-row" style="margin-top: 28px">
+        <a class="btn primary" href="docs.html">Read the docs
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </a>
+        <a class="btn" href="https://github.com/bihanikeshav/promptry/tree/main/examples">Examples on GitHub</a>
+      </div>
+    </div>
+    <div class="term">
+      <div class="term-head">
+        <div class="term-dots"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span></div>
+        <span class="term-title">60-second quickstart</span>
+        <div style="font-size: 10px; color: var(--ink-4)">bash</div>
+      </div>
+      <div class="term-body">
+        <div><span class="t-prompt">$</span> pip install promptry</div>
+        <div><span class="t-dim">Successfully installed promptry-0.7.0</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">$</span> promptry init</div>
+        <div><span class="t-dim">created promptry.toml · evals.py · SQLite ready</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">$</span> promptry run smoke-test --module evals</div>
+        <div><span class="t-ok">PASS</span> test_quality <span class="t-dim">(142ms)</span></div>
+        <div><span class="t-ok">PASS</span> test_safety &nbsp;<span class="t-dim">(218ms)</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">$</span> promptry dashboard</div>
+        <div><span class="t-accent">→</span> open http://localhost:8420<span class="t-cur"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="foot">
+  <div class="shell">
+    <div class="foot-grid">
+      <div>
+        <div class="brand">
+          <span class="brand-mark"><img src="favicon.svg" alt="promptry" /></span>
+          <span class="brand-name"><b>prompt<span class="ry">ry</span></b></span>
+        </div>
+        <p class="foot-tag">Local-first regression testing for LLM pipelines. MIT-licensed. Built by Keshav.</p>
+      </div>
+      <div>
+        <h5>Product</h5>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="docs.html#dashboard">Dashboard</a></li>
+          <li><a href="docs.html#mcp-server-llm-agent-integration">MCP Server</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Resources</h5>
+        <ul>
+          <li><a href="https://github.com/bihanikeshav/promptry/tree/main/examples">Examples</a></li>
+          <li><a href="https://pypi.org/project/promptry/">PyPI</a></li>
+          <li><a href="https://www.npmjs.com/package/promptry-js">npm</a></li>
+          <li><a href="https://github.com/bihanikeshav/promptry/releases">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Community</h5>
+        <ul>
+          <li><a href="https://github.com/bihanikeshav/promptry">GitHub</a></li>
+          <li><a href="https://github.com/bihanikeshav/promptry/issues">Issues</a></li>
+          <li><a href="https://github.com/bihanikeshav/promptry/discussions">Discussions</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>MIT License · © 2026 Keshav</span>
+      <span>v0.7.0</span>
+    </div>
+  </div>
 </footer>
 
 <script>
-function copyCmd(el, text) {
-    navigator.clipboard.writeText(text).then(function() {
-        el.classList.add('copied');
-        el.querySelector('.copy-hint').textContent = 'Copied!';
-        setTimeout(function() {
-            el.classList.remove('copied');
-            el.querySelector('.copy-hint').textContent = 'Click to copy';
-        }, 2000);
+  // Theme toggle (persisted)
+  (function () {
+    const root = document.documentElement;
+    const saved = localStorage.getItem('promptry-theme');
+    if (saved) root.setAttribute('data-theme', saved);
+    function syncIcons() {
+      const dark = root.getAttribute('data-theme') !== 'light';
+      document.querySelector('.theme-toggle .sun').style.display = dark ? '' : 'none';
+      document.querySelector('.theme-toggle .moon').style.display = dark ? 'none' : '';
+    }
+    syncIcons();
+    document.getElementById('theme-toggle').addEventListener('click', function () {
+      const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('promptry-theme', next);
+      syncIcons();
     });
-}
-function copyInstall(el) { copyCmd(el, 'pip install promptry'); }
-function copyNpm(el) { copyCmd(el, 'npm install promptry-js'); }
+  })();
 
-/* Showcase switching */
-document.querySelectorAll('.showcase-pick').forEach(function(item) {
-    item.addEventListener('click', function() {
-        var idx = this.dataset.idx;
-        document.querySelectorAll('.showcase-pick').forEach(function(i) { i.classList.remove('active'); });
-        document.querySelectorAll('.showcase-img').forEach(function(i) { i.classList.remove('active'); });
-        this.classList.add('active');
-        document.querySelector('.showcase-img[data-img="' + idx + '"]').classList.add('active');
+  // Terminal tabs
+  document.querySelectorAll('.term-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const tab = btn.dataset.tab;
+      const container = btn.closest('.term');
+      container.querySelectorAll('.term-tab').forEach(function (b) { b.classList.toggle('on', b === btn); });
+      container.querySelectorAll('.term-pane').forEach(function (p) {
+        p.classList.toggle('on', p.dataset.pane === tab);
+      });
     });
-});
+  });
+
+  // Walkthrough steps + sync dashboard sidebar highlight
+  document.querySelectorAll('.step').forEach(function (step) {
+    step.addEventListener('click', function () {
+      const idx = step.dataset.step;
+      document.querySelectorAll('.step').forEach(function (s) { s.classList.toggle('on', s === step); });
+      document.querySelectorAll('.mock-side-item[data-side]').forEach(function (item) {
+        item.classList.toggle('on', item.dataset.side === idx);
+      });
+    });
+  });
+  // initial sync
+  document.querySelectorAll('.mock-side-item[data-side="0"]').forEach(function (i) { i.classList.add('on'); });
+
+  // Copy buttons
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const text = btn.dataset.copy;
+      navigator.clipboard.writeText(text).then(function () {
+        const original = btn.textContent;
+        btn.textContent = 'COPIED';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+  });
 </script>
 
 </body>
