@@ -1,6 +1,6 @@
 {
-  "version": "2026-09-01",
-  "updated": "2026-09-01T11:35:10Z",
+  "version": "2026-09-02",
+  "updated": "2026-09-02T11:12:58Z",
   "source": "litellm",
   "mode": "replace",
   "rates": {
@@ -551,10 +551,10 @@
       "out": 1.9800000000000002
     },
     "GLM-5.3": {
-      "in": 1.4,
-      "cached": 0.26,
-      "cache_write": 1.4,
-      "out": 4.4
+      "in": 1.26,
+      "cached": 0.234,
+      "cache_write": 1.26,
+      "out": 3.9600000000000004
     },
     "GLM-5.3-Flash": {
       "in": 0.15,
@@ -574,7 +574,7 @@
       "cache_write": 0.0,
       "out": 0.0
     },
-    "GigaChat-2-Lite": {
+    "GigaChat-2": {
       "in": 0.0,
       "cached": 0.0,
       "cache_write": 0.0,
@@ -587,6 +587,12 @@
       "out": 0.0
     },
     "GigaChat-2-Pro": {
+      "in": 0.0,
+      "cached": 0.0,
+      "cache_write": 0.0,
+      "out": 0.0
+    },
+    "GigaEmbeddings-3B-2025-09": {
       "in": 0.0,
       "cached": 0.0,
       "cache_write": 0.0,
@@ -1552,6 +1558,12 @@
       "cache_write": 0.39999999999999997,
       "out": 3.0
     },
+    "Qwen/Qwen3.8-Flash": {
+      "in": 0.15,
+      "cached": 0.075,
+      "cache_write": 0.15,
+      "out": 0.47
+    },
     "Qwen/Qwen3.8-Max": {
       "in": 1.6500000000000001,
       "cached": 0.206,
@@ -1851,6 +1863,12 @@
       "cached": 0.15,
       "cache_write": 0.39999999999999997,
       "out": 3.0
+    },
+    "Qwen3.8-Flash": {
+      "in": 0.15,
+      "cached": 0.075,
+      "cache_write": 0.15,
+      "out": 0.47
     },
     "Qwen3.8-Max": {
       "in": 1.6500000000000001,
@@ -3802,6 +3820,12 @@
       "cache_write": 2.1875,
       "out": 17.5
     },
+    "amazon.nova-2-sonic-v1:0": {
+      "in": 0.33,
+      "cached": 0.165,
+      "cache_write": 0.33,
+      "out": 2.75
+    },
     "amazon.nova-lite-v1:0": {
       "in": 0.06,
       "cached": 0.03,
@@ -3819,6 +3843,12 @@
       "cached": 0.39999999999999997,
       "cache_write": 0.7999999999999999,
       "out": 3.1999999999999997
+    },
+    "amazon.nova-sonic-v1:0": {
+      "in": 0.06,
+      "cached": 0.03,
+      "cache_write": 0.06,
+      "out": 0.24
     },
     "amazon.rerank-v1:0": {
       "in": 0.0,
@@ -3967,6 +3997,12 @@
     "anthropic.claude-fable-5": {
       "in": 10.0,
       "cached": 1.0,
+      "cache_write": 12.5,
+      "out": 50.0
+    },
+    "anthropic.claude-fable-5-1": {
+      "in": 10.0,
+      "cached": 0.25,
       "cache_write": 12.5,
       "out": 50.0
     },
@@ -6028,6 +6064,12 @@
       "cache_write": 12.5,
       "out": 50.0
     },
+    "azure_ai/claude-fable-5-1": {
+      "in": 10.0,
+      "cached": 0.25,
+      "cache_write": 12.5,
+      "out": 50.0
+    },
     "azure_ai/claude-haiku-4-5": {
       "in": 1.0,
       "cached": 0.09999999999999999,
@@ -6157,6 +6199,12 @@
     "azure_ai/deepseek-v4-flash": {
       "in": 0.19,
       "cached": 0.095,
+      "cache_write": 0.19,
+      "out": 0.51
+    },
+    "azure_ai/deepseek-v4-flash-0731": {
+      "in": 0.19,
+      "cached": 0.028,
       "cache_write": 0.19,
       "out": 0.51
     },
@@ -7438,6 +7486,12 @@
       "cache_write": 0.35,
       "out": 0.69
     },
+    "cerebras/gemma-4-31b": {
+      "in": 0.9900000000000001,
+      "cached": 0.49500000000000005,
+      "cache_write": 0.9900000000000001,
+      "out": 1.49
+    },
     "cerebras/gpt-oss-120b": {
       "in": 0.35,
       "cached": 0.175,
@@ -7681,6 +7735,18 @@
     "claude-fable-5": {
       "in": 10.0,
       "cached": 1.0,
+      "cache_write": 12.5,
+      "out": 50.0
+    },
+    "claude-fable-5-1": {
+      "in": 10.0,
+      "cached": 0.25,
+      "cache_write": 12.5,
+      "out": 50.0
+    },
+    "claude-fable-5-1@default": {
+      "in": 10.0,
+      "cached": 0.25,
       "cache_write": 12.5,
       "out": 50.0
     },
@@ -9028,6 +9094,18 @@
       "cache_write": 3.7499700000000002,
       "out": 15.00002
     },
+    "databricks-deepseek-v4-flash-0731": {
+      "in": 0.14,
+      "cached": 0.028,
+      "cache_write": 0.14,
+      "out": 0.28
+    },
+    "databricks-deepseek-v4-pro-0813": {
+      "in": 1.31999,
+      "cached": 0.13202,
+      "cache_write": 1.31999,
+      "out": 3.9599699999999998
+    },
     "databricks-gemini-2-5-flash": {
       "in": 0.30001999999999995,
       "cached": 0.030002,
@@ -9321,6 +9399,18 @@
       "cached": 0.30002,
       "cache_write": 3.7499700000000002,
       "out": 15.00002
+    },
+    "databricks/databricks-deepseek-v4-flash-0731": {
+      "in": 0.14,
+      "cached": 0.028,
+      "cache_write": 0.14,
+      "out": 0.28
+    },
+    "databricks/databricks-deepseek-v4-pro-0813": {
+      "in": 1.31999,
+      "cached": 0.13202,
+      "cache_write": 1.31999,
+      "out": 3.9599699999999998
     },
     "databricks/databricks-gemini-2-5-flash": {
       "in": 0.30001999999999995,
@@ -10853,10 +10943,10 @@
       "out": 1.32
     },
     "deepseek-v4-flash-0731": {
-      "in": 0.19999999999999998,
-      "cached": 0.04,
-      "cache_write": 0.19999999999999998,
-      "out": 0.39999999999999997
+      "in": 0.19,
+      "cached": 0.028,
+      "cache_write": 0.19,
+      "out": 0.51
     },
     "deepseek-v4-flash-thinking": {
       "in": 0.25,
@@ -11539,6 +11629,12 @@
     "eu.anthropic.claude-fable-5": {
       "in": 11.0,
       "cached": 1.1,
+      "cache_write": 13.75,
+      "out": 55.0
+    },
+    "eu.anthropic.claude-fable-5-1": {
+      "in": 11.0,
+      "cached": 0.275,
       "cache_write": 13.75,
       "out": 55.0
     },
@@ -13601,10 +13697,10 @@
       "out": 0.28
     },
     "fireworks_ai/deepseek-v4-flash-0731": {
-      "in": 0.14,
-      "cached": 0.028,
-      "cache_write": 0.14,
-      "out": 0.28
+      "in": 0.22,
+      "cached": 0.007,
+      "cache_write": 0.22,
+      "out": 0.66
     },
     "fireworks_ai/deepseek-v4-pro": {
       "in": 1.74,
@@ -13845,6 +13941,18 @@
       "cached": 0.049999999999999996,
       "cache_write": 0.09999999999999999,
       "out": 0.09999999999999999
+    },
+    "friendliai/zai-org/GLM-5.3": {
+      "in": 1.26,
+      "cached": 0.234,
+      "cache_write": 1.26,
+      "out": 3.9600000000000004
+    },
+    "friendliai/zai-org/GLM-5.3-Flash": {
+      "in": 0.15,
+      "cached": 0.03,
+      "cache_write": 0.15,
+      "out": 0.5
     },
     "ft:babbage-002": {
       "in": 1.5999999999999999,
@@ -14770,6 +14878,12 @@
       "cache_write": 0.09,
       "out": 0.33999999999999997
     },
+    "gemma-4-31b": {
+      "in": 0.9900000000000001,
+      "cached": 0.49500000000000005,
+      "cache_write": 0.9900000000000001,
+      "out": 1.49
+    },
     "gemma-4-31b-it": {
       "in": 0.0,
       "cached": 0.0,
@@ -14842,7 +14956,7 @@
       "cache_write": 0.0,
       "out": 0.0
     },
-    "gigachat/GigaChat-2-Lite": {
+    "gigachat/GigaChat-2": {
       "in": 0.0,
       "cached": 0.0,
       "cache_write": 0.0,
@@ -14855,6 +14969,12 @@
       "out": 0.0
     },
     "gigachat/GigaChat-2-Pro": {
+      "in": 0.0,
+      "cached": 0.0,
+      "cache_write": 0.0,
+      "out": 0.0
+    },
+    "gigachat/GigaEmbeddings-3B-2025-09": {
       "in": 0.0,
       "cached": 0.0,
       "cache_write": 0.0,
@@ -15121,6 +15241,12 @@
     "global.anthropic.claude-fable-5": {
       "in": 10.0,
       "cached": 1.0,
+      "cache_write": 12.5,
+      "out": 50.0
+    },
+    "global.anthropic.claude-fable-5-1": {
+      "in": 10.0,
+      "cached": 0.25,
       "cache_write": 12.5,
       "out": 50.0
     },
@@ -26230,6 +26356,306 @@
       "cache_write": 2.0,
       "out": 6.0
     },
+    "qwen_ai_platform/deepseek-v4-flash": {
+      "in": 0.19999999999999998,
+      "cached": 0.04,
+      "cache_write": 0.19999999999999998,
+      "out": 0.39999999999999997
+    },
+    "qwen_ai_platform/deepseek-v4-flash-0731": {
+      "in": 0.19999999999999998,
+      "cached": 0.04,
+      "cache_write": 0.19999999999999998,
+      "out": 0.39999999999999997
+    },
+    "qwen_ai_platform/deepseek-v4-pro": {
+      "in": 2.4,
+      "cached": 0.19999999999999998,
+      "cache_write": 2.4,
+      "out": 4.8
+    },
+    "qwen_ai_platform/glm-5.1": {
+      "in": 1.4,
+      "cached": 0.26,
+      "cache_write": 1.4,
+      "out": 4.4
+    },
+    "qwen_ai_platform/glm-5.2": {
+      "in": 1.4,
+      "cached": 0.28,
+      "cache_write": 1.4,
+      "out": 4.4
+    },
+    "qwen_ai_platform/kimi-k2.7-code": {
+      "in": 0.95,
+      "cached": 0.19,
+      "cache_write": 0.95,
+      "out": 4.0
+    },
+    "qwen_ai_platform/qwen-coder": {
+      "in": 0.3,
+      "cached": 0.15,
+      "cache_write": 0.3,
+      "out": 1.5
+    },
+    "qwen_ai_platform/qwen-max": {
+      "in": 1.5999999999999999,
+      "cached": 0.7999999999999999,
+      "cache_write": 1.5999999999999999,
+      "out": 6.3999999999999995
+    },
+    "qwen_ai_platform/qwen-plus": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.2
+    },
+    "qwen_ai_platform/qwen-plus-2025-01-25": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.2
+    },
+    "qwen_ai_platform/qwen-plus-2025-04-28": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.2
+    },
+    "qwen_ai_platform/qwen-plus-2025-07-14": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.2
+    },
+    "qwen_ai_platform/qwen-turbo": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.19999999999999998
+    },
+    "qwen_ai_platform/qwen-turbo-2024-11-01": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.19999999999999998
+    },
+    "qwen_ai_platform/qwen-turbo-2025-04-28": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.19999999999999998
+    },
+    "qwen_ai_platform/qwen-turbo-latest": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.19999999999999998
+    },
+    "qwen_ai_platform/qwen3-next-80b-a3b-instruct": {
+      "in": 0.15,
+      "cached": 0.075,
+      "cache_write": 0.15,
+      "out": 1.2
+    },
+    "qwen_ai_platform/qwen3-next-80b-a3b-thinking": {
+      "in": 0.15,
+      "cached": 0.075,
+      "cache_write": 0.15,
+      "out": 1.2
+    },
+    "qwen_ai_platform/qwen3-vl-235b-a22b-instruct": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.5999999999999999
+    },
+    "qwen_ai_platform/qwen3-vl-235b-a22b-thinking": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 4.0
+    },
+    "qwen_ai_platform/qwen3-vl-32b-instruct": {
+      "in": 0.16,
+      "cached": 0.08,
+      "cache_write": 0.16,
+      "out": 0.64
+    },
+    "qwen_ai_platform/qwen3-vl-32b-thinking": {
+      "in": 0.16,
+      "cached": 0.08,
+      "cache_write": 0.16,
+      "out": 2.87
+    },
+    "qwen_ai_platform/qwen3.7-max": {
+      "in": 2.5,
+      "cached": 0.5,
+      "cache_write": 2.5,
+      "out": 7.5
+    },
+    "qwen_ai_platform/qwen3.8-max": {
+      "in": 2.0,
+      "cached": 0.25,
+      "cache_write": 2.0,
+      "out": 6.0
+    },
+    "qwen_ai_platform/qwq-plus": {
+      "in": 0.7999999999999999,
+      "cached": 0.39999999999999997,
+      "cache_write": 0.7999999999999999,
+      "out": 2.4
+    },
+    "qwencloud/deepseek-v4-flash": {
+      "in": 0.19999999999999998,
+      "cached": 0.04,
+      "cache_write": 0.19999999999999998,
+      "out": 0.39999999999999997
+    },
+    "qwencloud/deepseek-v4-flash-0731": {
+      "in": 0.19999999999999998,
+      "cached": 0.04,
+      "cache_write": 0.19999999999999998,
+      "out": 0.39999999999999997
+    },
+    "qwencloud/deepseek-v4-pro": {
+      "in": 2.4,
+      "cached": 0.19999999999999998,
+      "cache_write": 2.4,
+      "out": 4.8
+    },
+    "qwencloud/glm-5.1": {
+      "in": 1.4,
+      "cached": 0.26,
+      "cache_write": 1.4,
+      "out": 4.4
+    },
+    "qwencloud/glm-5.2": {
+      "in": 1.4,
+      "cached": 0.28,
+      "cache_write": 1.4,
+      "out": 4.4
+    },
+    "qwencloud/kimi-k2.7-code": {
+      "in": 0.95,
+      "cached": 0.19,
+      "cache_write": 0.95,
+      "out": 4.0
+    },
+    "qwencloud/qwen-coder": {
+      "in": 0.3,
+      "cached": 0.15,
+      "cache_write": 0.3,
+      "out": 1.5
+    },
+    "qwencloud/qwen-max": {
+      "in": 1.5999999999999999,
+      "cached": 0.7999999999999999,
+      "cache_write": 1.5999999999999999,
+      "out": 6.3999999999999995
+    },
+    "qwencloud/qwen-plus": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.2
+    },
+    "qwencloud/qwen-plus-2025-01-25": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.2
+    },
+    "qwencloud/qwen-plus-2025-04-28": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.2
+    },
+    "qwencloud/qwen-plus-2025-07-14": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.2
+    },
+    "qwencloud/qwen-turbo": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.19999999999999998
+    },
+    "qwencloud/qwen-turbo-2024-11-01": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.19999999999999998
+    },
+    "qwencloud/qwen-turbo-2025-04-28": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.19999999999999998
+    },
+    "qwencloud/qwen-turbo-latest": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.19999999999999998
+    },
+    "qwencloud/qwen3-next-80b-a3b-instruct": {
+      "in": 0.15,
+      "cached": 0.075,
+      "cache_write": 0.15,
+      "out": 1.2
+    },
+    "qwencloud/qwen3-next-80b-a3b-thinking": {
+      "in": 0.15,
+      "cached": 0.075,
+      "cache_write": 0.15,
+      "out": 1.2
+    },
+    "qwencloud/qwen3-vl-235b-a22b-instruct": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 1.5999999999999999
+    },
+    "qwencloud/qwen3-vl-235b-a22b-thinking": {
+      "in": 0.39999999999999997,
+      "cached": 0.19999999999999998,
+      "cache_write": 0.39999999999999997,
+      "out": 4.0
+    },
+    "qwencloud/qwen3-vl-32b-instruct": {
+      "in": 0.16,
+      "cached": 0.08,
+      "cache_write": 0.16,
+      "out": 0.64
+    },
+    "qwencloud/qwen3-vl-32b-thinking": {
+      "in": 0.16,
+      "cached": 0.08,
+      "cache_write": 0.16,
+      "out": 2.87
+    },
+    "qwencloud/qwen3.7-max": {
+      "in": 2.5,
+      "cached": 0.5,
+      "cache_write": 2.5,
+      "out": 7.5
+    },
+    "qwencloud/qwen3.8-max": {
+      "in": 2.0,
+      "cached": 0.25,
+      "cache_write": 2.0,
+      "out": 6.0
+    },
+    "qwencloud/qwq-plus": {
+      "in": 0.7999999999999999,
+      "cached": 0.39999999999999997,
+      "cache_write": 0.7999999999999999,
+      "out": 2.4
+    },
     "qwq-32b": {
       "in": 0.66,
       "cached": 0.33,
@@ -27646,6 +28072,12 @@
       "cache_write": 2.5,
       "out": 6.25
     },
+    "together_ai/Qwen/Qwen3.8-Flash": {
+      "in": 0.15,
+      "cached": 0.075,
+      "cache_write": 0.15,
+      "out": 0.47
+    },
     "together_ai/arize-ai/qwen-2-1.5b-instruct": {
       "in": 0.09999999999999999,
       "cached": 0.049999999999999996,
@@ -28375,6 +28807,12 @@
     "us.anthropic.claude-fable-5": {
       "in": 11.0,
       "cached": 1.1,
+      "cache_write": 13.75,
+      "out": 55.0
+    },
+    "us.anthropic.claude-fable-5-1": {
+      "in": 11.0,
+      "cached": 0.275,
       "cache_write": 13.75,
       "out": 55.0
     },
@@ -29479,6 +29917,18 @@
     "vertex_ai/claude-fable-5": {
       "in": 10.0,
       "cached": 1.0,
+      "cache_write": 12.5,
+      "out": 50.0
+    },
+    "vertex_ai/claude-fable-5-1": {
+      "in": 10.0,
+      "cached": 0.25,
+      "cache_write": 12.5,
+      "out": 50.0
+    },
+    "vertex_ai/claude-fable-5-1@default": {
+      "in": 10.0,
+      "cached": 0.25,
       "cache_write": 12.5,
       "out": 50.0
     },
@@ -31331,10 +31781,10 @@
       "out": 4.4
     },
     "zai-org/GLM-5.3": {
-      "in": 1.4,
-      "cached": 0.26,
-      "cache_write": 1.4,
-      "out": 4.4
+      "in": 1.26,
+      "cached": 0.234,
+      "cache_write": 1.26,
+      "out": 3.9600000000000004
     },
     "zai-org/GLM-5.3-Flash": {
       "in": 0.15,
@@ -31535,6 +31985,12 @@
       "out": 5.0
     },
     "zai/glm-5.1": {
+      "in": 1.4,
+      "cached": 0.26,
+      "cache_write": 0.0,
+      "out": 4.4
+    },
+    "zai/glm-5.2": {
       "in": 1.4,
       "cached": 0.26,
       "cache_write": 0.0,
