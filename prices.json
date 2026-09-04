@@ -1,6 +1,6 @@
 {
-  "version": "2026-09-03",
-  "updated": "2026-09-03T11:09:03Z",
+  "version": "2026-09-04",
+  "updated": "2026-09-04T11:13:10Z",
   "source": "litellm",
   "mode": "replace",
   "rates": {
@@ -371,10 +371,10 @@
       "out": 0.28
     },
     "DeepSeek-V4-Flash-0731": {
-      "in": 0.14,
-      "cached": 0.03,
-      "cache_write": 0.14,
-      "out": 0.28
+      "in": 0.44,
+      "cached": 0.014,
+      "cache_write": 0.44,
+      "out": 1.32
     },
     "DeepSeek-V4-Pro": {
       "in": 1.74,
@@ -1547,10 +1547,10 @@
       "out": 1.28
     },
     "Qwen/Qwen3.8-2.4T-A95B": {
-      "in": 2.5,
-      "cached": 0.5,
-      "cache_write": 2.5,
-      "out": 6.25
+      "in": 2.0,
+      "cached": 0.25,
+      "cache_write": 2.0,
+      "out": 6.0
     },
     "Qwen/Qwen3.8-27B": {
       "in": 0.39999999999999997,
@@ -1853,10 +1853,10 @@
       "out": 1.28
     },
     "Qwen3.8-2.4T-A95B": {
-      "in": 2.5,
-      "cached": 0.5,
-      "cache_write": 2.5,
-      "out": 6.25
+      "in": 2.0,
+      "cached": 0.25,
+      "cache_write": 2.0,
+      "out": 6.0
     },
     "Qwen3.8-27B": {
       "in": 0.39999999999999997,
@@ -2506,6 +2506,12 @@
       "cache_write": 1.4,
       "out": 4.4
     },
+    "accounts/fireworks/models/glm-5p3-flash": {
+      "in": 0.15,
+      "cached": 0.03,
+      "cache_write": 0.15,
+      "out": 0.5
+    },
     "accounts/fireworks/models/gpt-oss-120b": {
       "in": 0.15,
       "cached": 0.015,
@@ -2535,6 +2541,12 @@
       "cached": 0.09999999999999999,
       "cache_write": 0.19999999999999998,
       "out": 0.19999999999999998
+    },
+    "accounts/fireworks/models/inkling": {
+      "in": 1.0,
+      "cached": 0.16999999999999998,
+      "cache_write": 1.0,
+      "out": 4.05
     },
     "accounts/fireworks/models/internvl3-38b": {
       "in": 0.8999999999999999,
@@ -5620,6 +5632,30 @@
       "cache_write": 0.09999999999999999,
       "out": 0.0
     },
+    "azure/us-gov/gpt-5.1": {
+      "in": 1.71875,
+      "cached": 0.171875,
+      "cache_write": 1.71875,
+      "out": 13.75
+    },
+    "azure/us-gov/o3-mini": {
+      "in": 1.513,
+      "cached": 0.757,
+      "cache_write": 1.513,
+      "out": 6.05
+    },
+    "azure/us-gov/text-embedding-3-large": {
+      "in": 0.16299999999999998,
+      "cached": 0.08149999999999999,
+      "cache_write": 0.16299999999999998,
+      "out": 0.0
+    },
+    "azure/us-gov/text-embedding-3-small": {
+      "in": 0.024999999999999998,
+      "cached": 0.012499999999999999,
+      "cache_write": 0.024999999999999998,
+      "out": 0.0
+    },
     "azure/us/gpt-4.1-2025-04-14": {
       "in": 2.2,
       "cached": 0.55,
@@ -5811,6 +5847,12 @@
       "cached": 0.049999999999999996,
       "cache_write": 0.09999999999999999,
       "out": 0.0
+    },
+    "azure_ai/DeepSeek-V4-Flash-0731": {
+      "in": 0.44,
+      "cached": 0.014,
+      "cache_write": 0.44,
+      "out": 1.32
     },
     "azure_ai/FW-DeepSeek-V3.2": {
       "in": 0.62,
@@ -6198,19 +6240,13 @@
     },
     "azure_ai/deepseek-v4-flash": {
       "in": 0.19,
-      "cached": 0.095,
-      "cache_write": 0.19,
-      "out": 0.51
-    },
-    "azure_ai/deepseek-v4-flash-0731": {
-      "in": 0.19,
       "cached": 0.028,
       "cache_write": 0.19,
       "out": 0.51
     },
     "azure_ai/deepseek-v4-pro": {
       "in": 1.74,
-      "cached": 0.87,
+      "cached": 0.145,
       "cache_write": 1.74,
       "out": 3.48
     },
@@ -6366,13 +6402,19 @@
     },
     "azure_ai/kimi-k2.5": {
       "in": 0.6,
-      "cached": 0.3,
+      "cached": 0.09999999999999999,
       "cache_write": 0.6,
       "out": 3.0
     },
     "azure_ai/kimi-k2.6": {
       "in": 0.95,
-      "cached": 0.475,
+      "cached": 0.16,
+      "cache_write": 0.95,
+      "out": 4.0
+    },
+    "azure_ai/kimi-k2.7-code": {
+      "in": 0.95,
+      "cached": 0.19,
       "cache_write": 0.95,
       "out": 4.0
     },
@@ -7132,11 +7174,23 @@
       "cache_write": 1.5,
       "out": 6.0
     },
+    "bedrock/us-gov-east-1/anthropic.claude-opus-4-8": {
+      "in": 6.0,
+      "cached": 0.6,
+      "cache_write": 7.5,
+      "out": 30.0
+    },
     "bedrock/us-gov-east-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
       "cached": 0.36,
       "cache_write": 4.5,
       "out": 18.0
+    },
+    "bedrock/us-gov-east-1/anthropic.claude-sonnet-5": {
+      "in": 2.4,
+      "cached": 0.24,
+      "cache_write": 3.0,
+      "out": 12.0
     },
     "bedrock/us-gov-east-1/claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
@@ -7155,6 +7209,36 @@
       "cached": 0.15,
       "cache_write": 0.3,
       "out": 2.65
+    },
+    "bedrock/us-gov-east-1/nvidia.nemotron-nano-12b-v2": {
+      "in": 0.24,
+      "cached": 0.12,
+      "cache_write": 0.24,
+      "out": 0.72
+    },
+    "bedrock/us-gov-east-1/nvidia.nemotron-nano-3-30b": {
+      "in": 0.072,
+      "cached": 0.036,
+      "cache_write": 0.072,
+      "out": 0.288
+    },
+    "bedrock/us-gov-east-1/nvidia.nemotron-super-3-120b": {
+      "in": 0.18,
+      "cached": 0.09,
+      "cache_write": 0.18,
+      "out": 0.78
+    },
+    "bedrock/us-gov-east-1/openai.gpt-oss-120b-1:0": {
+      "in": 0.18,
+      "cached": 0.09,
+      "cache_write": 0.18,
+      "out": 0.72
+    },
+    "bedrock/us-gov-east-1/openai.gpt-oss-20b-1:0": {
+      "in": 0.08399999999999999,
+      "cached": 0.041999999999999996,
+      "cache_write": 0.08399999999999999,
+      "out": 0.36
     },
     "bedrock/us-gov-west-1/amazon.nova-pro-v1:0": {
       "in": 0.96,
@@ -7216,11 +7300,23 @@
       "cache_write": 1.5,
       "out": 6.0
     },
+    "bedrock/us-gov-west-1/anthropic.claude-opus-4-8": {
+      "in": 6.0,
+      "cached": 0.6,
+      "cache_write": 7.5,
+      "out": 30.0
+    },
     "bedrock/us-gov-west-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
       "cached": 0.36,
       "cache_write": 4.5,
       "out": 18.0
+    },
+    "bedrock/us-gov-west-1/anthropic.claude-sonnet-5": {
+      "in": 2.4,
+      "cached": 0.24,
+      "cache_write": 3.0,
+      "out": 12.0
     },
     "bedrock/us-gov-west-1/claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
@@ -7238,7 +7334,37 @@
       "in": 0.3,
       "cached": 0.15,
       "cache_write": 0.3,
-      "out": 2.65
+      "out": 0.6
+    },
+    "bedrock/us-gov-west-1/nvidia.nemotron-nano-12b-v2": {
+      "in": 0.24,
+      "cached": 0.12,
+      "cache_write": 0.24,
+      "out": 0.72
+    },
+    "bedrock/us-gov-west-1/nvidia.nemotron-nano-3-30b": {
+      "in": 0.072,
+      "cached": 0.036,
+      "cache_write": 0.072,
+      "out": 0.288
+    },
+    "bedrock/us-gov-west-1/nvidia.nemotron-super-3-120b": {
+      "in": 0.18,
+      "cached": 0.09,
+      "cache_write": 0.18,
+      "out": 0.78
+    },
+    "bedrock/us-gov-west-1/openai.gpt-oss-120b-1:0": {
+      "in": 0.18,
+      "cached": 0.09,
+      "cache_write": 0.18,
+      "out": 0.72
+    },
+    "bedrock/us-gov-west-1/openai.gpt-oss-20b-1:0": {
+      "in": 0.08399999999999999,
+      "cached": 0.041999999999999996,
+      "cache_write": 0.08399999999999999,
+      "out": 0.36
     },
     "bedrock/us-west-1/meta.llama3-70b-instruct-v1:0": {
       "in": 2.65,
@@ -7413,6 +7539,36 @@
       "cached": 0.0375,
       "cache_write": 0.075,
       "out": 0.3
+    },
+    "bedrock_mantle/us-gov-east-1/openai.gpt-5.4": {
+      "in": 3.3000000000000003,
+      "cached": 0.33,
+      "cache_write": 3.3000000000000003,
+      "out": 19.8
+    },
+    "bedrock_mantle/us-gov-west-1/openai.gpt-5.4": {
+      "in": 3.3000000000000003,
+      "cached": 0.33,
+      "cache_write": 3.3000000000000003,
+      "out": 19.8
+    },
+    "bedrock_mantle/us-gov-west-1/openai.gpt-5.6-luna": {
+      "in": 0.26399999999999996,
+      "cached": 0.0264,
+      "cache_write": 0.33,
+      "out": 1.584
+    },
+    "bedrock_mantle/us-gov-west-1/openai.gpt-5.6-terra": {
+      "in": 2.64,
+      "cached": 0.26399999999999996,
+      "cache_write": 3.3000000000000003,
+      "out": 15.840000000000002
+    },
+    "bedrock_mantle/us-gov-west-1/xai.grok-4.3": {
+      "in": 1.5,
+      "cached": 0.24,
+      "cache_write": 1.5,
+      "out": 3.0
     },
     "bedrock_mantle/xai.grok-4.3": {
       "in": 1.25,
@@ -10943,10 +11099,10 @@
       "out": 1.32
     },
     "deepseek-v4-flash-0731": {
-      "in": 0.19,
-      "cached": 0.028,
-      "cache_write": 0.19,
-      "out": 0.51
+      "in": 0.19999999999999998,
+      "cached": 0.04,
+      "cache_write": 0.19999999999999998,
+      "out": 0.39999999999999997
     },
     "deepseek-v4-flash-thinking": {
       "in": 0.25,
@@ -12526,6 +12682,12 @@
       "cache_write": 1.4,
       "out": 4.4
     },
+    "fireworks_ai/accounts/fireworks/models/glm-5p3-flash": {
+      "in": 0.15,
+      "cached": 0.03,
+      "cache_write": 0.15,
+      "out": 0.5
+    },
     "fireworks_ai/accounts/fireworks/models/gpt-oss-120b": {
       "in": 0.15,
       "cached": 0.015,
@@ -12555,6 +12717,12 @@
       "cached": 0.09999999999999999,
       "cache_write": 0.19999999999999998,
       "out": 0.19999999999999998
+    },
+    "fireworks_ai/accounts/fireworks/models/inkling": {
+      "in": 1.0,
+      "cached": 0.16999999999999998,
+      "cache_write": 1.0,
+      "out": 4.05
     },
     "fireworks_ai/accounts/fireworks/models/internvl3-38b": {
       "in": 0.8999999999999999,
@@ -14296,6 +14464,12 @@
       "cache_write": 0.75,
       "out": 3.75
     },
+    "gemini-3.8-flash": {
+      "in": 0.75,
+      "cached": 0.075,
+      "cache_write": 0.75,
+      "out": 3.75
+    },
     "gemini-embedding-001": {
       "in": 0.15,
       "cached": 0.075,
@@ -14645,6 +14819,12 @@
       "out": 3.75
     },
     "gemini/gemini-3.7-flash": {
+      "in": 0.75,
+      "cached": 0.075,
+      "cache_write": 0.75,
+      "out": 3.75
+    },
+    "gemini/gemini-3.8-flash": {
       "in": 0.75,
       "cached": 0.075,
       "cache_write": 0.75,
@@ -15207,6 +15387,12 @@
       "cached": 0.26,
       "cache_write": 1.4,
       "out": 4.4
+    },
+    "glm-5p3-flash": {
+      "in": 0.15,
+      "cached": 0.03,
+      "cache_write": 0.15,
+      "out": 0.5
     },
     "glm-5v-turbo": {
       "in": 1.2,
@@ -16396,6 +16582,12 @@
       "cache_write": 2.5,
       "out": 12.0
     },
+    "gpt-6-astra": {
+      "in": 10.0,
+      "cached": 1.0,
+      "cache_write": 12.5,
+      "out": 50.0
+    },
     "gpt-audio": {
       "in": 2.5,
       "cached": 1.25,
@@ -16568,7 +16760,7 @@
       "in": 4.0,
       "cached": 0.39999999999999997,
       "cache_write": 4.0,
-      "out": 16.0
+      "out": 24.0
     },
     "gpt-realtime-2.1": {
       "in": 4.0,
@@ -17020,6 +17212,12 @@
       "cache_write": 1.0,
       "out": 2.0
     },
+    "grok-build-latest": {
+      "in": 2.0,
+      "cached": 0.3,
+      "cache_write": 2.0,
+      "out": 6.0
+    },
     "grok-code-fast": {
       "in": 1.0,
       "cached": 0.19999999999999998,
@@ -17422,6 +17620,12 @@
       "cache_write": 0.06,
       "out": 0.18
     },
+    "inkling": {
+      "in": 1.0,
+      "cached": 0.16999999999999998,
+      "cache_write": 1.0,
+      "out": 4.05
+    },
     "internlm2_5-20b-chat": {
       "in": 0.0,
       "cached": 0.0,
@@ -17700,13 +17904,13 @@
     },
     "kimi-k2.5": {
       "in": 0.6,
-      "cached": 0.3,
+      "cached": 0.09999999999999999,
       "cache_write": 0.6,
       "out": 3.0
     },
     "kimi-k2.6": {
       "in": 0.95,
-      "cached": 0.475,
+      "cached": 0.16,
       "cache_write": 0.95,
       "out": 4.0
     },
@@ -18917,10 +19121,10 @@
       "out": 5.0
     },
     "magistral-medium-latest": {
-      "in": 2.0,
-      "cached": 1.0,
-      "cache_write": 2.0,
-      "out": 5.0
+      "in": 1.5,
+      "cached": 0.15,
+      "cache_write": 1.5,
+      "out": 7.5
     },
     "magistral-small": {
       "in": 0.5,
@@ -18941,10 +19145,10 @@
       "out": 1.5
     },
     "magistral-small-latest": {
-      "in": 0.5,
-      "cached": 0.25,
-      "cache_write": 0.5,
-      "out": 1.5
+      "in": 0.15,
+      "cached": 0.015,
+      "cache_write": 0.15,
+      "out": 0.6
     },
     "mai-code-1-flash": {
       "in": 0.75,
@@ -19630,6 +19834,18 @@
       "cache_write": 0.09999999999999999,
       "out": 0.19999999999999998
     },
+    "meta/muse-spark-1.3": {
+      "in": 1.25,
+      "cached": 0.15,
+      "cache_write": 1.25,
+      "out": 4.25
+    },
+    "meta/muse-spark-1.3-contributor": {
+      "in": 0.09999999999999999,
+      "cached": 0.002,
+      "cache_write": 0.09999999999999999,
+      "out": 0.19999999999999998
+    },
     "microsoft/Phi-4-mini-instruct": {
       "in": 8000.0,
       "cached": 4000.0,
@@ -20135,10 +20351,10 @@
       "out": 6.0
     },
     "mistral-medium": {
-      "in": 2.7,
-      "cached": 1.35,
-      "cache_write": 2.7,
-      "out": 8.1
+      "in": 1.5,
+      "cached": 0.15,
+      "cache_write": 1.5,
+      "out": 7.5
     },
     "mistral-medium-2312": {
       "in": 2.7,
@@ -20555,10 +20771,10 @@
       "out": 5.0
     },
     "mistral/magistral-medium-latest": {
-      "in": 2.0,
-      "cached": 1.0,
-      "cache_write": 2.0,
-      "out": 5.0
+      "in": 1.5,
+      "cached": 0.15,
+      "cache_write": 1.5,
+      "out": 7.5
     },
     "mistral/magistral-small": {
       "in": 0.5,
@@ -20579,10 +20795,10 @@
       "out": 1.5
     },
     "mistral/magistral-small-latest": {
-      "in": 0.5,
-      "cached": 0.25,
-      "cache_write": 0.5,
-      "out": 1.5
+      "in": 0.15,
+      "cached": 0.015,
+      "cache_write": 0.15,
+      "out": 0.6
     },
     "mistral/ministral-14b-2512": {
       "in": 0.19999999999999998,
@@ -20723,10 +20939,10 @@
       "out": 1.5
     },
     "mistral/mistral-medium": {
-      "in": 2.7,
-      "cached": 1.35,
-      "cache_write": 2.7,
-      "out": 8.1
+      "in": 1.5,
+      "cached": 0.15,
+      "cache_write": 1.5,
+      "out": 7.5
     },
     "mistral/mistral-medium-2312": {
       "in": 2.7,
@@ -21587,6 +21803,18 @@
       "out": 4.25
     },
     "muse-spark-1.2-contributor": {
+      "in": 0.09999999999999999,
+      "cached": 0.002,
+      "cache_write": 0.09999999999999999,
+      "out": 0.19999999999999998
+    },
+    "muse-spark-1.3": {
+      "in": 1.25,
+      "cached": 0.15,
+      "cache_write": 1.25,
+      "out": 4.25
+    },
+    "muse-spark-1.3-contributor": {
       "in": 0.09999999999999999,
       "cached": 0.002,
       "cache_write": 0.09999999999999999,
@@ -26950,6 +27178,18 @@
       "cache_write": 0.02,
       "out": 0.0
     },
+    "rerank-3": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.0
+    },
+    "rerank-3-lite": {
+      "in": 0.02,
+      "cached": 0.01,
+      "cache_write": 0.02,
+      "out": 0.0
+    },
     "rerank-english-v2.0": {
       "in": 0.0,
       "cached": 0.0,
@@ -27237,6 +27477,18 @@
       "cached": 0.049999999999999996,
       "cache_write": 0.09999999999999999,
       "out": 0.0
+    },
+    "scaleway/deepseek-v4-flash-0731": {
+      "in": 0.39999999999999997,
+      "cached": 0.08,
+      "cache_write": 0.39999999999999997,
+      "out": 0.7999999999999999
+    },
+    "scaleway/glm-5.2": {
+      "in": 1.7999999999999998,
+      "cached": 0.8999999999999999,
+      "cache_write": 1.7999999999999998,
+      "out": 5.5
     },
     "scaleway/google/gemma-3-27b-it": {
       "in": 0.25,
@@ -28067,10 +28319,10 @@
       "out": 1.28
     },
     "together_ai/Qwen/Qwen3.8-2.4T-A95B": {
-      "in": 2.5,
-      "cached": 0.5,
-      "cache_write": 2.5,
-      "out": 6.25
+      "in": 2.0,
+      "cached": 0.25,
+      "cache_write": 2.0,
+      "out": 6.0
     },
     "together_ai/Qwen/Qwen3.8-Flash": {
       "in": 0.15,
@@ -28522,11 +28774,23 @@
       "cache_write": 1.5,
       "out": 6.0
     },
+    "us-gov-east-1/anthropic.claude-opus-4-8": {
+      "in": 6.0,
+      "cached": 0.6,
+      "cache_write": 7.5,
+      "out": 30.0
+    },
     "us-gov-east-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
       "cached": 0.36,
       "cache_write": 4.5,
       "out": 18.0
+    },
+    "us-gov-east-1/anthropic.claude-sonnet-5": {
+      "in": 2.4,
+      "cached": 0.24,
+      "cache_write": 3.0,
+      "out": 12.0
     },
     "us-gov-east-1/claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
@@ -28545,6 +28809,42 @@
       "cached": 0.15,
       "cache_write": 0.3,
       "out": 2.65
+    },
+    "us-gov-east-1/nvidia.nemotron-nano-12b-v2": {
+      "in": 0.24,
+      "cached": 0.12,
+      "cache_write": 0.24,
+      "out": 0.72
+    },
+    "us-gov-east-1/nvidia.nemotron-nano-3-30b": {
+      "in": 0.072,
+      "cached": 0.036,
+      "cache_write": 0.072,
+      "out": 0.288
+    },
+    "us-gov-east-1/nvidia.nemotron-super-3-120b": {
+      "in": 0.18,
+      "cached": 0.09,
+      "cache_write": 0.18,
+      "out": 0.78
+    },
+    "us-gov-east-1/openai.gpt-5.4": {
+      "in": 3.3000000000000003,
+      "cached": 0.33,
+      "cache_write": 3.3000000000000003,
+      "out": 19.8
+    },
+    "us-gov-east-1/openai.gpt-oss-120b-1:0": {
+      "in": 0.18,
+      "cached": 0.09,
+      "cache_write": 0.18,
+      "out": 0.72
+    },
+    "us-gov-east-1/openai.gpt-oss-20b-1:0": {
+      "in": 0.08399999999999999,
+      "cached": 0.041999999999999996,
+      "cache_write": 0.08399999999999999,
+      "out": 0.36
     },
     "us-gov-west-1/amazon.nova-pro-v1:0": {
       "in": 0.96,
@@ -28606,11 +28906,23 @@
       "cache_write": 1.5,
       "out": 6.0
     },
+    "us-gov-west-1/anthropic.claude-opus-4-8": {
+      "in": 6.0,
+      "cached": 0.6,
+      "cache_write": 7.5,
+      "out": 30.0
+    },
     "us-gov-west-1/anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
       "cached": 0.36,
       "cache_write": 4.5,
       "out": 18.0
+    },
+    "us-gov-west-1/anthropic.claude-sonnet-5": {
+      "in": 2.4,
+      "cached": 0.24,
+      "cache_write": 3.0,
+      "out": 12.0
     },
     "us-gov-west-1/claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
@@ -28628,13 +28940,103 @@
       "in": 0.3,
       "cached": 0.15,
       "cache_write": 0.3,
-      "out": 2.65
+      "out": 0.6
+    },
+    "us-gov-west-1/nvidia.nemotron-nano-12b-v2": {
+      "in": 0.24,
+      "cached": 0.12,
+      "cache_write": 0.24,
+      "out": 0.72
+    },
+    "us-gov-west-1/nvidia.nemotron-nano-3-30b": {
+      "in": 0.072,
+      "cached": 0.036,
+      "cache_write": 0.072,
+      "out": 0.288
+    },
+    "us-gov-west-1/nvidia.nemotron-super-3-120b": {
+      "in": 0.18,
+      "cached": 0.09,
+      "cache_write": 0.18,
+      "out": 0.78
+    },
+    "us-gov-west-1/openai.gpt-5.4": {
+      "in": 3.3000000000000003,
+      "cached": 0.33,
+      "cache_write": 3.3000000000000003,
+      "out": 19.8
+    },
+    "us-gov-west-1/openai.gpt-5.6-luna": {
+      "in": 0.26399999999999996,
+      "cached": 0.0264,
+      "cache_write": 0.33,
+      "out": 1.584
+    },
+    "us-gov-west-1/openai.gpt-5.6-terra": {
+      "in": 2.64,
+      "cached": 0.26399999999999996,
+      "cache_write": 3.3000000000000003,
+      "out": 15.840000000000002
+    },
+    "us-gov-west-1/openai.gpt-oss-120b-1:0": {
+      "in": 0.18,
+      "cached": 0.09,
+      "cache_write": 0.18,
+      "out": 0.72
+    },
+    "us-gov-west-1/openai.gpt-oss-20b-1:0": {
+      "in": 0.08399999999999999,
+      "cached": 0.041999999999999996,
+      "cache_write": 0.08399999999999999,
+      "out": 0.36
+    },
+    "us-gov-west-1/xai.grok-4.3": {
+      "in": 1.5,
+      "cached": 0.24,
+      "cache_write": 1.5,
+      "out": 3.0
+    },
+    "us-gov.anthropic.claude-opus-4-8": {
+      "in": 6.0,
+      "cached": 0.6,
+      "cache_write": 7.5,
+      "out": 30.0
     },
     "us-gov.anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "in": 3.5999999999999996,
       "cached": 0.36,
       "cache_write": 4.5,
       "out": 18.0
+    },
+    "us-gov.anthropic.claude-sonnet-5": {
+      "in": 2.4,
+      "cached": 0.24,
+      "cache_write": 3.0,
+      "out": 12.0
+    },
+    "us-gov/gpt-5.1": {
+      "in": 1.71875,
+      "cached": 0.171875,
+      "cache_write": 1.71875,
+      "out": 13.75
+    },
+    "us-gov/o3-mini": {
+      "in": 1.513,
+      "cached": 0.757,
+      "cache_write": 1.513,
+      "out": 6.05
+    },
+    "us-gov/text-embedding-3-large": {
+      "in": 0.16299999999999998,
+      "cached": 0.08149999999999999,
+      "cache_write": 0.16299999999999998,
+      "out": 0.0
+    },
+    "us-gov/text-embedding-3-small": {
+      "in": 0.024999999999999998,
+      "cached": 0.012499999999999999,
+      "cache_write": 0.024999999999999998,
+      "out": 0.0
     },
     "us-west-1/meta.llama3-70b-instruct-v1:0": {
       "in": 2.65,
@@ -30250,6 +30652,12 @@
       "cache_write": 0.75,
       "out": 3.75
     },
+    "vertex_ai/gemini-3.8-flash": {
+      "in": 0.75,
+      "cached": 0.075,
+      "cache_write": 0.75,
+      "out": 3.75
+    },
     "vertex_ai/gemini-embedding-2": {
       "in": 0.19999999999999998,
       "cached": 0.09999999999999999,
@@ -30701,6 +31109,18 @@
       "out": 0.0
     },
     "voyage/rerank-2.5-lite": {
+      "in": 0.02,
+      "cached": 0.01,
+      "cache_write": 0.02,
+      "out": 0.0
+    },
+    "voyage/rerank-3": {
+      "in": 0.049999999999999996,
+      "cached": 0.024999999999999998,
+      "cache_write": 0.049999999999999996,
+      "out": 0.0
+    },
+    "voyage/rerank-3-lite": {
       "in": 0.02,
       "cached": 0.01,
       "cache_write": 0.02,
@@ -31587,6 +32007,12 @@
       "cached": 0.19999999999999998,
       "cache_write": 1.0,
       "out": 2.0
+    },
+    "xai/grok-build-latest": {
+      "in": 2.0,
+      "cached": 0.3,
+      "cache_write": 2.0,
+      "out": 6.0
     },
     "xai/grok-code-fast": {
       "in": 1.0,
